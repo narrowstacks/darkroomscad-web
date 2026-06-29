@@ -49,7 +49,12 @@ export class PreviewController {
 
   private settle(gen: number, apply: () => void): void {
     this.inFlight = false;
-    if (gen === this.generation && !this.disposed) apply();  // drop stale
+    // `gen === this.generation` is a safety net: the `inFlight` mutex serializes
+    // renders, so newest-wins is achieved by sequencing (only the latest `pending`
+    // render ever starts), not by dropping a stale in-flight result. The guard would
+    // only ever fire if concurrent renders were introduced. `!this.disposed` is the
+    // load-bearing guard — it stops a late-resolving render from emitting after dispose.
+    if (gen === this.generation && !this.disposed) apply();
     if (this.pending && !this.disposed) {
       const next = this.pending;
       this.pending = null;

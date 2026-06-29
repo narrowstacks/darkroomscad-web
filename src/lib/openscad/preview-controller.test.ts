@@ -54,4 +54,19 @@ describe("PreviewController", () => {
     expect(errState).toBe("boom");
     vi.useRealTimers();
   });
+
+  it("does not emit after dispose while a render is in flight", async () => {
+    vi.useFakeTimers();
+    const d = deferred<RenderResult>();
+    const render = vi.fn().mockReturnValue(d.promise);
+    const states: string[] = [];
+    const ctl = new PreviewController({ render }, { debounceMs: 0, onState: (s) => states.push(s.status) });
+    ctl.request({ A: 1 });
+    await vi.advanceTimersByTimeAsync(0); // render started -> "rendering"
+    ctl.dispose();
+    d.resolve(result([1]));
+    await Promise.resolve();
+    expect(states).toEqual(["rendering"]); // "done" must NOT be emitted after dispose
+    vi.useRealTimers();
+  });
 });
