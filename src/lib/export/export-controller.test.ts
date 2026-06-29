@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { renderParts, zipParts } from "./export-controller";
+import { renderParts, zipParts, isEmptyStlError } from "./export-controller";
 import { unzipSync } from "fflate";
 import type { RenderResult } from "../openscad/types";
 
@@ -17,7 +17,13 @@ describe("renderParts", () => {
     expect(render).toHaveBeenCalledTimes(2); // top + bottom
     expect(result.parts).toHaveLength(2);
     expect(result.skipped).toHaveLength(0);
-    expect(seen[seen.length - 1]).toBe("2/2");
+    expect(seen).toEqual(["0/2", "1/2", "2/2"]); // before each job + once at end
+  });
+
+  it("isEmptyStlError matches both empty messages but not a real failure", () => {
+    expect(isEmptyStlError(new Error("Render produced an empty (degenerate) STL."))).toBe(true);
+    expect(isEmptyStlError(new Error("produced no output"))).toBe(true);
+    expect(isEmptyStlError(new Error("OpenSCAD exited with code 1."))).toBe(false);
   });
 
   it("skips a part whose render is empty/degenerate (not fatal)", async () => {
