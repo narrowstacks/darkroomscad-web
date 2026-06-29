@@ -1,12 +1,14 @@
 "use client";
+import type * as React from "react";
 import { coerceOptionValue } from "@/lib/form/control-value";
 import type { FormValue } from "@/lib/form/types";
 
-export function CardSelect({ options, value, onChange, label }: {
+export function CardSelect({ options, value, onChange, label, renderVisual }: {
   options: { value: string | number; label: string }[];
   value: FormValue;
   onChange: (v: FormValue) => void;
   label: string;
+  renderVisual?: (value: string | number) => React.ReactNode;
 }) {
   return (
     <div className="py-1">
@@ -23,6 +25,11 @@ export function CardSelect({ options, value, onChange, label }: {
                 border: `1px solid ${selected ? "var(--primary)" : "var(--border)"}`,
                 color: selected ? "var(--text)" : "var(--text-muted)",
               }}>
+              {renderVisual && (
+                <span className="mb-1.5 flex h-10 items-center justify-center" aria-hidden>
+                  {renderVisual(o.value)}
+                </span>
+              )}
               {o.label}
             </button>
           );

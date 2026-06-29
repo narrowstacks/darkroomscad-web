@@ -6,7 +6,8 @@ export const CARRIER_UI: GroupConfig[] = [
   {
     title: "Carrier",
     fields: [
-      { param: "Carrier_Type", label: "Enlarger", help: "Which enlarger this carrier fits." },
+      { param: "Carrier_Type", label: "Enlarger", help: "Which enlarger this carrier fits.",
+        control: "cards", optionVisual: "carrier-outline" },
       { param: "Film_Format", label: "Film format" },
       { param: "Orientation", label: "Orientation", help: "Ignored for 4x5." },
       { param: "Top_or_Bottom", label: "Part", help: "A full carrier needs both top and bottom printed." },

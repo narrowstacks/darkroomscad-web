@@ -5,6 +5,7 @@ import { Switch } from "./Switch";
 import { Slider } from "./Slider";
 import { CardSelect } from "./CardSelect";
 import { coerceOptionValue } from "@/lib/form/control-value";
+import { CARRIER_OUTLINES } from "@/lib/outline/outlines";
 
 export function Field({ field, value, onChange }: {
   field: ResolvedField;
@@ -16,7 +17,13 @@ export function Field({ field, value, onChange }: {
     case "segmented":
       return <Segmented options={field.options ?? []} value={value} onChange={onChange} label={field.label} />;
     case "cards":
-      return <CardSelect options={field.options ?? []} value={value} onChange={onChange} label={field.label} />;
+      return <CardSelect options={field.options ?? []} value={value} onChange={onChange} label={field.label}
+        renderVisual={field.optionVisual === "carrier-outline"
+          ? (v) => {
+              const src = CARRIER_OUTLINES[String(v)];
+              return src ? <img src={src} alt="" aria-hidden className="h-9 w-auto opacity-80" /> : null;
+            }
+          : undefined} />;
     case "switch":
     case "toggle":
       return <Switch checked={value === true} onChange={onChange} label={field.label} help={field.help} />;

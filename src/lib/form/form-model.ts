@@ -40,6 +40,7 @@ export function resolveFormModel(schema: ParamSchema, ui: GroupConfig[]): Resolv
         max: p.max,
         step: p.step,
         default: override !== undefined ? override : p.default,
+        optionVisual: fc.optionVisual,
         visibleWhen: fc.visibleWhen,
       };
     }),

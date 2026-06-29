@@ -10,6 +10,7 @@ export interface FieldConfig {
   advanced?: boolean;
   control?: ControlKind;
   optionsFrom?: "fonts";
+  optionVisual?: "carrier-outline";
   visibleWhen?: (values: Record<string, FormValue>) => boolean;
 }
 
@@ -29,6 +30,7 @@ export interface ResolvedField {
   max?: number;
   step?: number;
   default: FormValue;
+  optionVisual?: "carrier-outline";
   visibleWhen?: (values: Record<string, FormValue>) => boolean;
 }
 
