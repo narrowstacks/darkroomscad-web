@@ -272,9 +272,7 @@ async function main() {
   // Local mode: use --local or the default checkout.
   const localFlagPath = getLocalFlagPath();
   const base = localFlagPath !== null ? localFlagPath : defaultBase();
-  const defaultCarrierExists = existsSync(
-    join(localFlagPath !== null ? localFlagPath : defaultBase(), CARRIER_ROOT_SUBDIR, "carrier.scad"),
-  );
+  const defaultCarrierExists = existsSync(join(base, CARRIER_ROOT_SUBDIR, "carrier.scad"));
 
   if (!shouldSync(localFlagPath, defaultCarrierExists)) {
     console.warn(
