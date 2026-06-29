@@ -36,7 +36,7 @@ export function Field({ field, value, onChange }: {
       return <Switch checked={value === true} onChange={onChange} label={field.label} help={field.help} />;
     case "slider":
       return <Slider value={Number(value)} min={field.min} max={field.max} step={field.step}
-        onChange={onChange} label={field.label} unit={undefined} />;
+        onChange={onChange} label={field.label} unit={field.unit} />;
     case "select":
       return (
         <div className="py-1">

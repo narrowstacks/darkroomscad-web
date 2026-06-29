@@ -14,6 +14,7 @@ export interface FieldConfig {
   min?: number;
   max?: number;
   step?: number;
+  unit?: string;
   visibleWhen?: (values: Record<string, FormValue>) => boolean;
 }
 
@@ -32,6 +33,7 @@ export interface ResolvedField {
   min?: number;
   max?: number;
   step?: number;
+  unit?: string;
   default: FormValue;
   optionVisual?: "carrier-outline";
   visibleWhen?: (values: Record<string, FormValue>) => boolean;

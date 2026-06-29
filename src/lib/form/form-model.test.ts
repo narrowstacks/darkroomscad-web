@@ -80,6 +80,22 @@ describe("resolveFormModel", () => {
     const f = resolveFormModel(schema, ui)[0].fields[0];
     expect(f.min).toBe(0);
   });
+
+  it("passes unit from overlay through to the resolved field", () => {
+    const ui: GroupConfig[] = [{ title: "Text", fields: [
+      { param: "Font_Size", label: "Font size", control: "slider", unit: "mm" },
+    ] }];
+    const f = resolveFormModel(schema, ui)[0].fields[0];
+    expect(f.unit).toBe("mm");
+  });
+
+  it("resolves unit as undefined when not set in the overlay", () => {
+    const ui: GroupConfig[] = [{ title: "Text", fields: [
+      { param: "Font_Size", label: "Font size", control: "slider" },
+    ] }];
+    const f = resolveFormModel(schema, ui)[0].fields[0];
+    expect(f.unit).toBeUndefined();
+  });
 });
 
 describe("validateOverlay", () => {

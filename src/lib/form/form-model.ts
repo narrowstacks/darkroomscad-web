@@ -39,6 +39,7 @@ export function resolveFormModel(schema: ParamSchema, ui: GroupConfig[]): Resolv
         min: fc.min ?? p.min,
         max: fc.max ?? p.max,
         step: fc.step ?? p.step,
+        unit: fc.unit,
         default: override !== undefined ? override : p.default,
         optionVisual: fc.optionVisual,
         visibleWhen: fc.visibleWhen,
