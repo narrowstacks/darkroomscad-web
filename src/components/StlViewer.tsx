@@ -39,7 +39,7 @@ export function StlViewer({ stl, quality, loading }: {
         <ambientLight intensity={0.6} />
         <directionalLight position={[50, 80, 30]} intensity={1.1} castShadow />
         <Grid args={[400, 400]} cellSize={10} sectionSize={50}
-          cellColor={viewer.grid} sectionColor={"#454545"} infiniteGrid fadeDistance={500}
+          cellColor={viewer.grid} sectionColor={viewer.grid} infiniteGrid fadeDistance={500}
           position={[0, -0.01, 0]} />
         {stl && (
           <Bounds fit clip observe margin={1.2}>

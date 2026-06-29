@@ -1,8 +1,10 @@
 "use client";
 import { useTheme } from "./ThemeProvider";
 import { nextTheme } from "@/lib/theme/resolve";
+import type { ThemeName } from "@/lib/theme/themes";
 
-const LABEL: Record<string, string> = {
+// Record<ThemeName,…> so adding a 5th theme can't ship without a label.
+const LABEL: Record<ThemeName, string> = {
   dark: "Dark", light: "Light", darkroom: "Safelight", "high-contrast": "High contrast",
 };
 
