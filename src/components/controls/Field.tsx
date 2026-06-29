@@ -20,8 +20,15 @@ export function Field({ field, value, onChange }: {
       return <CardSelect options={field.options ?? []} value={value} onChange={onChange} label={field.label}
         renderVisual={field.optionVisual === "carrier-outline"
           ? (v) => {
-              const src = CARRIER_OUTLINES[String(v)];
-              return src ? <img src={src} alt="" aria-hidden className="h-9 w-auto opacity-80" /> : null;
+              const o = CARRIER_OUTLINES[String(v)];
+              // Inline SVG with fill="currentColor" so the silhouette follows the card's
+              // text color (white in dark, dark in light, red in safelight).
+              return o ? (
+                <svg viewBox={o.viewBox} aria-hidden fill="currentColor"
+                  preserveAspectRatio="xMidYMid meet" className="h-9 w-auto opacity-90">
+                  <path d={o.d} />
+                </svg>
+              ) : null;
             }
           : undefined} />;
     case "switch":
