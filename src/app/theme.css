@@ -1,0 +1,18 @@
+:root {
+  --bg: #09090b;
+  --surface: #121214;
+  --surface-muted: #1c1c1f;
+  --border: rgba(255, 255, 255, 0.1);
+  --border-strong: rgba(255, 255, 255, 0.2);
+  --text: #ffffff;
+  --text-muted: #a1a1aa;
+  --text-dim: #71717a;
+  --primary: #6ef3a4;
+  --secondary: #7dd6ff;
+  --accent: #f99f96;
+  --highlight: #e5ff7d;
+  --error: #f99f96;
+  --success: #6ef3a4;
+  --viewer-model: #9a9a9a;
+  --viewer-grid: #353535;
+}
