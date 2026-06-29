@@ -70,6 +70,16 @@ describe("resolveFormModel", () => {
     expect(f.max).toBe(50);
     expect(f.step).toBe(1);
   });
+
+  it("treats a 0 overlay bound as a real override (?? not ||)", () => {
+    // Font_Size schema min is 6; an overlay min of 0 must win — `0 ?? 6` is 0,
+    // whereas a `||` bug would wrongly return 6. Guards the resolver semantics.
+    const ui: GroupConfig[] = [{ title: "Text", fields: [
+      { param: "Font_Size", label: "Font size", control: "slider", min: 0 },
+    ] }];
+    const f = resolveFormModel(schema, ui)[0].fields[0];
+    expect(f.min).toBe(0);
+  });
 });
 
 describe("validateOverlay", () => {
