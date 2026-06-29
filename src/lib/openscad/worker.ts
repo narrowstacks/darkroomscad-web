@@ -31,10 +31,12 @@ function loadModule() {
   if (!modulePromise) {
     modulePromise = (async () => {
       const wasmBinary = await fetchBytes("/wasm/openscad.wasm");
-      // Variable specifier: keeps tsc from statically resolving the runtime-served URL,
-      // and @vite-ignore keeps Vite from trying to bundle it.
+      // Variable specifier keeps tsc from statically resolving the runtime-served URL.
+      // webpackIgnore stops webpack (Next's bundler) from treating this as a bundled
+      // module — without it, `import(expr)` becomes a context module and fails at
+      // runtime with "Cannot find module '/wasm/openscad.js'". @vite-ignore covers Vite.
       const moduleUrl = "/wasm/openscad.js";
-      const mod = await import(/* @vite-ignore */ moduleUrl);
+      const mod = await import(/* webpackIgnore: true */ /* @vite-ignore */ moduleUrl);
       const factory = (mod.default ?? mod) as (opts: object) => Promise<any>;
       // Close over `activeLog` so the callbacks re-read the current reference on
       // every invocation — reassigning `activeLog` before each render routes output
