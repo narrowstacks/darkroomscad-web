@@ -37,7 +37,15 @@ export default function Home() {
     controller().request(params);
   }, [params]);
 
-  useEffect(() => () => { ctlRef.current?.dispose(); clientRef.current?.dispose(); }, []);
+  // Null the refs after disposing so a remount (React StrictMode dev double-invoke,
+  // fast-refresh, route nav) re-creates a fresh worker + controller instead of
+  // reusing the disposed ones (whose request()/worker are dead).
+  useEffect(() => () => {
+    ctlRef.current?.dispose();
+    ctlRef.current = null;
+    clientRef.current?.dispose();
+    clientRef.current = null;
+  }, []);
 
   async function handleDownload() {
     setDownloading(true);
