@@ -6,6 +6,7 @@ import { PreviewController, type PreviewState } from "@/lib/openscad/preview-con
 import { useCarrierForm } from "@/hooks/use-carrier-form";
 import { CarrierForm } from "@/components/CarrierForm";
 import { StlViewer } from "@/components/StlViewer";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 function newClient(): RenderClient {
   const worker = new Worker(new URL("../lib/openscad/worker.ts", import.meta.url), { type: "module" });
@@ -68,9 +69,12 @@ export default function Home() {
 
   return (
     <main className="min-h-screen p-4 md:p-8">
-      <header className="mb-6">
-        <h1 className="text-3xl font-semibold">DarkroomSCAD</h1>
-        <p style={{ color: "var(--text-muted)" }}>Configure your negative carrier and download a print-ready STL.</p>
+      <header className="mb-6 flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold">DarkroomSCAD</h1>
+          <p style={{ color: "var(--text-muted)" }}>Configure your negative carrier and download a print-ready STL.</p>
+        </div>
+        <ThemeToggle />
       </header>
 
       <div className="grid gap-6 md:grid-cols-[minmax(320px,420px)_1fr]">

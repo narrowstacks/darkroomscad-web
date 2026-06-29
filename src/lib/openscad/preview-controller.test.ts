@@ -55,6 +55,24 @@ describe("PreviewController", () => {
     vi.useRealTimers();
   });
 
+  it("keeps the previous stl visible while the next render is in flight", async () => {
+    vi.useFakeTimers();
+    const d2 = deferred<RenderResult>();
+    const render = vi.fn()
+      .mockResolvedValueOnce(result([1, 2, 3]))
+      .mockReturnValueOnce(d2.promise);
+    const seen: (Uint8Array | undefined)[] = [];
+    const ctl = new PreviewController({ render }, { debounceMs: 0, onState: (s) => seen.push(s.stl) });
+    ctl.request({ n: 1 });
+    await vi.advanceTimersByTimeAsync(0); await Promise.resolve(); // first done -> stl [1,2,3]
+    ctl.request({ n: 2 });
+    await vi.advanceTimersByTimeAsync(0); // second render starts (rendering)
+    // While rendering, the emitted stl should still be the previous one, not undefined.
+    const renderingState = seen[seen.length - 1];
+    expect(renderingState).toEqual(new Uint8Array([1, 2, 3]));
+    vi.useRealTimers();
+  });
+
   it("does not emit after dispose while a render is in flight", async () => {
     vi.useFakeTimers();
     const d = deferred<RenderResult>();

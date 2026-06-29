@@ -20,6 +20,7 @@ export class PreviewController {
   private inFlight = false;
   private pending: RenderParams | null = null;  // newest params awaiting an idle client
   private disposed = false;
+  private lastStl: Uint8Array | undefined;
 
   constructor(client: RenderLike, opts: { debounceMs?: number; onState: (s: PreviewState) => void }) {
     this.client = client;
@@ -40,9 +41,9 @@ export class PreviewController {
     if (this.inFlight) { this.pending = params; return; }  // coalesce: remember newest
     this.inFlight = true;
     const gen = ++this.generation;
-    this.onState({ status: "rendering" });
+    this.onState({ status: "rendering", stl: this.lastStl });
     this.client.render({ params, quality: "preview" }).then(
-      (res) => this.settle(gen, () => this.onState({ status: "done", stl: res.stl, durationMs: res.durationMs })),
+      (res) => this.settle(gen, () => { this.lastStl = res.stl; this.onState({ status: "done", stl: res.stl, durationMs: res.durationMs }); }),
       (err) => this.settle(gen, () => this.onState({ status: "error", error: (err as Error).message })),
     );
   }
