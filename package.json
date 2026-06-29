@@ -5,10 +5,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "prebuild": "tsx scripts/sync-scad.ts",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run --passWithNoTests",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "sync:scad": "tsx scripts/sync-scad.ts"
   },
   "dependencies": {
     "next": "15.5.19",
@@ -27,6 +29,7 @@
     "eslint-config-next": "15.5.19",
     "jsdom": "^29.1.1",
     "tailwindcss": "^4",
+    "tsx": "^4.22.4",
     "typescript": "^5",
     "vitest": "^4.1.9"
   }

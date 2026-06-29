@@ -1,0 +1,490 @@
+{
+  "params": [
+    {
+      "name": "Carrier_Type",
+      "section": "Carrier Type",
+      "type": "enum",
+      "default": "omega-d",
+      "hidden": false,
+      "options": [
+        {
+          "value": "omega-d",
+          "label": "omega-d"
+        },
+        {
+          "value": "lpl-saunders-45xx",
+          "label": "lpl-saunders-45xx"
+        },
+        {
+          "value": "beseler-23c",
+          "label": "beseler-23c"
+        },
+        {
+          "value": "beseler-45",
+          "label": "beseler-45"
+        },
+        {
+          "value": "frameAndPegTest",
+          "label": "frameAndPegTest"
+        }
+      ]
+    },
+    {
+      "name": "Orientation",
+      "section": "Carrier Type",
+      "type": "enum",
+      "default": "vertical",
+      "hidden": false,
+      "options": [
+        {
+          "value": "vertical",
+          "label": "vertical"
+        },
+        {
+          "value": "horizontal",
+          "label": "horizontal"
+        }
+      ]
+    },
+    {
+      "name": "Film_Format",
+      "section": "Film Format Selection",
+      "type": "enum",
+      "default": "35mm",
+      "hidden": false,
+      "options": [
+        {
+          "value": "35mm",
+          "label": "35mm"
+        },
+        {
+          "value": "35mm filed",
+          "label": "35mm filed"
+        },
+        {
+          "value": "35mm full",
+          "label": "35mm full"
+        },
+        {
+          "value": "half frame",
+          "label": "half frame"
+        },
+        {
+          "value": "6x4.5",
+          "label": "6x4.5"
+        },
+        {
+          "value": "6x4.5 filed",
+          "label": "6x4.5 filed"
+        },
+        {
+          "value": "6x6",
+          "label": "6x6"
+        },
+        {
+          "value": "6x6 filed",
+          "label": "6x6 filed"
+        },
+        {
+          "value": "6x7",
+          "label": "6x7"
+        },
+        {
+          "value": "6x7 filed",
+          "label": "6x7 filed"
+        },
+        {
+          "value": "6x8",
+          "label": "6x8"
+        },
+        {
+          "value": "6x8 filed",
+          "label": "6x8 filed"
+        },
+        {
+          "value": "6x9",
+          "label": "6x9"
+        },
+        {
+          "value": "6x9 filed",
+          "label": "6x9 filed"
+        },
+        {
+          "value": "4x5",
+          "label": "4x5"
+        },
+        {
+          "value": "custom",
+          "label": "custom"
+        }
+      ]
+    },
+    {
+      "name": "Top_or_Bottom",
+      "section": "Carrier Options",
+      "type": "enum",
+      "default": "bottom",
+      "hidden": false,
+      "description": "Top or bottom of the carrier",
+      "options": [
+        {
+          "value": "top",
+          "label": "top"
+        },
+        {
+          "value": "bottom",
+          "label": "bottom"
+        }
+      ]
+    },
+    {
+      "name": "Alignment_Board",
+      "section": "Carrier Options",
+      "type": "boolean",
+      "default": true,
+      "hidden": false,
+      "description": "Include the alignment board?"
+    },
+    {
+      "name": "Alignment_Board_Type",
+      "section": "Carrier Options",
+      "type": "enum",
+      "default": "omega",
+      "hidden": false,
+      "options": [
+        {
+          "value": "omega",
+          "label": "omega"
+        },
+        {
+          "value": "lpl-saunders",
+          "label": "lpl-saunders"
+        },
+        {
+          "value": "beseler-23c",
+          "label": "beseler-23c"
+        }
+      ]
+    },
+    {
+      "name": "Flip_Bottom_For_Printing",
+      "section": "Carrier Options",
+      "type": "boolean",
+      "default": true,
+      "hidden": false,
+      "description": "Flip bottom carriers to printable orientation (rotate 180° on X-axis)"
+    },
+    {
+      "name": "Printed_or_Heat_Set_Pegs",
+      "section": "Carrier Options",
+      "type": "enum",
+      "default": "heat_set",
+      "hidden": false,
+      "description": "Printed or heat-set pegs? Heat set pegs required when including alignment board.",
+      "options": [
+        {
+          "value": "printed",
+          "label": "printed"
+        },
+        {
+          "value": "heat_set",
+          "label": "heat_set"
+        }
+      ]
+    },
+    {
+      "name": "Custom_Film_Width",
+      "section": "Custom Film Format",
+      "type": "number",
+      "default": 37,
+      "hidden": false,
+      "description": "Actual film stock width (for peg positioning)"
+    },
+    {
+      "name": "Custom_Film_Height",
+      "section": "Custom Film Format",
+      "type": "number",
+      "default": 37,
+      "hidden": false,
+      "description": "Actual film stock height (for film handling)"
+    },
+    {
+      "name": "Custom_Opening_Width",
+      "section": "Custom Film Format",
+      "type": "number",
+      "default": 24,
+      "hidden": false,
+      "description": "Film opening width (the visible/cropped area)"
+    },
+    {
+      "name": "Custom_Opening_Height",
+      "section": "Custom Film Format",
+      "type": "number",
+      "default": 36,
+      "hidden": false,
+      "description": "Film opening height (the visible/cropped area)"
+    },
+    {
+      "name": "Enable_Owner_Name_Etch",
+      "section": "Customization",
+      "type": "boolean",
+      "default": true,
+      "hidden": false,
+      "description": "Enable or disable the owner name etching"
+    },
+    {
+      "name": "Owner_Name",
+      "section": "Customization",
+      "type": "string",
+      "default": "NAME",
+      "hidden": false,
+      "description": "Name to etch on the carrier"
+    },
+    {
+      "name": "Enable_Type_Name_Etch",
+      "section": "Carrier Type Name Source",
+      "type": "boolean",
+      "default": true,
+      "hidden": false,
+      "description": "Enable or disable the type name etching"
+    },
+    {
+      "name": "Type_Name",
+      "section": "Carrier Type Name Source",
+      "type": "enum",
+      "default": "Carrier Type",
+      "hidden": false,
+      "options": [
+        {
+          "value": "Carrier Type",
+          "label": "Carrier Type"
+        },
+        {
+          "value": "Custom",
+          "label": "Custom"
+        }
+      ]
+    },
+    {
+      "name": "Custom_Type_Name",
+      "section": "Carrier Type Name Source",
+      "type": "string",
+      "default": "CUSTOM",
+      "hidden": false,
+      "description": "Custom type name, if Type Name is \"custom\""
+    },
+    {
+      "name": "Fontface",
+      "section": "Name and Format Etchings Settings",
+      "type": "string",
+      "default": "Lucida Console",
+      "hidden": false,
+      "description": "Font to use for the etchings"
+    },
+    {
+      "name": "Font_Size",
+      "section": "Name and Format Etchings Settings",
+      "type": "number",
+      "default": 10,
+      "hidden": false,
+      "description": "Font size for etchings"
+    },
+    {
+      "name": "TEXT_ETCH_DEPTH",
+      "section": "Name and Format Etchings Settings",
+      "type": "number",
+      "default": 1,
+      "hidden": false,
+      "description": "Depth for etching"
+    },
+    {
+      "name": "Owner_Text_X_Offset",
+      "section": "Text Position Offsets",
+      "type": "number",
+      "default": 0,
+      "hidden": false,
+      "description": "Adjust text location relative to carrier defaults (mm)"
+    },
+    {
+      "name": "Owner_Text_Y_Offset",
+      "section": "Text Position Offsets",
+      "type": "number",
+      "default": 0,
+      "hidden": false
+    },
+    {
+      "name": "Type_Text_X_Offset",
+      "section": "Text Position Offsets",
+      "type": "number",
+      "default": 0,
+      "hidden": false
+    },
+    {
+      "name": "Type_Text_Y_Offset",
+      "section": "Text Position Offsets",
+      "type": "number",
+      "default": 0,
+      "hidden": false
+    },
+    {
+      "name": "Text_As_Separate_Parts",
+      "section": "Multi-Material Text",
+      "type": "boolean",
+      "default": false,
+      "hidden": false,
+      "description": "Render text as separate parts for multi-material printing"
+    },
+    {
+      "name": "Layer_Height_mm",
+      "section": "Multi-Material Text",
+      "type": "number",
+      "default": 0.27,
+      "hidden": false,
+      "description": "Desired slicer layer height (mm)"
+    },
+    {
+      "name": "Text_Layer_Multiple",
+      "section": "Multi-Material Text",
+      "type": "number",
+      "default": 1,
+      "hidden": false,
+      "description": "Number of layers for text thickness (multiple of layer height)"
+    },
+    {
+      "name": "_WhichPart",
+      "section": "Multi-Material Output Selector",
+      "type": "enum",
+      "default": "All",
+      "hidden": false,
+      "description": "Select which part to render when exporting STLs",
+      "options": [
+        {
+          "value": "All",
+          "label": "All"
+        },
+        {
+          "value": "Base",
+          "label": "Base"
+        },
+        {
+          "value": "OwnerText",
+          "label": "OwnerText"
+        },
+        {
+          "value": "TypeText",
+          "label": "TypeText"
+        }
+      ]
+    },
+    {
+      "name": "Peg_Gap",
+      "section": "Adjustments",
+      "type": "number",
+      "default": 0,
+      "hidden": false,
+      "description": "Leave at 0 for default gap. Measured in mm. Add positive values to increase the gap between pegs and film edge, subtract (use negative values) to decrease it. Default 0 allows for little wiggle."
+    },
+    {
+      "name": "Adjust_Film_Width",
+      "section": "Adjustments",
+      "type": "number",
+      "default": 0,
+      "hidden": false,
+      "description": "Leave at 0 for no adjustment. Measured in mm. Add positive values to increase the film width, subtract (use negative values) to decrease it."
+    },
+    {
+      "name": "Adjust_Film_Height",
+      "section": "Adjustments",
+      "type": "number",
+      "default": 0,
+      "hidden": false,
+      "description": "Leave at 0 for no adjustment. Measured in mm. Add positive values to increase the film height, subtract (use negative values) to decrease it."
+    },
+    {
+      "name": "Render_Quality",
+      "section": "Render Quality",
+      "type": "enum",
+      "default": "final",
+      "hidden": false,
+      "description": "Use \"preview\" for faster F5 preview, \"final\" for smooth F6 renders",
+      "options": [
+        {
+          "value": "final",
+          "label": "final"
+        },
+        {
+          "value": "preview",
+          "label": "preview"
+        }
+      ]
+    },
+    {
+      "name": "$fn",
+      "section": "Hidden",
+      "type": "string",
+      "default": "(Render_Quality == \"final\") ? 100 : 32",
+      "hidden": true,
+      "description": "Variable resolution: 32 for preview speed, 100 for final quality"
+    },
+    {
+      "name": "carrier_config",
+      "section": "Hidden",
+      "type": "string",
+      "default": "get_carrier_config(Carrier_Type)",
+      "hidden": true,
+      "description": "Get configuration for the selected carrier type (now minimal; base geometry lives in carrier files)"
+    },
+    {
+      "name": "SELECTED_TYPE_NAME",
+      "section": "Hidden",
+      "type": "string",
+      "default": "get_selected_type_name(Type_Name, Custom_Type_Name, Film_Format)",
+      "hidden": true,
+      "description": "Generate carrier type name for etching"
+    },
+    {
+      "name": "effective_orientation",
+      "section": "Hidden",
+      "type": "string",
+      "default": "get_effective_orientation(Film_Format, Orientation)",
+      "hidden": true,
+      "description": "Calculate film opening dimensions once for all carriers"
+    },
+    {
+      "name": "adjusted_opening_height",
+      "section": "Hidden",
+      "type": "string",
+      "default": "get_custom_aware_opening_height(Film_Format, Orientation, Adjust_Film_Height, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Height)",
+      "hidden": true
+    },
+    {
+      "name": "adjusted_opening_width",
+      "section": "Hidden",
+      "type": "string",
+      "default": "get_custom_aware_opening_width(Film_Format, Orientation, Adjust_Film_Width, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Width)",
+      "hidden": true
+    },
+    {
+      "name": "peg_diameter",
+      "section": "Hidden",
+      "type": "string",
+      "default": "(Carrier_Type == \"frameAndPegTest\") ? carrier_config[1] : DEFAULT_PEG_DIAMETER",
+      "hidden": true,
+      "description": "Get peg diameter from config (index varies by carrier type)"
+    },
+    {
+      "name": "peg_pos_x_calc",
+      "section": "Hidden",
+      "type": "string",
+      "default": "peg_positions[0]",
+      "hidden": true
+    },
+    {
+      "name": "peg_pos_y_calc",
+      "section": "Hidden",
+      "type": "string",
+      "default": "peg_positions[1]",
+      "hidden": true
+    }
+  ]
+}
