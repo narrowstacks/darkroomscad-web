@@ -10,3 +10,15 @@ body {
 h1, h2, h3 {
   font-family: var(--font-display), Georgia, serif;
 }
+
+/* Visible keyboard focus ring for every interactive control. The control kit uses
+   `focus-visible:outline-2` (width only); this supplies the outline style + color so
+   the ring actually renders, themed to the active accent. */
+button:focus-visible,
+[role="switch"]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
