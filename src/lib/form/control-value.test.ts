@@ -14,6 +14,10 @@ describe("coerceOptionValue", () => {
   it("falls back to the raw string when there are no options", () => {
     expect(coerceOptionValue(undefined, "x")).toBe("x");
   });
+  it("falls back to the raw string when options are defined but none match", () => {
+    const opts = [{ value: 1, label: "One" }];
+    expect(coerceOptionValue(opts, "9")).toBe("9");
+  });
 });
 
 describe("clampSlider", () => {
