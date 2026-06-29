@@ -40,4 +40,13 @@ describe("enumerateParts", () => {
     const jobs = enumerateParts({ ...baseForm, Film_Format: "6x6 filed", Text_As_Separate_Parts: false });
     expect(jobs[0].name).toBe("omega-d_6x6-filed_vertical_top.stl");
   });
+
+  it("multi-material with no etches: only Base per half (2 jobs)", () => {
+    const jobs = enumerateParts({
+      ...baseForm, Text_As_Separate_Parts: true,
+      Enable_Owner_Name_Etch: false, Enable_Type_Name_Etch: false,
+    });
+    expect(jobs).toHaveLength(2);
+    expect(jobs.every((j) => j.params._WhichPart === "Base")).toBe(true);
+  });
 });
