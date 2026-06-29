@@ -68,4 +68,53 @@ describe.runIf(hasWasm)("renderScad (integration)", () => {
     const view = new DataView(result.stl.buffer, result.stl.byteOffset);
     expect(view.getUint32(80, true)).toBeGreaterThan(0); // triangle count > 0
   }, 180_000);
+
+  // Guards the live-preview path: an emscripten module's callMain runs main() once,
+  // so each render must get a FRESH instance (the worker creates one per render).
+  // This renders twice with fresh instances and asserts both succeed.
+  it("renders twice on fresh module instances (multi-render preview path)", async () => {
+    const wasmBinary = new Uint8Array(readFileSync(WASM_BIN));
+    const mod = await import(WASM_JS);
+    const factory = (mod.default ?? mod) as (opts: object) => Promise<any>;
+    const createModule = (log: string[]) =>
+      factory({
+        noInitialRun: true,
+        wasmBinary,
+        print: (t: string) => log.push(t),
+        printErr: (t: string) => log.push(t),
+      });
+
+    const fsAssets: FsAssets = {
+      files: [
+        ...readTree(join(process.cwd(), "public/scad"), ""),
+        ...readTree(join(process.cwd(), "public/fonts"), "/fonts"),
+        ...readTree(join(process.cwd(), "public/libraries"), ""),
+      ],
+    };
+
+    const render = (alignmentBoard: boolean) => {
+      const log: string[] = [];
+      return renderScad(
+        () => createModule(log),
+        fsAssets,
+        {
+          params: {
+            Carrier_Type: "omega-d",
+            Film_Format: "35mm",
+            Top_or_Bottom: "bottom",
+            Render_Quality: "preview",
+            Alignment_Board: alignmentBoard,
+            Fontface: DEFAULT_FONT_FAMILY,
+          },
+          quality: "preview",
+        },
+        log,
+      );
+    };
+
+    const first = await render(true);
+    const second = await render(false); // second render must NOT throw on a reused runtime
+    expect(first.stl.byteLength).toBeGreaterThan(84);
+    expect(second.stl.byteLength).toBeGreaterThan(84);
+  }, 180_000);
 });

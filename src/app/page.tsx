@@ -35,7 +35,6 @@ export default function Home() {
   const params = useMemo(() => toParams({ Render_Quality: "preview" }), [toParams]);
   useEffect(() => {
     controller().request(params);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
 
   useEffect(() => () => { ctlRef.current?.dispose(); clientRef.current?.dispose(); }, []);
