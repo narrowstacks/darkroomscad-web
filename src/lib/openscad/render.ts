@@ -44,19 +44,15 @@ export async function renderScad(
   instance.FS.writeFile("/params.json", buildParamSetJson(req.params, SET_NAME));
 
   const mainFile = req.mainFile ?? "carrier.scad";
-  // Manifold backend invocation (Task 5 spike result): the vendored scadder build is
-  // OpenSCAD 2022.03.07, which predates the `--backend` CLI option and the Manifold backend
-  // entirely. Passing `--backend=manifold` makes the option parser abort (callMain throws a
-  // non-numeric emscripten exit), and `--enable=all` cannot select Manifold because it does not
-  // exist in this build — rendering uses the CGAL `fast-csg` backend (confirmed by stderr:
-  // "[fast-csg] corefinement ..." / "CGAL Polyhedrons in cache"). So `--backend=manifold` is
-  // intentionally omitted. `--enable=all` is still required: it turns on the experimental
-  // `textmetrics` feature the carrier relies on. See VENDORING.md / task-5 report: Manifold is a
-  // hard project requirement NOT met by this specific build (escalated to the controller).
+  // Vendored engine is the official prebuilt OpenSCAD 2025.03.25 WASM build
+  // (files.openscad.org/playground), which ships the Manifold backend. `--backend=manifold`
+  // selects it (faster, robust CSG). `--enable=all` turns on the experimental `textmetrics`
+  // feature the carrier relies on for text centering. See VENDORING.md.
   const args = [
     `/${mainFile}`,
     "-o",
     "/out.stl",
+    "--backend=manifold",
     "--enable=all",
     "--export-format=binstl",
     "-p",

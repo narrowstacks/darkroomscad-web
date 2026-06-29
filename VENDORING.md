@@ -8,53 +8,53 @@ This file records the provenance of all vendored static assets used by the darkr
 
 ## OpenSCAD WASM Engine
 
-**Source:** the **scadder** project — https://github.com/solderlocks/scadder
-(`web/openscad.js` + `web/openscad.wasm` + `web/openscad.d.ts`, `main` branch).
+**Source:** the **official prebuilt OpenSCAD WASM build** for the OpenSCAD Playground —
+`https://files.openscad.org/playground/OpenSCAD-2025.03.25.wasm24456-WebAssembly-web.zip`
+(a zip containing `openscad.js` + `openscad.wasm`). This is the exact binary the official
+[openscad-playground](https://github.com/openscad/openscad-playground) downloads
+(`libs-config.json` → `wasmBuild.url`).
 
-**Re-vendored:** 2026-06-29 (REPLACES the previously vendored ochafik openscad-playground assets).
+**Build:** OpenSCAD **2025.03.25** (wasm24456). Importable emscripten factory, API
+`OpenSCAD({ noInitialRun }) -> { FS, callMain }` — ES module (`export default`), runs identically
+in a browser Web Worker and in Node (pass `wasmBinary` so emscripten does not fetch).
 
-**Why this build (not ochafik's playground bundle, not the official openscad/openscad-wasm release):**
-Task 4 originally vendored ochafik's playground deployment, but that ships only a
-**browser-coupled webpack worker bundle** (`openscad-worker.js` using `importScripts`,
-browserfs, and an archive-mounted font zip) — NOT an importable emscripten factory. It cannot
-run in Node and therefore cannot back a clean headless test gate. The scadder project commits a
-clean, importable, typed emscripten build whose API is exactly
-`OpenSCAD({ noInitialRun }) -> { FS, callMain }` (see `openscad.d.ts`). It is an ES module
-(`export default OpenSCAD`) and runs identically in a browser Web Worker and in Node (passing
-`wasmBinary` so emscripten does not fetch). The official tagged `openscad-wasm` releases remain
-stale (last release March 2022, predating Manifold + reliable `textmetrics`), so they are still
-unsuitable. Experimental features (including `textmetrics`) are turned on at render time via
-`--enable=all`.
+**Why this build — and the history:** This build ships the **Manifold backend** (selected via
+`--backend=manifold`) AND `textmetrics` (enabled via `--enable=all`) — the project's two hard
+requirements — in a clean *importable* factory. Earlier vendoring attempts each failed one
+requirement: official tagged `openscad-wasm` releases are stale-2022 (pre-Manifold); ochafik's
+`ochafik.com/openscad2` deployment ships only a browser-coupled webpack *worker bundle* (not an
+importable factory, not Node-testable); the **scadder** build (`solderlocks/scadder`) is a clean
+importable factory but OpenSCAD 2022.03.07 with the CGAL **fast-csg** backend (no Manifold —
+`--backend=manifold` aborts). Building `openscad-wasm` from source hit a chain of upstream
+breakages (dead GMP mirror; CMake version conflicts on `doubleconversion`/`zlib`). The
+`files.openscad.org` prebuilt binary — discovered via the playground's own build config —
+sidesteps all of that: a current, Manifold-capable, importable factory available as a direct
+download, no compilation.
 
-The proven working invocation is scadder's `web/scad-worker.js`: factory call
-`OpenSCAD({ noInitialRun: true, arguments: ["--enable=all"], print, printErr })`, FS files
-written at the root (`/main.scad`, `/fonts/...`), a working `fonts.conf`
-(`<fontconfig><dir>/fonts</dir><cachedir>/fonts/cache</cachedir></fontconfig>`), and an
-empty-geometry guard (output exists and size > 0).
+**Render invocation** (`src/lib/openscad/render.ts`):
+`/carrier.scad -o /out.stl --backend=manifold --enable=all --export-format=binstl -p /params.json -P web`.
+FS files written at the root (`/carrier.scad`, `/BOSL2/...`, `/fonts/...`); working `fonts.conf`
+(`<fontconfig><dir>/fonts</dir><cachedir>/fonts/cache</cachedir></fontconfig>`); empty-geometry
+guard (STL > 84 bytes). Verified: the default Omega-D 35mm carrier (with etched text, BOSL2,
+Liberation Mono) renders to a valid Manifold STL headlessly in Node and in-browser.
 
-**License/attribution:** This is an openscad-wasm compile of OpenSCAD (GPL). Attributed to the
-scadder project (https://github.com/solderlocks/scadder) and the upstream OpenSCAD project
-(https://github.com/openscad/openscad).
+**License/attribution:** A WASM compile of OpenSCAD (GPL), distributed by the OpenSCAD project at
+files.openscad.org. Upstream: https://github.com/openscad/openscad.
 
-**Files vendored:**
+**Files vendored** (extracted from the zip above; `openscad.d.ts` is the API-compatible type
+declaration retained from the scadder build — same `OpenSCAD()->{FS,callMain}` API):
 
-| File | Source URL | SHA256 |
+| File | Source | SHA256 |
 |------|-----------|--------|
-| `public/wasm/openscad.js` | https://raw.githubusercontent.com/solderlocks/scadder/main/web/openscad.js | `6c77d5ded62848d3ce5d24150aec0b8cee574f18854d2c3c18f224f2706fead0` |
-| `public/wasm/openscad.wasm` | https://raw.githubusercontent.com/solderlocks/scadder/main/web/openscad.wasm | `cb3e2cf22050c898e89ddd1b8d09f5ae96671e0a60872f806afeca0cc182657d` |
-| `public/wasm/openscad.d.ts` | https://raw.githubusercontent.com/solderlocks/scadder/main/web/openscad.d.ts | `058d946285eca0cf99bf1b2a11219583067fa91edff143e09e4801d72c43b355` |
+| `public/wasm/openscad.js` | files.openscad.org playground zip (2025.03.25) | `904a47f29e63afb597bedef747da3b457d8ea17cc793c462c6c8b444e918a62e` |
+| `public/wasm/openscad.wasm` | files.openscad.org playground zip (2025.03.25) | `f72ce246c02c0e501990837102be383326b153fd761774ebfacce5c80c5ecf26` |
+| `public/wasm/openscad.d.ts` | API-compatible type decl (from scadder) | `058d946285eca0cf99bf1b2a11219583067fa91edff143e09e4801d72c43b355` |
 
-**WASM magic bytes verification:**
-```
-xxd -l 4 public/wasm/openscad.wasm
-00000000: 0061 736d  .asm
-```
-Confirmed valid WASM binary (`\0asm` = `00 61 73 6d`).
+**WASM magic bytes verification:** `xxd -l 4 public/wasm/openscad.wasm` → `0061 736d` (`\0asm`).
 
-**Removed (superseded ochafik assets):**
-`public/wasm/openscad-worker.js`, `public/wasm/11f7645f8a49daa8a9d6.wasm`,
-`public/wasm/openscad.wasm` (ochafik), `public/fonts/fonts.zip`, and the empty
-`public/fonts/fonts.conf`.
+**Superseded engines (history):** ochafik worker bundle (`openscad-worker.js`,
+`11f7645f8a49daa8a9d6.wasm`, `fonts.zip`) removed in Task 5; the scadder fast-csg build
+(`openscad.js`/`openscad.wasm` @ sha `6c77d5de…`/`cb3e2cf2…`) replaced by this Manifold build.
 
 ---
 
