@@ -68,8 +68,16 @@ export default function Home() {
           <ExportPanel client={getClient} getParams={() => toParams({})} />
         </div>
 
-        <div className="h-[60vh] md:h-[calc(100vh-8rem)] sticky top-8">
-          <StlViewer stl={preview.stl} quality="preview" loading={preview.status === "rendering"} />
+        <div className="sticky top-8">
+          {preview.status === "error" && (
+            <p className="mb-2 rounded px-3 py-2 text-sm"
+              style={{ background: "var(--surface)", color: "var(--error)", border: "1px solid var(--border)" }}>
+              Preview failed: {preview.error}
+            </p>
+          )}
+          <div className="h-[60vh] md:h-[calc(100vh-8rem)]">
+            <StlViewer stl={preview.stl} quality="preview" loading={preview.status === "rendering"} />
+          </div>
         </div>
       </div>
     </main>
