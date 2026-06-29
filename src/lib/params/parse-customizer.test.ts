@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { parseCustomizer } from "./parse-customizer";
 
 describe("parseCustomizer", () => {
-  it("parses a string dropdown with section and description", () => {
+  it("parses a string dropdown with section", () => {
     const scad = [
       "/* [Carrier Type] */",
       "Orientation = \"vertical\"; // [\"vertical\", \"horizontal\"]",
@@ -75,5 +75,15 @@ describe("parseCustomizer", () => {
     ].join("\n");
     const { params } = parseCustomizer(scad);
     expect(params.map((p) => p.name)).toEqual(["Owner_Name"]);
+  });
+
+  it("clears a pending description on a non-comment, non-assignment line", () => {
+    const scad = [
+      "// some comment",
+      "module foo() { cube(1); }",
+      "Owner_Name = \"X\";",
+    ].join("\n");
+    const { params } = parseCustomizer(scad);
+    expect(params[0].description).toBeUndefined();
   });
 });

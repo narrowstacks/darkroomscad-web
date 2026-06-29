@@ -98,7 +98,7 @@ export function parseCustomizer(scad: string): ParamSchema {
           if (options) {
             const isBool =
               options.length === 2 &&
-              options.every((o) => o.value === true || o.value === false || o.label === "true" || o.label === "false");
+              options.every((o) => o.label === "true" || o.label === "false");
             if (!isBool && lit.type !== "boolean") {
               param.type = "enum";
               param.options = options;
