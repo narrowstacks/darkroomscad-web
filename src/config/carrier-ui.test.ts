@@ -5,10 +5,43 @@ import schema from "../../generated/param-schema.json";
 import type { ParamSchema } from "../lib/params/types";
 
 describe("carrier-ui overlay vs generated schema", () => {
+  const s = schema as ParamSchema;
+
   it("references only params that exist in the generated schema", () => {
-    expect(validateOverlay(schema as ParamSchema, CARRIER_UI)).toEqual([]);
+    expect(validateOverlay(s, CARRIER_UI)).toEqual([]);
   });
-  it("resolves every field against the real schema without throwing", () => {
-    expect(() => resolveFormModel(schema as ParamSchema, CARRIER_UI)).not.toThrow();
+
+  it("resolves and assigns the intended control kinds", () => {
+    const groups = resolveFormModel(s, CARRIER_UI);
+    const byParam = Object.fromEntries(groups.flatMap((g) => g.fields).map((f) => [f.param, f]));
+    expect(byParam.Carrier_Type.control).toBe("cards");
+    expect(byParam.Orientation.control).toBe("segmented");
+    expect(byParam.Enable_Owner_Name_Etch.control).toBe("switch");
+    expect(byParam.Font_Size.control).toBe("slider");
+  });
+
+  it("does not include Film_Format (handled by the bespoke picker)", () => {
+    const params = CARRIER_UI.flatMap((g) => g.fields).map((f) => f.param);
+    expect(params).not.toContain("Film_Format");
+  });
+
+  it("resolves overlay-provided slider ranges (Font_Size: min=4, max=40, step=0.5)", () => {
+    const groups = resolveFormModel(s, CARRIER_UI);
+    const byParam = Object.fromEntries(groups.flatMap((g) => g.fields).map((f) => [f.param, f]));
+    expect(byParam.Font_Size.min).toBe(4);
+    expect(byParam.Font_Size.max).toBe(40);
+    expect(byParam.Font_Size.step).toBe(0.5);
+  });
+
+  it("resolves offset sliders with negative min (no clamping to 0)", () => {
+    const groups = resolveFormModel(s, CARRIER_UI);
+    const byParam = Object.fromEntries(groups.flatMap((g) => g.fields).map((f) => [f.param, f]));
+    expect(byParam.Owner_Text_X_Offset.min).toBe(-15);
+    expect(byParam.Owner_Text_Y_Offset.min).toBe(-15);
+    expect(byParam.Type_Text_X_Offset.min).toBe(-15);
+    expect(byParam.Type_Text_Y_Offset.min).toBe(-15);
+    expect(byParam.Peg_Gap.min).toBe(-2);
+    expect(byParam.Adjust_Film_Width.min).toBe(-3);
+    expect(byParam.Adjust_Film_Height.min).toBe(-3);
   });
 });

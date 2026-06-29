@@ -11,6 +11,9 @@ export interface FieldConfig {
   control?: ControlKind;
   optionsFrom?: "fonts";
   optionVisual?: "carrier-outline";
+  min?: number;
+  max?: number;
+  step?: number;
   visibleWhen?: (values: Record<string, FormValue>) => boolean;
 }
 

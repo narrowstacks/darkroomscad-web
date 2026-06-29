@@ -59,6 +59,17 @@ describe("resolveFormModel", () => {
     const ui: GroupConfig[] = [{ title: "X", fields: [{ param: "Ghost_Param", label: "x" }] }];
     expect(() => resolveFormModel(schema, ui)).toThrow(/Ghost_Param/);
   });
+
+  it("prefers overlay min/max/step over schema values", () => {
+    // Schema has Font_Size min=6, max=40, step=0.5; overlay overrides to min=4, max=50, step=1
+    const ui: GroupConfig[] = [{ title: "Text", fields: [
+      { param: "Font_Size", label: "Font size", control: "slider", min: 4, max: 50, step: 1 },
+    ] }];
+    const f = resolveFormModel(schema, ui)[0].fields[0];
+    expect(f.min).toBe(4);
+    expect(f.max).toBe(50);
+    expect(f.step).toBe(1);
+  });
 });
 
 describe("validateOverlay", () => {
