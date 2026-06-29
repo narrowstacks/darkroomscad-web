@@ -28,4 +28,18 @@ describe("RenderClient", () => {
     expect(result.stl).toEqual(new Uint8Array([1]));
     expect(worker.posted[0].type).toBe("render");
   });
+
+  it("rejects render() when the worker posts an error for the matching id", async () => {
+    class ErrorWorker {
+      onmessage: ((e: MessageEvent) => void) | null = null;
+      postMessage(msg: any) {
+        queueMicrotask(() => {
+          this.onmessage?.({ data: { type: "error", id: msg.id, message: "boom" } } as MessageEvent);
+        });
+      }
+      terminate() {}
+    }
+    const client = new RenderClient(new ErrorWorker() as unknown as Worker);
+    await expect(client.render({ params: {}, quality: "preview" })).rejects.toThrow("boom");
+  });
 });

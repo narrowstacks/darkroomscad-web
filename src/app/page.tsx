@@ -1,12 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { RenderClient } from "@/lib/openscad/client";
 import { DEFAULT_FONT_FAMILY } from "@/config/fonts";
 
 export default function Home() {
   const clientRef = useRef<RenderClient | null>(null);
   const [status, setStatus] = useState<string>("idle");
+
+  useEffect(() => () => { clientRef.current?.dispose(); clientRef.current = null; }, []);
 
   function getClient(): RenderClient {
     if (!clientRef.current) {
@@ -33,7 +35,7 @@ export default function Home() {
         },
         quality: "final",
       });
-      const blob = new Blob([result.stl.buffer as ArrayBuffer], { type: "model/stl" });
+      const blob = new Blob([new Uint8Array(result.stl)], { type: "model/stl" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -51,6 +53,7 @@ export default function Home() {
       <h1 className="text-2xl font-semibold">DarkroomSCAD Web — render core</h1>
       <button
         onClick={handleRender}
+        disabled={status === "rendering…"}
         className="rounded bg-emerald-500 px-6 py-3 font-medium text-black hover:bg-emerald-400"
       >
         Render &amp; download default carrier

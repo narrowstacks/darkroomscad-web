@@ -32,6 +32,9 @@ export class RenderClient {
 
   dispose() {
     this.worker.terminate();
+    for (const p of this.pending.values()) {
+      p.reject(new Error("RenderClient disposed"));
+    }
     this.pending.clear();
   }
 }
