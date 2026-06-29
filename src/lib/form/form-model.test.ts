@@ -54,6 +54,11 @@ describe("resolveFormModel", () => {
     expect(f.visibleWhen?.({ Alignment_Board: true })).toBe(true);
     expect(f.visibleWhen?.({ Alignment_Board: false })).toBe(false);
   });
+
+  it("throws when a field references a param absent from the schema", () => {
+    const ui: GroupConfig[] = [{ title: "X", fields: [{ param: "Ghost_Param", label: "x" }] }];
+    expect(() => resolveFormModel(schema, ui)).toThrow(/Ghost_Param/);
+  });
 });
 
 describe("validateOverlay", () => {
