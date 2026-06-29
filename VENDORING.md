@@ -8,37 +8,41 @@ This file records the provenance of all vendored static assets used by the darkr
 
 ## OpenSCAD WASM Engine
 
-**Source:** ochafik's openscad-playground deployment at https://ochafik.com/openscad2/
+**Source:** the **scadder** project — https://github.com/solderlocks/scadder
+(`web/openscad.js` + `web/openscad.wasm` + `web/openscad.d.ts`, `main` branch).
 
-**Why this build (not the official openscad/openscad-wasm release):**
-The official tagged releases on https://github.com/openscad/openscad-wasm/releases are stale
-(last release March 2022), predating the Manifold backend and reliable `textmetrics` support —
-both hard requirements for DarkroomSCAD. The ochafik playground explicitly defaults to the
-Manifold backend and ships a current nightly-tracking WASM build maintained at
-https://github.com/openscad/openscad-playground (the `libs/openscad-wasm/` subtree).
+**Re-vendored:** 2026-06-29 (REPLACES the previously vendored ochafik openscad-playground assets).
 
-**Build provenance:**
-- Playground URL: https://ochafik.com/openscad2/
-- WASM last-modified: Sun, 26 Jan 2025 15:28:21 GMT (from HTTP response headers)
-- Source reference embedded in worker.js: `ochafik/github/openscad-playground/libs/openscad-wasm/openscad.js`
-- README confirms: "defaults to the Manifold backend"
-- Playground GitHub repo: https://github.com/openscad/openscad-playground
+**Why this build (not ochafik's playground bundle, not the official openscad/openscad-wasm release):**
+Task 4 originally vendored ochafik's playground deployment, but that ships only a
+**browser-coupled webpack worker bundle** (`openscad-worker.js` using `importScripts`,
+browserfs, and an archive-mounted font zip) — NOT an importable emscripten factory. It cannot
+run in Node and therefore cannot back a clean headless test gate. The scadder project commits a
+clean, importable, typed emscripten build whose API is exactly
+`OpenSCAD({ noInitialRun }) -> { FS, callMain }` (see `openscad.d.ts`). It is an ES module
+(`export default OpenSCAD`) and runs identically in a browser Web Worker and in Node (passing
+`wasmBinary` so emscripten does not fetch). The official tagged `openscad-wasm` releases remain
+stale (last release March 2022, predating Manifold + reliable `textmetrics`), so they are still
+unsuitable. Experimental features (including `textmetrics`) are turned on at render time via
+`--enable=all`.
+
+The proven working invocation is scadder's `web/scad-worker.js`: factory call
+`OpenSCAD({ noInitialRun: true, arguments: ["--enable=all"], print, printErr })`, FS files
+written at the root (`/main.scad`, `/fonts/...`), a working `fonts.conf`
+(`<fontconfig><dir>/fonts</dir><cachedir>/fonts/cache</cachedir></fontconfig>`), and an
+empty-geometry guard (output exists and size > 0).
+
+**License/attribution:** This is an openscad-wasm compile of OpenSCAD (GPL). Attributed to the
+scadder project (https://github.com/solderlocks/scadder) and the upstream OpenSCAD project
+(https://github.com/openscad/openscad).
 
 **Files vendored:**
 
 | File | Source URL | SHA256 |
 |------|-----------|--------|
-| `public/wasm/openscad.wasm` | https://ochafik.com/openscad2/openscad.wasm | `2e53fac1a66071a8a077a002693b6cf3aff96364f23ed5c2809018660560e552` |
-| `public/wasm/11f7645f8a49daa8a9d6.wasm` | https://ochafik.com/openscad2/11f7645f8a49daa8a9d6.wasm | `2e53fac1a66071a8a077a002693b6cf3aff96364f23ed5c2809018660560e552` |
-| `public/wasm/openscad-worker.js` | https://ochafik.com/openscad2/openscad-worker.js | `f8d256496c62e17b5c52c65bf7b6a87dcaf60dfa909775e753d3ff98b2bbc051` |
-
-**Note on dual WASM filenames:**
-`openscad.wasm` and `11f7645f8a49daa8a9d6.wasm` are identical files (same SHA256).
-The playground's webpack bundle (`openscad-worker.js`) references the WASM by its content-hash
-filename (`11f7645f8a49daa8a9d6.wasm`). The worker determines its public path at runtime from
-`self.location` (the worker script's own URL), strips the filename to get the directory, and
-appends the hashed WASM filename. Both files must be present at `public/wasm/` for the worker
-to resolve the WASM correctly when loaded from `/wasm/openscad-worker.js`.
+| `public/wasm/openscad.js` | https://raw.githubusercontent.com/solderlocks/scadder/main/web/openscad.js | `6c77d5ded62848d3ce5d24150aec0b8cee574f18854d2c3c18f224f2706fead0` |
+| `public/wasm/openscad.wasm` | https://raw.githubusercontent.com/solderlocks/scadder/main/web/openscad.wasm | `cb3e2cf22050c898e89ddd1b8d09f5ae96671e0a60872f806afeca0cc182657d` |
+| `public/wasm/openscad.d.ts` | https://raw.githubusercontent.com/solderlocks/scadder/main/web/openscad.d.ts | `058d946285eca0cf99bf1b2a11219583067fa91edff143e09e4801d72c43b355` |
 
 **WASM magic bytes verification:**
 ```
@@ -46,6 +50,11 @@ xxd -l 4 public/wasm/openscad.wasm
 00000000: 0061 736d  .asm
 ```
 Confirmed valid WASM binary (`\0asm` = `00 61 73 6d`).
+
+**Removed (superseded ochafik assets):**
+`public/wasm/openscad-worker.js`, `public/wasm/11f7645f8a49daa8a9d6.wasm`,
+`public/wasm/openscad.wasm` (ochafik), `public/fonts/fonts.zip`, and the empty
+`public/fonts/fonts.conf`.
 
 ---
 
@@ -65,27 +74,22 @@ git clone --depth 1 --branch v2.0.746 https://github.com/BelfrySCAD/BOSL2
 
 ## Fonts
 
-### Font Bundle (for WASM virtual filesystem)
+### fonts.conf (working fontconfig descriptor)
 
-**Source:** https://ochafik.com/openscad2/libraries/fonts.zip
-**File:** `public/fonts/fonts.zip`
-**SHA256:** `7b0731569b3b815a144fe350b60aa52c12d0b97b3dbfeff0d72a5012f16622f0`
-**Contents:** 55 font files (Noto Sans variants + Liberation Mono/Sans/Serif) + `fonts.conf`
-**Font dates:** Jan 25, 2025 (most TTFs), Mar 23, 2023 (fonts.conf)
-
-The fonts.zip is the playground's bundled font archive, intended to be mounted in the WASM
-virtual filesystem at render time. Task 5's worker should extract and mount this zip.
-
-### fonts.conf
-
-**Source:** Extracted from fonts.zip (see above)
 **Committed path:** `public/fonts/fonts.conf`
-**Content:** Minimal fontconfig descriptor (empty `<fontconfig>` block — fontconfig uses
-default font discovery in the mounted virtual filesystem directory).
-
-**IMPORTANT for Task 5:** The fontconfig file is at `public/fonts/fonts.conf`. When mounting
-the virtual filesystem, fonts should be placed at `/fonts/` and fontconfig pointed at
-`/fonts/fonts.conf` (or the default fontconfig path that OpenSCAD WASM uses).
+**Re-vendored:** 2026-06-29 (replaces the previous empty/useless ochafik descriptor; the
+ochafik `fonts.zip` was removed).
+**Content:** the scadder pattern that actually resolves fonts in the WASM virtual filesystem:
+```xml
+<?xml version="1.0"?>
+<!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+<fontconfig>
+  <dir>/fonts</dir>
+  <cachedir>/fonts/cache</cachedir>
+</fontconfig>
+```
+At render time the worker/test writes the bundled font(s) and this `fonts.conf` under `/fonts/`
+in the WASM FS so fontconfig discovers them.
 
 ### Liberation Mono (standalone)
 
@@ -100,15 +104,21 @@ the virtual filesystem, fonts should be placed at `/fonts/` and fontconfig point
 
 ## Notes for Task 5 (Render Worker)
 
-1. **WASM loading:** Load the worker from `/wasm/openscad-worker.js`. The worker auto-detects
-   its public path from `self.location`, so both `openscad.wasm` and `11f7645f8a49daa8a9d6.wasm`
-   must be accessible at `/wasm/<filename>`.
+The render core (`src/lib/openscad/render.ts`) and worker (`src/lib/openscad/worker.ts`) use
+the scadder importable factory. FS layout is **root-rooted** so the carrier's relative includes
+resolve from cwd `/`:
 
-2. **Library path:** Mount `public/libraries/BOSL2/` at `/libraries/BOSL2/` in the WASM FS
-   so that `include <BOSL2/std.scad>` resolves.
+1. **WASM loading:** `import` the ES module `/wasm/openscad.js` (default export = factory),
+   passing the fetched `/wasm/openscad.wasm` bytes as `wasmBinary` so emscripten does not fetch.
+   Init with `{ noInitialRun: true, wasmBinary, print, printErr }`.
 
-3. **Fonts:** Mount `public/fonts/fonts.zip` (or its extracted contents) at `/fonts/` in the
-   WASM FS. The `fonts.conf` at `/fonts/fonts.conf` will be used by fontconfig inside WASM.
+2. **SCAD tree:** Written at the FS root — `/carrier.scad`, `/src/common/...`, etc. (the
+   manifest strips the `scad/` prefix).
 
-4. **textmetrics:** The playground WASM build includes the `textmetrics` feature. No special
-   flag needed — it is enabled by default in this build.
+3. **Library path:** BOSL2 written at `/BOSL2/...` (manifest strips the `libraries/` prefix) so
+   `include <BOSL2/std.scad>` resolves.
+
+4. **Fonts:** The bundled font(s) + `fonts.conf` written under `/fonts/`.
+
+5. **textmetrics / experimental features:** Enabled at render time via `--enable=all` in the
+   `callMain` arguments (NOT default-on). This is how `textmetrics` becomes available.
