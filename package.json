@@ -11,6 +11,7 @@
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
     "sync:scad": "tsx scripts/sync-scad.ts",
+    "sync:scad:github": "tsx scripts/sync-scad.ts --github",
     "gen:outlines": "tsx scripts/gen-carrier-outlines.ts"
   },
   "dependencies": {

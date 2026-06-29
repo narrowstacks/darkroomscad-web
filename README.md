@@ -29,8 +29,42 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## Deploy
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Source of record: committed `public/scad`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The carrier SCAD files, parsed parameter schema (`generated/param-schema.json`), and asset manifest (`public/scad-manifest.json`) are committed to the repository. These committed artifacts are the source of record for every build and deploy — Vercel uses them directly without fetching from GitHub at build time.
+
+The `prebuild` script (`tsx scripts/sync-scad.ts`) detects whether the local DarkroomSCAD checkout is present. If it is absent (as on Vercel CI), it logs a warning and exits 0, leaving the committed artifacts in place. The build then proceeds normally.
+
+### Refreshing the carrier from GitHub (dev only)
+
+To update `public/scad/**` from the pinned DarkroomSCAD commit, run:
+
+```bash
+npm run sync:scad:github
+```
+
+This fetches files from the ref pinned in `scripts/scad-source.config.json`, overwrites `public/scad/`, regenerates the schema and manifest, then exits. Review the diff and commit the changes deliberately — this is the mechanism for bumping the carrier design.
+
+To update the pinned ref, edit `scripts/scad-source.config.json` and set `ref` to the desired commit SHA (never a branch name — use a SHA for reproducible builds):
+
+```json
+{ "repo": "narrowstacks/DarkroomSCAD", "ref": "<SHA>", "subdir": "negative-carriers" }
+```
+
+### COOP/COEP headers (required for WASM)
+
+The OpenSCAD WASM worker requires cross-origin isolation (`SharedArrayBuffer`). `next.config.ts` sets `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` on all routes. Vercel applies these via Next.js's built-in header support — no additional config needed.
+
+### Static app, no serverless functions
+
+The app is entirely client-side. All rendering is done in the browser via the WASM worker. The 9.6 MB `openscad.wasm` and SCAD assets are served from `public/` as static files. Vercel serves them from its CDN — no serverless functions are required.
+
+### First deploy
+
+```bash
+vercel
+```
+
+Or import the repository via the [Vercel dashboard](https://vercel.com/new). No environment variables are required. Vercel's detected framework preset for Next.js will work automatically.
