@@ -1,4 +1,6 @@
-export type ControlKind = "select" | "number" | "text" | "toggle";
+export type ControlKind =
+  | "select" | "number" | "text" | "toggle"
+  | "segmented" | "switch" | "slider" | "cards";
 export type FormValue = string | number | boolean;
 
 export interface FieldConfig {
