@@ -11,6 +11,8 @@ function subpaths(d: string): string[] {
 function coords(sub: string): { xs: number[]; ys: number[] } {
   const nums = (sub.match(/-?\d*\.?\d+(?:e-?\d+)?/gi) ?? []).map(Number);
   const xs: number[] = [], ys: number[] = [];
+  // Assumes M/L/Z path data only (OpenSCAD projection() emits polygon outlines) —
+  // stride 2 is correct here. NOT valid for arc (A) / bezier (C) commands.
   for (let i = 0; i + 1 < nums.length; i += 2) { xs.push(nums[i]); ys.push(nums[i + 1]); }
   return { xs, ys };
 }
@@ -22,6 +24,8 @@ function bboxArea(sub: string): number {
 }
 
 export function extractOuterContour(svg: string): { d: string; viewBox: string } {
+  // Assumes a single <path> element (OpenSCAD projection() emits one path with all
+  // contours as subpaths). Multi-path SVGs would only have their first path read.
   const dMatch = svg.match(/\bd\s*=\s*"([^"]+)"/);
   if (!dMatch) throw new Error("no path data found in SVG");
   const subs = subpaths(dMatch[1]);
