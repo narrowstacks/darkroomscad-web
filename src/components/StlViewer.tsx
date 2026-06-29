@@ -1,5 +1,5 @@
 "use client";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Grid, Bounds } from "@react-three/drei";
 import * as THREE from "three";
@@ -10,10 +10,14 @@ function Model({ stl }: { stl: Uint8Array }) {
     const mesh = parseBinaryStl(stl);
     const g = new THREE.BufferGeometry();
     g.setAttribute("position", new THREE.BufferAttribute(mesh.positions, 3));
-    g.setAttribute("normal", new THREE.BufferAttribute(mesh.normals, 3));
+    // computeVertexNormals derives smooth normals for the preview; the parsed face
+    // normals aren't set here (they'd just be overwritten).
     g.computeVertexNormals();
     return g;
   }, [stl]);
+  // Free the previous geometry's GPU buffers when the STL changes or on unmount —
+  // live preview generates a fresh STL on every parameter change.
+  useEffect(() => () => geometry.dispose(), [geometry]);
   return (
     <mesh geometry={geometry} castShadow>
       <meshStandardMaterial color={"#9a9a9a"} metalness={0.1} roughness={0.8} />

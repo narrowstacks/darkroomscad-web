@@ -28,4 +28,11 @@ describe("parseBinaryStl", () => {
   it("throws on a too-short buffer", () => {
     expect(() => parseBinaryStl(new Uint8Array(10))).toThrow();
   });
+
+  it("throws when the triangle section is truncated", () => {
+    // Header + count=5, but only room for ~0 triangles of payload.
+    const buf = new ArrayBuffer(84 + 10);
+    new DataView(buf).setUint32(80, 5, true); // claims 5 triangles (needs 84 + 5*50 bytes)
+    expect(() => parseBinaryStl(new Uint8Array(buf))).toThrow();
+  });
 });
