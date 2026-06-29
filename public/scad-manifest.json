@@ -53,10 +53,6 @@
       "path": "/src/test-frame-base-shape.scad"
     },
     {
-      "url": "/libraries/.gitkeep",
-      "path": "/.gitkeep"
-    },
-    {
       "url": "/libraries/BOSL2/affine.scad",
       "path": "/BOSL2/affine.scad"
     },
@@ -279,10 +275,6 @@
     {
       "url": "/libraries/BOSL2/wiring.scad",
       "path": "/BOSL2/wiring.scad"
-    },
-    {
-      "url": "/fonts/.gitkeep",
-      "path": "/fonts/.gitkeep"
     },
     {
       "url": "/fonts/LiberationMono-Regular.ttf",

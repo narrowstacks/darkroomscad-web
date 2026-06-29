@@ -27,13 +27,13 @@ describe.runIf(hasWasm)("renderScad (integration)", () => {
     const wasmBinary = new Uint8Array(readFileSync(WASM_BIN));
     const mod = await import(WASM_JS);
     const factory = (mod.default ?? mod) as (opts: object) => Promise<any>;
-    const log: string[] = [];
+    let activeLog: string[] = [];
     const loadModule = () =>
       factory({
         noInitialRun: true,
         wasmBinary,
-        print: (t: string) => log.push(t),
-        printErr: (t: string) => log.push(t),
+        print: (t: string) => activeLog.push(t),
+        printErr: (t: string) => activeLog.push(t),
       });
 
     const scadFiles = readTree(join(process.cwd(), "public/scad"), ""); // strips to FS root
@@ -42,21 +42,29 @@ describe.runIf(hasWasm)("renderScad (integration)", () => {
 
     const fsAssets: FsAssets = { files: [...scadFiles, ...fontFiles, ...libFiles] };
 
-    const result = await renderScad(loadModule, fsAssets, {
-      params: {
-        Carrier_Type: "omega-d",
-        Film_Format: "35mm",
-        Orientation: "vertical",
-        Top_or_Bottom: "bottom",
-        Render_Quality: "preview",
-        Enable_Owner_Name_Etch: true,
-        Owner_Name: "TEST",
-        Fontface: DEFAULT_FONT_FAMILY,
+    const log: string[] = [];
+    activeLog = log;
+    const result = await renderScad(
+      loadModule,
+      fsAssets,
+      {
+        params: {
+          Carrier_Type: "omega-d",
+          Film_Format: "35mm",
+          Orientation: "vertical",
+          Top_or_Bottom: "bottom",
+          Render_Quality: "preview",
+          Enable_Owner_Name_Etch: true,
+          Owner_Name: "TEST",
+          Fontface: DEFAULT_FONT_FAMILY,
+        },
+        quality: "preview",
       },
-      quality: "preview",
-    });
+      log,
+    );
 
     expect(result.stl.byteLength).toBeGreaterThan(84);
+    expect(result.log.length).toBeGreaterThan(0);
     const view = new DataView(result.stl.buffer, result.stl.byteOffset);
     expect(view.getUint32(80, true)).toBeGreaterThan(0); // triangle count > 0
   }, 180_000);

@@ -29,8 +29,8 @@ export async function renderScad(
   loadModule: LoadModule,
   fsAssets: FsAssets,
   req: RenderRequest,
+  log: string[],
 ): Promise<RenderResult> {
-  const log: string[] = [];
   const instance = await loadModule();
 
   // Mount all asset files (SCAD tree, BOSL2, fonts) at their absolute paths.

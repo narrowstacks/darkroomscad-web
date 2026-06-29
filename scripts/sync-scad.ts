@@ -101,10 +101,10 @@ function main() {
       publicDir,
       "scad",
       (rel) => `/${rel}`,
-      (rel) => rel === "src/old" || rel.startsWith("src/old/"),
+      (rel) => rel.startsWith("src/old/") || rel.endsWith(".gitkeep"),
     ),
-    ...collectManifestFiles(publicDir, "libraries", (rel) => `/${rel}`),
-    ...collectManifestFiles(publicDir, "fonts", (rel) => `/fonts/${rel}`),
+    ...collectManifestFiles(publicDir, "libraries", (rel) => `/${rel}`, (rel) => rel.endsWith(".gitkeep")),
+    ...collectManifestFiles(publicDir, "fonts", (rel) => `/fonts/${rel}`, (rel) => rel.endsWith(".gitkeep")),
   ];
   writeFileSync(
     join(publicDir, "scad-manifest.json"),

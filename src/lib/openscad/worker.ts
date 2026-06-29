@@ -6,6 +6,7 @@ declare const self: DedicatedWorkerGlobalScope;
 
 let assetsPromise: Promise<FsAssets> | null = null;
 let modulePromise: Promise<any> | null = null;
+let activeLog: string[] = [];
 
 async function fetchBytes(url: string): Promise<Uint8Array> {
   const res = await fetch(url);
@@ -26,7 +27,7 @@ async function loadAssets(): Promise<FsAssets> {
   return { files };
 }
 
-function loadModule(log: string[]) {
+function loadModule() {
   if (!modulePromise) {
     modulePromise = (async () => {
       const wasmBinary = await fetchBytes("/wasm/openscad.wasm");
@@ -35,11 +36,14 @@ function loadModule(log: string[]) {
       const moduleUrl = "/wasm/openscad.js";
       const mod = await import(/* @vite-ignore */ moduleUrl);
       const factory = (mod.default ?? mod) as (opts: object) => Promise<any>;
+      // Close over `activeLog` so the callbacks re-read the current reference on
+      // every invocation — reassigning `activeLog` before each render routes output
+      // to that render's log array without recreating the module.
       return factory({
         noInitialRun: true,
         wasmBinary,
-        print: (t: string) => log.push(t),
-        printErr: (t: string) => log.push(t),
+        print: (t: string) => activeLog.push(t),
+        printErr: (t: string) => activeLog.push(t),
       });
     })();
   }
@@ -50,10 +54,11 @@ self.onmessage = async (e: MessageEvent) => {
   const { type, id, req } = e.data as { type: string; id: number; req: RenderRequest };
   if (type !== "render") return;
   const log: string[] = [];
+  activeLog = log;
   try {
     if (!assetsPromise) assetsPromise = loadAssets();
     const assets = await assetsPromise;
-    const result: RenderResult = await renderScad(() => loadModule(log), assets, req);
+    const result: RenderResult = await renderScad(loadModule, assets, req, log);
     self.postMessage({ type: "result", id, result }, [result.stl.buffer]);
   } catch (err) {
     self.postMessage({ type: "error", id, message: `${(err as Error).message}` });
