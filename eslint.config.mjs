@@ -20,6 +20,18 @@ const eslintConfig = [
       "next-env.d.ts",
     ],
   },
+  // WASM interop and test files legitimately use `any` for untyped runtime values
+  // (WASM module factory, dynamic import results, fake worker messages in tests).
+  {
+    files: [
+      "**/*.test.ts",
+      "src/lib/openscad/render.ts",
+      "src/lib/openscad/worker.ts",
+    ],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
 ];
 
 export default eslintConfig;
