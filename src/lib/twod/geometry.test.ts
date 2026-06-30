@@ -57,16 +57,16 @@ describe("pegRadiusAndKind", () => {
     expect(pegRadiusAndKind({ ...base, topOrBottom: "bottom", pegStyle: "printed" }))
       .toEqual({ r: 2.8, kind: "peg" });
   });
-  it("bottom heat-set → hole r=0.8", () => {
+  it("bottom heat-set → hole r=1.05", () => {
     expect(pegRadiusAndKind({ ...base, topOrBottom: "bottom", pegStyle: "heat_set" }))
-      .toEqual({ r: 0.8, kind: "hole" });
+      .toEqual({ r: 1.05, kind: "hole" });
   });
   it("top printed → hole r=3.05", () => {
     expect(pegRadiusAndKind({ ...base, topOrBottom: "top", pegStyle: "printed" }))
       .toEqual({ r: 3.05, kind: "hole" });
   });
-  it("top heat-set → socket hole r=1.9", () => {
+  it("top heat-set → socket hole r=2.15", () => {
     expect(pegRadiusAndKind({ ...base, topOrBottom: "top", pegStyle: "heat_set" }))
-      .toEqual({ r: 1.9, kind: "hole" });
+      .toEqual({ r: 2.15, kind: "hole" });
   });
 });

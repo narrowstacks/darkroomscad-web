@@ -60,10 +60,10 @@ export function pegRadiusAndKind(c: TwoDConfig): { r: number; kind: "peg" | "hol
   if (c.topOrBottom === "bottom") {
     return c.pegStyle === "printed"
       ? { r: PEG_RADIUS, kind: "peg" }                       // additive printed peg
-      : { r: M2_HEAT_SET_HOLE_DIA / 2, kind: "hole" };       // 0.8
+      : { r: M2_HEAT_SET_HOLE_DIA / 2 + PEG_HOLE_TOLERANCE, kind: "hole" };       // 1.05
   }
   // top
   return c.pegStyle === "printed"
     ? { r: PEG_RADIUS + PEG_HOLE_TOLERANCE, kind: "hole" }   // 3.05
-    : { r: M2_SOCKET_HEAD_DIA / 2, kind: "hole" };           // 1.9
+    : { r: M2_SOCKET_HEAD_DIA / 2 + PEG_HOLE_TOLERANCE, kind: "hole" };           // 2.15
 }
