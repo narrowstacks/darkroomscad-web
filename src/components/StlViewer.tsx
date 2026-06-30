@@ -31,7 +31,7 @@ function Model({ stl, color }: { stl: Uint8Array; color: string }) {
   // live preview generates a fresh STL on every parameter change.
   useEffect(() => () => geometry.dispose(), [geometry]);
   return (
-    <mesh geometry={geometry} castShadow>
+    <mesh geometry={geometry} castShadow receiveShadow>
       <meshStandardMaterial color={color} metalness={0.1} roughness={0.8} />
     </mesh>
   );
@@ -57,8 +57,19 @@ export function StlViewer({ stl, quality, loading }: {
         {projection === "ortho"
           ? <OrthographicCamera makeDefault position={CAM_POSITION} up={CAM_UP} zoom={3} near={0.1} far={2000} />
           : <PerspectiveCamera makeDefault position={CAM_POSITION} up={CAM_UP} fov={45} near={0.1} far={2000} />}
-        <ambientLight intensity={0.6} />
-        <directionalLight position={[50, 80, 30]} intensity={1.1} castShadow />
+        {/* Lower ambient + a grazing key light with a tight, high-res shadow map so
+            recesses (etched text, peg/screw holes, the board pocket) self-shadow and
+            read with contrast; a soft fill keeps shadows from going fully black. */}
+        {/* Raking key light (low elevation) so shallow etched text and hole walls
+            cast visible shadows across their floors — reveals surface relief that a
+            steep light washes out. Tight high-res shadow map resolves ~1mm features;
+            a soft fill keeps the far side from going black. */}
+        <ambientLight intensity={0.45} />
+        <directionalLight position={[70, 22, 30]} intensity={1.7} castShadow
+          shadow-mapSize={[4096, 4096]} shadow-bias={-0.00015}>
+          <orthographicCamera attach="shadow-camera" args={[-150, 150, 150, -150, 0.1, 500]} />
+        </directionalLight>
+        <directionalLight position={[-50, 40, -30]} intensity={0.4} />
         <Grid args={[400, 400]} cellSize={10} sectionSize={50}
           cellColor={viewer.grid} sectionColor={viewer.grid} infiniteGrid fadeDistance={500}
           position={[0, -0.01, 0]} />
