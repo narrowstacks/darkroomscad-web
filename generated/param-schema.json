@@ -377,6 +377,14 @@
       ]
     },
     {
+      "name": "_Render_Alignment_Board_Only",
+      "section": "Hidden",
+      "type": "boolean",
+      "default": false,
+      "hidden": true,
+      "description": "Used to export the board separately when it isn't fused into the carrier."
+    },
+    {
       "name": "Peg_Gap",
       "section": "Adjustments",
       "type": "number",

@@ -5,6 +5,7 @@ import type { RenderParams } from "../openscad/types";
 const baseForm: RenderParams = {
   Carrier_Type: "omega-d", Film_Format: "35mm", Orientation: "vertical",
   Enable_Owner_Name_Etch: true, Enable_Type_Name_Etch: true,
+  Alignment_Board: true, // attached/fused — no separate board part (app default)
 };
 
 describe("enumerateParts", () => {
@@ -48,5 +49,31 @@ describe("enumerateParts", () => {
     });
     expect(jobs).toHaveLength(2);
     expect(jobs.every((j) => j.params._WhichPart === "Base")).toBe(true);
+  });
+
+  it("detached board (printed pegs): adds a standalone alignment-board part", () => {
+    const jobs = enumerateParts({
+      ...baseForm, Text_As_Separate_Parts: false,
+      Alignment_Board: false, Alignment_Board_Type: "omega",
+      Printed_or_Heat_Set_Pegs: "printed",
+    });
+    expect(jobs).toHaveLength(3); // top + bottom + board
+    const board = jobs.find((j) => j.params._Render_Alignment_Board_Only === true);
+    expect(board).toBeDefined();
+    expect(board!.name).toBe("omega-d_omega-alignment-board.stl");
+    expect(board!.params.Render_Quality).toBe("final");
+  });
+
+  it("attached board: no standalone board part (it's fused into the bottom)", () => {
+    const jobs = enumerateParts({ ...baseForm, Text_As_Separate_Parts: false, Alignment_Board: true });
+    expect(jobs.some((j) => j.params._Render_Alignment_Board_Only === true)).toBe(false);
+  });
+
+  it("test-frame carriers have no alignment board, even detached", () => {
+    const jobs = enumerateParts({
+      ...baseForm, Carrier_Type: "frameAndPegTest",
+      Text_As_Separate_Parts: false, Alignment_Board: false,
+    });
+    expect(jobs.some((j) => j.params._Render_Alignment_Board_Only === true)).toBe(false);
   });
 });

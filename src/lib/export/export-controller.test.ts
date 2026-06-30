@@ -6,6 +6,7 @@ import type { RenderResult } from "../openscad/types";
 const form = {
   Carrier_Type: "omega-d", Film_Format: "35mm", Orientation: "vertical",
   Text_As_Separate_Parts: false,
+  Alignment_Board: true, // fused — keeps these controller tests to top + bottom only
 };
 const ok = (stl: number[]): RenderResult => ({ stl: new Uint8Array(stl), log: "", durationMs: 1 });
 

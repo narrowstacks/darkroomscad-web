@@ -2,6 +2,10 @@ import type { GroupConfig, FormValue } from "../lib/form/types";
 
 const isCustomFormat = (v: Record<string, FormValue>) => v.Film_Format === "custom";
 
+// Carriers that have an alignment board (test frames don't).
+const BOARD_CARRIERS = ["omega-d", "lpl-saunders-45xx", "beseler-23c"];
+const isBoardCarrier = (v: Record<string, FormValue>) => BOARD_CARRIERS.includes(String(v.Carrier_Type));
+
 export const CARRIER_UI: GroupConfig[] = [
   {
     title: "Carrier",
@@ -46,10 +50,11 @@ export const CARRIER_UI: GroupConfig[] = [
     title: "Options",
     fields: [
       { param: "Alignment_Board", label: "Attach alignment board", control: "switch",
-        help: "Needs heat-set pegs — disabled while printed pegs are selected.",
+        help: "On: fused into the carrier (needs heat-set pegs). Off: exported as a separate STL.",
         disabledWhen: (v) => v.Printed_or_Heat_Set_Pegs === "printed" },
       { param: "Alignment_Board_Type", label: "Board type", control: "segmented",
-        visibleWhen: (v) => v.Alignment_Board === true },
+        help: "Used whether the board is fused or downloaded separately.",
+        visibleWhen: isBoardCarrier },
       { param: "Printed_or_Heat_Set_Pegs", label: "Pegs", control: "segmented",
         help: "Printed pegs can't be combined with the alignment board.",
         optionDisabledWhen: (opt, v) => opt === "printed" && v.Alignment_Board === true },

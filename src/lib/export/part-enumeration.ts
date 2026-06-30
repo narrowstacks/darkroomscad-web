@@ -9,6 +9,9 @@ function slug(s: string): string {
   return s.replace(/\s+/g, "-");
 }
 
+// Carriers that have an alignment board. Test frames (and unimplemented types) don't.
+const BOARD_CARRIERS = new Set(["omega-d", "lpl-saunders-45xx", "beseler-23c"]);
+
 export function enumerateParts(form: RenderParams): PartJob[] {
   const carrier = slug(String(form.Carrier_Type ?? "carrier"));
   const format = slug(String(form.Film_Format ?? "format"));
@@ -35,6 +38,22 @@ export function enumerateParts(form: RenderParams): PartJob[] {
       if (form.Enable_Owner_Name_Etch === true) jobs.push(job(half, "OwnerText", "_owner-text"));
       if (form.Enable_Type_Name_Etch === true) jobs.push(job(half, "TypeText", "_type-text"));
     }
+  }
+
+  // Standalone alignment board: when it isn't fused into the carrier (detached —
+  // e.g. printed pegs), export the board as its own printable STL so the set is
+  // still complete. When attached (Alignment_Board === true) it's already in the
+  // bottom half, so don't duplicate it.
+  if (BOARD_CARRIERS.has(String(form.Carrier_Type)) && form.Alignment_Board !== true) {
+    const boardType = slug(String(form.Alignment_Board_Type ?? "omega"));
+    jobs.push({
+      name: `${carrier}_${boardType}-alignment-board.stl`,
+      params: {
+        ...form,
+        _Render_Alignment_Board_Only: true,
+        Render_Quality: "final",
+      },
+    });
   }
   return jobs;
 }
