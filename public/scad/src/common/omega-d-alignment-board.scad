@@ -6,7 +6,7 @@ BOARD_HEIGHT = 1.7; // Replaced by FRAME_THICKNESS
 BOARD_INSIDE_OPENING_UPDOWN_Y = 119; // X-extent of tall box for non-4x5 formats
 BOARD_INSIDE_OPENING_UPDOWN_Y_4X5 = 121; // X-extent of tall box for 4x5: clears 120mm film with 0.5mm/side; outer X rail = (127-121)/2 = 3mm
 BOARD_INSIDE_OPENING_UPDOWN_X = 93.5; // Y-extent (width) of tall box for non-4x5 formats (keeps screw holes clear)
-BOARD_INSIDE_OPENING_UPDOWN_X_4X5 = 103; // Y-extent (width) of tall box for 4x5: clears 101.6mm negative
+BOARD_INSIDE_OPENING_UPDOWN_X_4X5 = 97; // Y-extent (width) of tall box for 4x5: clears 95mm film opening with 1mm/side margin; keeps big-screw edge (Y=50.5) 2mm from opening; corner rail ≈3.9mm
 BOARD_INSIDE_OPENING_LEFTRIGHT_Y = 70; // X-extent of wide box
 BOARD_INSIDE_OPENING_LEFTRIGHT_X = 113; // Y-extent (height) of wide box for non-4x5 formats
 BOARD_INSIDE_OPENING_LEFTRIGHT_X_4X5 = 105; // Y-extent (height) of wide box for 4x5: clears 95mm film, keeps screws at ±57 Y in solid material with ~4mm rail
