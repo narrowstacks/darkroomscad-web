@@ -100,6 +100,38 @@ in the WASM FS so fontconfig discovers them.
 **TTF magic:** `00 01 00 00` (valid TrueType)
 **Purpose:** Default font for DarkroomSCAD; remaps proprietary `Lucida Console` to an open equivalent.
 
+### Carrier-text font palette (Google Fonts)
+
+User-selectable fonts for the text etched on the carrier (the `Fontface` param). Each is a
+**static, regular-weight (400-normal) TTF** vendored from **Fontsource** via jsDelivr —
+`https://cdn.jsdelivr.net/fontsource/fonts/<slug>@latest/latin-400-normal.ttf` — which repackages
+the upstream Google Fonts files as reliable single-weight static TTFs (preferred over the
+variable-font originals for fontconfig + OpenSCAD `textmetrics`). All families are listed in
+`src/config/fonts.ts` (`BUNDLED_FONTS`).
+
+Every file was verified to be a real TrueType (magic `00 01 00 00`), its family name read from the
+font `name` table, and — critically — **verified to actually render**: `src/config/fonts.integration.test.ts`
+renders the default Omega-D 35mm carrier with etched text in each family and asserts a non-empty
+binary STL with >0 triangles (proving fontconfig resolves the family AND text geometry renders).
+All 12 bundled fonts pass; none were dropped.
+
+| Family (`Fontface` value) | File | Fontsource slug | License |
+|---|---|---|---|
+| Roboto | `Roboto-Regular.ttf` | `roboto` | Apache-2.0 |
+| Open Sans | `OpenSans-Regular.ttf` | `open-sans` | OFL-1.1 |
+| Inter | `Inter-Regular.ttf` | `inter` | OFL-1.1 |
+| Montserrat | `Montserrat-Regular.ttf` | `montserrat` | OFL-1.1 |
+| Lato | `Lato-Regular.ttf` | `lato` | OFL-1.1 |
+| Oswald | `Oswald-Regular.ttf` | `oswald` | OFL-1.1 |
+| JetBrains Mono | `JetBrainsMono-Regular.ttf` | `jetbrains-mono` | OFL-1.1 |
+| Roboto Mono | `RobotoMono-Regular.ttf` | `roboto-mono` | Apache-2.0 |
+| Space Mono | `SpaceMono-Regular.ttf` | `space-mono` | OFL-1.1 |
+| Bebas Neue | `BebasNeue-Regular.ttf` | `bebas-neue` | OFL-1.1 |
+| Playfair Display | `PlayfairDisplay-Regular.ttf` | `playfair-display` | OFL-1.1 |
+
+**Upstream:** Google Fonts (https://github.com/google/fonts), repackaged by Fontsource
+(https://github.com/fontsource/font-files). OFL-1.1 and Apache-2.0 both permit embedding/redistribution.
+
 ---
 
 ## Notes for Task 5 (Render Worker)

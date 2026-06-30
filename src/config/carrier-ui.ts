@@ -38,7 +38,7 @@ export const CARRIER_UI: GroupConfig[] = [
         visibleWhen: (v) => v.Enable_Type_Name_Etch === true },
       { param: "Custom_Type_Name", label: "Custom label", control: "text",
         visibleWhen: (v) => v.Enable_Type_Name_Etch === true && v.Type_Name === "Custom" },
-      { param: "Fontface", label: "Font", control: "segmented", optionsFrom: "fonts" },
+      { param: "Fontface", label: "Font", control: "select", optionsFrom: "fonts" },
       { param: "Font_Size", label: "Font size", control: "slider", min: 4, max: 40, step: 0.5 },
     ],
   },

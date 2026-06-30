@@ -277,8 +277,52 @@
       "path": "/BOSL2/wiring.scad"
     },
     {
+      "url": "/fonts/BebasNeue-Regular.ttf",
+      "path": "/fonts/BebasNeue-Regular.ttf"
+    },
+    {
+      "url": "/fonts/Inter-Regular.ttf",
+      "path": "/fonts/Inter-Regular.ttf"
+    },
+    {
+      "url": "/fonts/JetBrainsMono-Regular.ttf",
+      "path": "/fonts/JetBrainsMono-Regular.ttf"
+    },
+    {
+      "url": "/fonts/Lato-Regular.ttf",
+      "path": "/fonts/Lato-Regular.ttf"
+    },
+    {
       "url": "/fonts/LiberationMono-Regular.ttf",
       "path": "/fonts/LiberationMono-Regular.ttf"
+    },
+    {
+      "url": "/fonts/Montserrat-Regular.ttf",
+      "path": "/fonts/Montserrat-Regular.ttf"
+    },
+    {
+      "url": "/fonts/OpenSans-Regular.ttf",
+      "path": "/fonts/OpenSans-Regular.ttf"
+    },
+    {
+      "url": "/fonts/Oswald-Regular.ttf",
+      "path": "/fonts/Oswald-Regular.ttf"
+    },
+    {
+      "url": "/fonts/PlayfairDisplay-Regular.ttf",
+      "path": "/fonts/PlayfairDisplay-Regular.ttf"
+    },
+    {
+      "url": "/fonts/Roboto-Regular.ttf",
+      "path": "/fonts/Roboto-Regular.ttf"
+    },
+    {
+      "url": "/fonts/RobotoMono-Regular.ttf",
+      "path": "/fonts/RobotoMono-Regular.ttf"
+    },
+    {
+      "url": "/fonts/SpaceMono-Regular.ttf",
+      "path": "/fonts/SpaceMono-Regular.ttf"
     },
     {
       "url": "/fonts/fonts.conf",

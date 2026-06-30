@@ -6,6 +6,20 @@ export interface BundledFont {
 
 export const BUNDLED_FONTS: BundledFont[] = [
   { id: "liberation-mono", family: "Liberation Mono", file: "LiberationMono-Regular.ttf" },
+  // Sans
+  { id: "roboto", family: "Roboto", file: "Roboto-Regular.ttf" },
+  { id: "open-sans", family: "Open Sans", file: "OpenSans-Regular.ttf" },
+  { id: "inter", family: "Inter", file: "Inter-Regular.ttf" },
+  { id: "montserrat", family: "Montserrat", file: "Montserrat-Regular.ttf" },
+  { id: "lato", family: "Lato", file: "Lato-Regular.ttf" },
+  { id: "oswald", family: "Oswald", file: "Oswald-Regular.ttf" },
+  // Mono
+  { id: "jetbrains-mono", family: "JetBrains Mono", file: "JetBrainsMono-Regular.ttf" },
+  { id: "roboto-mono", family: "Roboto Mono", file: "RobotoMono-Regular.ttf" },
+  { id: "space-mono", family: "Space Mono", file: "SpaceMono-Regular.ttf" },
+  // Display / Serif
+  { id: "bebas-neue", family: "Bebas Neue", file: "BebasNeue-Regular.ttf" },
+  { id: "playfair-display", family: "Playfair Display", file: "PlayfairDisplay-Regular.ttf" },
 ];
 
 // DarkroomSCAD ships Lucida Console (proprietary); remap to a bundled face.
