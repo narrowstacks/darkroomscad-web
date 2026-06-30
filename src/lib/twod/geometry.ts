@@ -1,4 +1,4 @@
-import type { TwoDConfig, TextPlacement } from "./types";
+import type { TwoDConfig, TextPlacement, Scene } from "./types";
 import { FILM_FORMATS, isFiledFormat, filmTypeName } from "./film-data";
 import { measureTextWidthMm } from "./measure-text";
 
@@ -174,4 +174,33 @@ export function directionalArrow(c: TwoDConfig): { points: [number, number][] } 
     return [Number((rx + pos[0]).toFixed(6)), Number((ry + pos[1]).toFixed(6))] as [number, number];
   });
   return { points };
+}
+
+// omega board's opening widens for 4x5 → a distinct outline variant.
+function boardOutlineKey(c: TwoDConfig): string | null {
+  if (!c.alignmentBoard || !BOARD_CARRIERS.has(c.carrierType)) return null;
+  if (c.alignmentBoardType === "omega") return c.filmFormat === "4x5" ? "omega-4x5" : "omega";
+  if (c.alignmentBoardType === "lpl-saunders") return "lpl-saunders";
+  if (c.alignmentBoardType === "beseler-23c") return "beseler-23c";
+  return null;
+}
+
+export function buildScene(
+  c: TwoDConfig,
+  measure: (t: string, f: string, s: number) => number = measureTextWidthMm,
+): Scene {
+  const { openingHeight, openingWidth } = openingDimensions(c);
+  const { x, y } = pegPositions(c);
+  const { r, kind } = pegRadiusAndKind(c);
+  const pegs = [];
+  for (const sx of [-1, 1]) for (const sy of [-1, 1]) pegs.push({ cx: sx * x, cy: sy * y, r, kind });
+  return {
+    // film_opening cuboid([opening_height, opening_width, …]): X=height, Y=width.
+    opening: { w: openingHeight, h: openingWidth, chamfer: FILM_OPENING_FILLET },
+    pegs,
+    screwHoles: screwFootprint(c),
+    arrow: directionalArrow(c),
+    texts: textPlacements(c, measure),
+    boardKey: boardOutlineKey(c),
+  };
 }

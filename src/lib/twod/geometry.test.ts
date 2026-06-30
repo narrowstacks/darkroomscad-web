@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { openingDimensions, pegPositions, pegRadiusAndKind, screwFootprint, directionalArrow, textPlacements } from "./geometry";
+import { openingDimensions, pegPositions, pegRadiusAndKind, screwFootprint, directionalArrow, textPlacements, buildScene } from "./geometry";
 import type { TwoDConfig } from "./types";
 
 const base: TwoDConfig = {
@@ -188,5 +188,23 @@ describe("textPlacements", () => {
     expect(owner.rotationDeg).toBe(270);
     expect(owner.cx).toBeCloseTo(-65, 6);
     expect(owner.cy).toBeCloseTo(75, 6);
+  });
+});
+
+describe("buildScene", () => {
+  it("assembles opening, 4 pegs, and no board overlay when board is off", () => {
+    const s = buildScene({ ...base, alignmentBoard: false });
+    expect(s.opening).toEqual({ w: 37, h: 24, chamfer: 0.5 });
+    expect(s.pegs).toHaveLength(4);
+    expect(s.pegs.every((p) => p.kind === "hole")).toBe(true); // bottom heat-set
+    expect(s.boardKey).toBeNull();
+    expect(s.screwHoles).toHaveLength(4);
+  });
+
+  it("selects the board outline key and drops footprint holes when attached", () => {
+    expect(buildScene({ ...base, alignmentBoard: true, alignmentBoardType: "omega" }).boardKey).toBe("omega");
+    expect(buildScene({ ...base, alignmentBoard: true, alignmentBoardType: "omega", filmFormat: "4x5" }).boardKey).toBe("omega-4x5");
+    expect(buildScene({ ...base, alignmentBoard: true, alignmentBoardType: "lpl-saunders" }).boardKey).toBe("lpl-saunders");
+    expect(buildScene({ ...base, alignmentBoard: true, alignmentBoardType: "omega" }).screwHoles).toEqual([]);
   });
 });
