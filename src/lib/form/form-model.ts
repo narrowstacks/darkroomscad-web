@@ -27,7 +27,10 @@ export function resolveFormModel(schema: ParamSchema, ui: GroupConfig[]): Resolv
       const p = byName.get(fc.param);
       if (!p) throw new Error(`carrier-ui references unknown param "${fc.param}"`);
       const control = fc.control ?? controlForType(p.type);
-      const baseOptions = fc.optionsFrom === "fonts" ? fontOptions() : p.options;
+      const rawOptions = fc.optionsFrom === "fonts" ? fontOptions() : p.options;
+      const baseOptions = rawOptions && fc.hideOptions
+        ? rawOptions.filter((o) => !fc.hideOptions!.includes(String(o.value)))
+        : rawOptions;
       const options = baseOptions && fc.optionLabels
         ? baseOptions.map((o) => ({ value: o.value, label: fc.optionLabels![String(o.value)] ?? o.label }))
         : baseOptions;

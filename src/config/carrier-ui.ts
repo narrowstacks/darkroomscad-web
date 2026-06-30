@@ -12,11 +12,14 @@ export const CARRIER_UI: GroupConfig[] = [
     fields: [
       { param: "Carrier_Type", label: "Enlarger", control: "cards", optionVisual: "carrier-outline",
         help: "Which enlarger this carrier fits.",
+        // Beseler 45 is not implemented yet (carrier.scad asserts on it) — hide it from
+        // the picker until it's supported. Uncomment its label below to restore.
+        hideOptions: ["beseler-45"],
         optionLabels: {
           "omega-d": "Omega D Series",
           "lpl-saunders-45xx": "LPL-Saunders 45XX Series",
           "beseler-23c": "Beseler 23C Series",
-          "beseler-45": "Beseler 45 Series",
+          // "beseler-45": "Beseler 45 Series", // not implemented yet
           "frameAndPegTest": "Frame Size Test Print",
         } },
       { param: "Orientation", label: "Orientation", control: "segmented",

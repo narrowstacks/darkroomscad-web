@@ -1,6 +1,10 @@
 {
   "files": [
     {
+      "url": "/scad/carrier-baked.scad",
+      "path": "/carrier-baked.scad"
+    },
+    {
       "url": "/scad/carrier.scad",
       "path": "/carrier.scad"
     },
@@ -327,6 +331,46 @@
     {
       "url": "/fonts/fonts.conf",
       "path": "/fonts/fonts.conf"
+    },
+    {
+      "url": "/base-stls/beseler-23c-bottom.stl",
+      "path": "/base-stls/beseler-23c-bottom.stl"
+    },
+    {
+      "url": "/base-stls/beseler-23c-top.stl",
+      "path": "/base-stls/beseler-23c-top.stl"
+    },
+    {
+      "url": "/base-stls/board-beseler-23c.stl",
+      "path": "/base-stls/board-beseler-23c.stl"
+    },
+    {
+      "url": "/base-stls/board-lpl-saunders.stl",
+      "path": "/base-stls/board-lpl-saunders.stl"
+    },
+    {
+      "url": "/base-stls/board-omega-4x5.stl",
+      "path": "/base-stls/board-omega-4x5.stl"
+    },
+    {
+      "url": "/base-stls/board-omega.stl",
+      "path": "/base-stls/board-omega.stl"
+    },
+    {
+      "url": "/base-stls/lpl-saunders-45xx-bottom.stl",
+      "path": "/base-stls/lpl-saunders-45xx-bottom.stl"
+    },
+    {
+      "url": "/base-stls/lpl-saunders-45xx-top.stl",
+      "path": "/base-stls/lpl-saunders-45xx-top.stl"
+    },
+    {
+      "url": "/base-stls/omega-d-bottom.stl",
+      "path": "/base-stls/omega-d-bottom.stl"
+    },
+    {
+      "url": "/base-stls/omega-d-top.stl",
+      "path": "/base-stls/omega-d-top.stl"
     }
   ]
 }

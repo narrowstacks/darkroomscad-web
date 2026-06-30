@@ -1,5 +1,6 @@
 /// <reference lib="webworker" />
 import { renderScad, type FsAssets, type FsFile } from "./render";
+import { selectRenderTarget } from "./preview-engine";
 import type { RenderRequest, RenderResult } from "./types";
 
 declare const self: DedicatedWorkerGlobalScope;
@@ -68,7 +69,12 @@ self.onmessage = async (e: MessageEvent) => {
   try {
     if (!assetsPromise) assetsPromise = loadAssets();
     const assets = await assetsPromise;
-    const result: RenderResult = await renderScad(() => createModule(log), assets, req, log);
+    // Route preview renders through the fast baked-base path when supported; final
+    // renders and unsupported configs fall through to the exact parametric carrier.
+    const target = selectRenderTarget(req);
+    const routedReq: RenderRequest = { ...req, mainFile: target.mainFile, params: target.params };
+    const result: RenderResult = await renderScad(() => createModule(log), assets, routedReq, log);
+    result.engine = target.baked ? "baked" : "parametric";
     self.postMessage({ type: "result", id, result }, [result.stl.buffer]);
   } catch (err) {
     self.postMessage({ type: "error", id, message: `${(err as Error).message}` });

@@ -25,6 +25,16 @@ describe("carrier-ui overlay vs generated schema", () => {
     expect(params).not.toContain("Film_Format");
   });
 
+  it("hides the not-yet-implemented beseler-45 carrier from the picker", () => {
+    const groups = resolveFormModel(s, CARRIER_UI);
+    const carrier = groups.flatMap((g) => g.fields).find((f) => f.param === "Carrier_Type")!;
+    const values = (carrier.options ?? []).map((o) => String(o.value));
+    expect(values).not.toContain("beseler-45");
+    // The implemented carriers are still offered.
+    expect(values).toContain("omega-d");
+    expect(values).toContain("beseler-23c");
+  });
+
   it("resolves overlay-provided slider ranges (Font_Size: min=4, max=40, step=0.5)", () => {
     const groups = resolveFormModel(s, CARRIER_UI);
     const byParam = Object.fromEntries(groups.flatMap((g) => g.fields).map((f) => [f.param, f]));

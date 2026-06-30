@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "sync:scad": "tsx scripts/sync-scad.ts",
     "sync:scad:github": "tsx scripts/sync-scad.ts --github",
-    "gen:outlines": "tsx scripts/gen-carrier-outlines.ts"
+    "gen:outlines": "tsx scripts/gen-carrier-outlines.ts",
+    "gen:base-stls": "tsx scripts/gen-base-stls.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

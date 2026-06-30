@@ -1,14 +1,15 @@
-import type { RenderParams, RenderResult } from "./types";
+import type { RenderEngine, RenderParams, RenderResult } from "./types";
 
 export interface PreviewState {
   status: "idle" | "rendering" | "done" | "error";
   stl?: Uint8Array;
   error?: string;
   durationMs?: number;
+  engine?: RenderEngine;
 }
 
 interface RenderLike {
-  render(req: { params: RenderParams; quality: "preview" | "final" }): Promise<RenderResult>;
+  render(req: { params: RenderParams; quality: "preview" | "final"; preferBaked?: boolean }): Promise<RenderResult>;
 }
 
 export class PreviewController {
@@ -42,8 +43,10 @@ export class PreviewController {
     this.inFlight = true;
     const gen = ++this.generation;
     this.onState({ status: "rendering", stl: this.lastStl });
+    // Preview always prefers the fast baked path; the worker falls back to the exact
+    // parametric render for configs without baked geometry.
     this.client.render({ params, quality: "preview" }).then(
-      (res) => this.settle(gen, () => { this.lastStl = res.stl; this.onState({ status: "done", stl: res.stl, durationMs: res.durationMs }); }),
+      (res) => this.settle(gen, () => { this.lastStl = res.stl; this.onState({ status: "done", stl: res.stl, durationMs: res.durationMs, engine: res.engine }); }),
       (err) => this.settle(gen, () => this.onState({ status: "error", error: (err as Error).message })),
     );
   }

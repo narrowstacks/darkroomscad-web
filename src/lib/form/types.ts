@@ -13,6 +13,8 @@ export interface FieldConfig {
   optionVisual?: "carrier-outline";
   /** Friendly display labels per option value, overriding the schema-supplied labels. */
   optionLabels?: Record<string, string>;
+  /** Option values to hide from the control entirely (e.g. not-yet-implemented choices). */
+  hideOptions?: string[];
   min?: number;
   max?: number;
   step?: number;

@@ -77,7 +77,7 @@ export function StlViewer({ stl, quality, loading }: {
           position={[0, -0.01, 0]} />
         {stl && (
           // Re-fit when the projection changes so the new camera frames the model.
-          <Bounds key={projection} fit clip observe margin={1.2}>
+          <Bounds key={`bounds-${projection}`} fit clip observe margin={1.2}>
             {/* rotate so OpenSCAD's Z-up reads upright in three's Y-up */}
             <group rotation={[-Math.PI / 2, 0, 0]}>
               <Model stl={stl} color={viewer.model} />
@@ -85,7 +85,7 @@ export function StlViewer({ stl, quality, loading }: {
           </Bounds>
         )}
         {/* Remount on projection change so OrbitControls rebinds to the new default camera. */}
-        <OrbitControls key={projection} makeDefault enableDamping />
+        <OrbitControls key={`controls-${projection}`} makeDefault enableDamping />
       </Canvas>
 
       {/* Projection toggle — only while a model is shown (kept clear of the load overlays). */}
@@ -124,16 +124,9 @@ export function StlViewer({ stl, quality, loading }: {
           </div>
         </div>
       )}
-      {/* Re-render: a model is already on screen — darken the viewport and show a
-          centered indicator so it's clear the preview is updating. */}
-      {loading && stl && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3"
-          style={{ background: "rgba(0,0,0,0.5)" }}>
-          <span className="h-9 w-9 rounded-full border-2 animate-spin motion-reduce:animate-none"
-            style={{ borderColor: "rgba(255,255,255,0.25)", borderTopColor: "var(--accent)" }} aria-hidden />
-          <p className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.95)" }}>Rendering…</p>
-        </div>
-      )}
+      {/* No re-render overlay: baked previews complete in ~100ms, so a dark "Rendering…"
+          screen would just flash. The model swaps in place; the cold-start overlay above
+          still covers the one-time engine download. */}
       {quality === "preview" && stl && !loading && (
         <span className="eyebrow absolute right-3 top-3 flex items-center gap-1.5 rounded-full px-2.5 py-1"
           style={{ background: "rgba(var(--bg-rgb), 0.6)", border: "1px solid var(--border)", backdropFilter: "blur(6px)" }}>
