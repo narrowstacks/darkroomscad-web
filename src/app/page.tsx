@@ -4,10 +4,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { RenderClient } from "@/lib/openscad/client";
 import { PreviewController, type PreviewState } from "@/lib/openscad/preview-controller";
 import { useCarrierForm } from "@/hooks/use-carrier-form";
+import { usePresets } from "@/hooks/use-presets";
 import { CarrierForm } from "@/components/CarrierForm";
 import { ExportPanel } from "@/components/ExportPanel";
 import { StlViewer } from "@/components/StlViewer";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { PresetBar } from "@/components/PresetBar";
 
 function newClient(): RenderClient {
   const worker = new Worker(new URL("../lib/openscad/worker.ts", import.meta.url), { type: "module" });
@@ -15,7 +17,8 @@ function newClient(): RenderClient {
 }
 
 export default function Home() {
-  const { groups, values, setValue, toParams } = useCarrierForm();
+  const { groups, values, setValue, applyValues, reset, toParams } = useCarrierForm();
+  const { presets, save: savePreset, remove: deletePreset } = usePresets();
   const [preview, setPreview] = useState<PreviewState>({ status: "idle" });
   const clientRef = useRef<RenderClient | null>(null);
   const ctlRef = useRef<PreviewController | null>(null);
@@ -58,12 +61,16 @@ export default function Home() {
 
   return (
     <main className="flex flex-col p-4 md:h-screen md:overflow-hidden md:p-8">
-      <header className="mb-6 flex shrink-0 items-start justify-between">
+      <header className="mb-6 flex shrink-0 flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold">DarkroomSCAD</h1>
           <p style={{ color: "var(--text-muted)" }}>Configure your negative carrier and download a print-ready STL.</p>
         </div>
-        <ThemeToggle />
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <PresetBar presets={presets} onLoad={applyValues}
+            onSave={(name) => savePreset(name, values)} onDelete={deletePreset} onReset={reset} />
+          <ThemeToggle />
+        </div>
       </header>
 
       <div className="grid gap-6 md:min-h-0 md:flex-1 md:grid-cols-[minmax(320px,400px)_1fr]">
