@@ -77,7 +77,7 @@ const BOARDS: Record<string, CarrierSpec> = {
   "lpl-saunders": {
     include: "src/common/lpl-saunders-alignment-board.scad",
     call: 'lpl_saunders_alignment_board();',
-    minWidth: 140, minHeight: 100,
+    minWidth: 150, minHeight: 100,
   },
   "beseler-23c": {
     include: "src/common/beseler-23c-alignment-board.scad",
