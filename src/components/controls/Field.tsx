@@ -4,6 +4,7 @@ import { Segmented } from "./Segmented";
 import { Switch } from "./Switch";
 import { Slider } from "./Slider";
 import { CardSelect } from "./CardSelect";
+import { TextInput } from "./TextInput";
 import { coerceOptionValue } from "@/lib/form/control-value";
 import { CARRIER_OUTLINES } from "@/lib/outline/outlines";
 
@@ -62,13 +63,8 @@ export function Field({ field, value, onChange, disabled, disabledOptions }: {
         </div>
       );
     default:
-      return (
-        <div className="py-1">
-          <label htmlFor={id} className="block text-sm font-medium" style={{ color: "var(--text)" }}>{field.label}</label>
-          <input id={id} type="text" value={String(value)} onChange={(e) => onChange(e.target.value)}
-            className="mt-1 w-full rounded px-2 py-1.5 text-sm"
-            style={{ background: "var(--surface-muted)", color: "var(--text)", border: "1px solid var(--border)" }} />
-        </div>
-      );
+      // Etch-text fields: commit only when the user pauses/blurs so the model
+      // doesn't re-render on every keystroke.
+      return <TextInput id={id} label={field.label} value={String(value)} onCommit={onChange} />;
   }
 }
