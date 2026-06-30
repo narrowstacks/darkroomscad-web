@@ -84,6 +84,29 @@ describe.runIf(hasAll)("baked-base preview path (prototype)", () => {
     { carrier: "beseler-23c", board: "beseler-23c", baseStl: "beseler-23c-bottom", boardStl: "board-beseler-23c" },
   ];
 
+  it("custom film format: custom dimensions actually drive the baked geometry", async () => {
+    const customParams = (w: number, h: number) => [
+      '-D', 'Carrier_Type="omega-d"', '-D', 'Baked_Base_Stl="/base-stls/omega-d-bottom.stl"',
+      '-D', 'Orientation="vertical"', '-D', 'Top_or_Bottom="bottom"', '-D', 'Flip_Bottom_For_Printing=false',
+      '-D', 'Printed_or_Heat_Set_Pegs="heat_set"', '-D', 'Enable_Owner_Name_Etch=false', '-D', 'Enable_Type_Name_Etch=false',
+      '-D', 'Film_Format="custom"', '-D', `Custom_Opening_Width=${w}`, '-D', `Custom_Opening_Height=${h}`,
+      '-D', `Custom_Film_Width=${w + 6}`, '-D', `Custom_Film_Height=${h + 6}`,
+    ];
+    // A tall opening and a wide opening must produce DIFFERENT geometry — the old bug
+    // ignored the custom params, so both collapsed to the 37x37 square default.
+    const tall = await render("carrier-baked.scad", customParams(40, 100));
+    const wide = await render("carrier-baked.scad", customParams(100, 40));
+    const sameLen = tall.stl.byteLength === wide.stl.byteLength;
+    const sameBytes = sameLen && tall.stl.every((v, i) => v === wide.stl[i]);
+    expect(sameBytes).toBe(false);
+
+    // And the baked custom render matches the exact parametric custom render's footprint.
+    // (The extra Baked_Base_Stl -D is simply unused by carrier.scad.)
+    const param = await render("carrier.scad", ['-D', 'Render_Quality="final"', '-D', 'Alignment_Board=false', ...customParams(100, 40)]);
+    const b = stlBBox(wide.stl), p = stlBBox(param.stl);
+    for (let a = 0; a < 3; a++) expect(Math.abs(b.size[a] - p.size[a])).toBeLessThan(0.6);
+  }, 180_000);
+
   for (const c of CARRIERS) {
     it(`${c.carrier}: baked (base + board) matches parametric dims and is faster`, async () => {
       const withBoard = [...P, '-D', 'Alignment_Board=true', '-D', `Alignment_Board_Type="${c.board}"`];
