@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "prebuild": "tsx scripts/sync-scad.ts",
+    "prebuild": "tsx scripts/sync-scad.ts && tsx scripts/gen-base-stls.ts",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run --passWithNoTests",
