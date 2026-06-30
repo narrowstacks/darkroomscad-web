@@ -23,6 +23,19 @@ import { extractOuterContour, extractAllContours } from "../src/lib/outline/oute
 
 interface FsFile { path: string; data: Uint8Array }
 
+// Minimal slice of the Emscripten module instance we actually drive.
+interface EmscriptenFS {
+  analyzePath(path: string): { exists: boolean };
+  mkdir(path: string): void;
+  writeFile(path: string, data: Uint8Array | string): void;
+  readFile(path: string): Uint8Array;
+}
+interface OpenScadInstance {
+  FS: EmscriptenFS;
+  callMain(args: string[]): number;
+}
+type OpenScadFactory = (opts: object) => Promise<OpenScadInstance>;
+
 interface CarrierSpec {
   include: string;       // base-shape file to include (relative to FS root)
   call: string;          // module invocation producing the carrier BODY only
@@ -99,7 +112,7 @@ function readTree(absDir: string, fsPrefix: string): FsFile[] {
   return out;
 }
 
-function mkdirP(FS: any, dir: string) {
+function mkdirP(FS: EmscriptenFS, dir: string) {
   const parts = dir.split("/").filter(Boolean);
   let cur = "";
   for (const p of parts) {
@@ -120,7 +133,7 @@ async function main() {
 
   const wasmBinary = new Uint8Array(readFileSync(join(cwd, "public/wasm/openscad.wasm")));
   const mod = await import(join(cwd, "public/wasm/openscad.js"));
-  const factory = (mod.default ?? mod) as (opts: object) => Promise<any>;
+  const factory = (mod.default ?? mod) as OpenScadFactory;
 
   const assets = [
     ...readTree(join(cwd, "public/scad"), ""),       // -> FS root (so relative includes resolve)

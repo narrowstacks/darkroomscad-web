@@ -18,6 +18,8 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      // Vendored, generated Emscripten output — not our code to lint.
+      "public/wasm/openscad.js",
     ],
   },
   // WASM interop and test files legitimately use `any` for untyped runtime values

@@ -48,4 +48,4 @@ Pre-renders carrier + board silhouettes to SVG paths via WASM `projection()`. Th
 ## Build / test / lint
 
 - `npm test` (vitest), `npm run build` (runs `prebuild` sync-scad — needs `../DarkroomSCAD` or it skips and uses committed artifacts).
-- `npm run lint` is **already red** from pre-existing issues unrelated to app code: the vendored `public/wasm/openscad.js` and two `@typescript-eslint/no-explicit-any` in `scripts/gen-carrier-outlines.ts`. Only treat *new* lint errors in your changed files as actionable.
+- `npm run lint` is **clean**. The vendored `public/wasm/openscad.js` is eslint-ignored (generated Emscripten output, not our code); keep it that way rather than trying to satisfy the linter on it.
