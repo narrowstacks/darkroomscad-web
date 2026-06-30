@@ -155,8 +155,13 @@ async function main() {
       if (dir) mkdirP(inst.FS, dir);
       inst.FS.writeFile(f.path, f.data);
     }
+    // BOSL2 is included here at the wrapper (entry-point) level. The base-shape
+    // and alignment-board files under src/ no longer include BOSL2 themselves
+    // (it lives once in carrier.scad for the render path) to avoid re-parsing the
+    // ~80k-line library many times per render. This wrapper is their entry point,
+    // so it must supply BOSL2 (std + rounding) before including the spec file.
     inst.FS.writeFile("/outline.scad",
-      `include <${spec.include}>\n$fn=${fn};\nprojection(cut=false) ${spec.call}\n`);
+      `include <BOSL2/std.scad>\ninclude <BOSL2/rounding.scad>\ninclude <${spec.include}>\n$fn=${fn};\nprojection(cut=false) ${spec.call}\n`);
     const code = inst.callMain(["/outline.scad", "-o", "/o.svg", "--export-format=svg", "--enable=all"]);
     if (code) throw new Error(`OpenSCAD exited ${code}\n${log.join("\n")}`);
     const rawSvg = new TextDecoder().decode(inst.FS.readFile("/o.svg"));
