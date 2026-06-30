@@ -29,8 +29,8 @@ Pure TS ports of the OpenSCAD geometry math — no WASM. The 3D STL is the groun
 
 ## Outline generation (`scripts/gen-carrier-outlines.ts` → `npm run gen:outlines`)
 
-Pre-renders carrier + board silhouettes to SVG paths via WASM `projection()`, writing `src/lib/outline/outlines.ts` (carriers; `<key>` = bottom, `<key>:top` = top variant) and `src/lib/outline/board-outlines.ts` (boards; omega has an `omega-4x5` variant). These are committed artifacts. Notes:
-- Manifold (the WASM CSG engine) is intermittently flaky on `projection()` of unions/torus; the generator sweeps `$fn` and validates a min bbox. The beseler **board** (torus) projection sometimes fails — generation is resilient (carriers write first; a board failure is caught and leaves the existing committed board entry in place).
+Pre-renders carrier + board silhouettes to SVG paths via WASM `projection()`. The **data** is written to `generated/carrier-outlines.json` (carriers; `<key>` = bottom, `<key>:top` = top variant) and `generated/board-outlines.json` (boards; omega has an `omega-4x5` variant), plus visual `public/outlines/*.svg`. All three are committed artifacts. The typed loaders `src/lib/outline/outlines.ts` / `board-outlines.ts` just `import` the JSON and re-export it as `CARRIER_OUTLINES` / `BOARD_OUTLINES` — **those loader .ts files are hand-editable; the JSON and SVGs are not** (a `PreToolUse` hook blocks editing `generated/*.json` and `public/outlines/*.svg`). Notes:
+- Manifold (the WASM CSG engine) is intermittently flaky on `projection()` of unions/torus; the generator sweeps `$fn` and validates a min bbox. The beseler **board** (torus) projection sometimes fails — generation is resilient (carriers write `generated/carrier-outlines.json` first; a board failure is caught and leaves `generated/board-outlines.json` untouched).
 - Re-run after any silhouette-affecting SCAD change (top vs bottom differ — e.g. the omega **top** part has a corner `separation_hole` notch).
 
 ## 3D viewer (`src/components/StlViewer.tsx`)
