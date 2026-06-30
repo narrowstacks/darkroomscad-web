@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Aperture, TriangleAlert } from "lucide-react";
 import { RenderClient } from "@/lib/openscad/client";
+import type { RenderParams } from "@/lib/openscad/types";
 import type { FormValue } from "@/lib/form/types";
 import { PreviewController, type PreviewState } from "@/lib/openscad/preview-controller";
 import { useCarrierForm } from "@/hooks/use-carrier-form";
@@ -59,10 +60,17 @@ export default function Home() {
   }
 
   // Request a 3D preview only once 3D is active — pure-2D sessions never spawn
-  // the OpenSCAD worker, so there is no cold-load wait.
+  // the OpenSCAD worker, so there is no cold-load wait. `params` is memoized and
+  // only changes when the carrier config changes, so guarding on its reference
+  // means merely toggling 2D⇆3D never re-renders an unchanged carrier — only a
+  // real config change (or the first switch into 3D) triggers a render.
   const params = useMemo(() => toParams({ Render_Quality: "preview" }), [toParams]);
+  const renderedParamsRef = useRef<RenderParams | null>(null);
   useEffect(() => {
-    if (viewMode === "3d") controller().request(params);
+    if (viewMode !== "3d") return;
+    if (renderedParamsRef.current === params) return;
+    renderedParamsRef.current = params;
+    controller().request(params);
   }, [params, viewMode]);
 
   // Null the refs after disposing so a remount (React StrictMode dev double-invoke,
