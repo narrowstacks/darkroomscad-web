@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { RenderClient } from "@/lib/openscad/client";
+import type { FormValue } from "@/lib/form/types";
 import { PreviewController, type PreviewState } from "@/lib/openscad/preview-controller";
 import { useCarrierForm } from "@/hooks/use-carrier-form";
 import { usePresets } from "@/hooks/use-presets";
@@ -19,7 +20,15 @@ function newClient(): RenderClient {
 export default function Home() {
   const { groups, values, setValue, applyValues, reset, toParams } = useCarrierForm();
   const { presets, save: savePreset, remove: deletePreset } = usePresets();
+  const [selectedPresetId, setSelectedPresetId] = useState("");
   const [preview, setPreview] = useState<PreviewState>({ status: "idle" });
+
+  // A manual field edit means the config no longer matches the loaded preset —
+  // clear the dropdown selection. Preset loads go through applyValues (not this).
+  const editValue = useCallback((param: string, value: FormValue) => {
+    setSelectedPresetId("");
+    setValue(param, value);
+  }, [setValue]);
   const clientRef = useRef<RenderClient | null>(null);
   const ctlRef = useRef<PreviewController | null>(null);
 
@@ -67,8 +76,15 @@ export default function Home() {
           <p style={{ color: "var(--text-muted)" }}>Configure your negative carrier and download a print-ready STL.</p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <PresetBar presets={presets} onLoad={applyValues}
-            onSave={(name) => savePreset(name, values)} onDelete={deletePreset} onReset={reset} />
+          <PresetBar presets={presets} selectedId={selectedPresetId}
+            onSelect={(id) => {
+              setSelectedPresetId(id);
+              const p = presets.find((x) => x.id === id);
+              if (p) applyValues(p.values);
+            }}
+            onSave={(name) => setSelectedPresetId(savePreset(name, values).id)}
+            onDelete={(id) => { deletePreset(id); if (id === selectedPresetId) setSelectedPresetId(""); }}
+            onReset={() => { reset(); setSelectedPresetId(""); }} />
           <ThemeToggle />
         </div>
       </header>
@@ -82,7 +98,7 @@ export default function Home() {
             <ExportPanel client={getClient} getParams={() => toParams({})} />
           </section>
           <div className="md:min-h-0 md:flex-1 md:overflow-y-auto md:pr-1">
-            <CarrierForm groups={groups} values={values} setValue={setValue} />
+            <CarrierForm groups={groups} values={values} setValue={editValue} />
           </div>
         </div>
 

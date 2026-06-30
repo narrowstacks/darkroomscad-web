@@ -1,29 +1,22 @@
 "use client";
 import { useState } from "react";
-import type { FormValue } from "@/lib/form/types";
 import type { Preset } from "@/lib/storage/presets-store";
 
 const btn = "rounded px-2 py-1 text-sm transition-colors focus-visible:outline-2";
 const btnStyle = { background: "var(--surface)", color: "var(--text)", border: "1px solid var(--border)" } as const;
 
-export function PresetBar({ presets, onLoad, onSave, onDelete, onReset }: {
+export function PresetBar({ presets, selectedId, onSelect, onSave, onDelete, onReset }: {
   presets: Preset[];
-  onLoad: (values: Record<string, FormValue>) => void;
+  selectedId: string;
+  onSelect: (id: string) => void;
   onSave: (name: string) => void;
   onDelete: (id: string) => void;
   onReset: () => void;
 }) {
-  const [selectedId, setSelectedId] = useState("");
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
 
   const selected = presets.find((p) => p.id === selectedId);
-
-  function handleSelect(id: string) {
-    setSelectedId(id);
-    const preset = presets.find((p) => p.id === id);
-    if (preset) onLoad(preset.values);
-  }
 
   function commitSave() {
     const trimmed = name.trim();
@@ -36,7 +29,7 @@ export function PresetBar({ presets, onLoad, onSave, onDelete, onReset }: {
   return (
     <div className="flex flex-wrap items-center justify-end gap-2 text-sm">
       <select aria-label="Load preset" value={selectedId}
-        onChange={(e) => handleSelect(e.target.value)}
+        onChange={(e) => onSelect(e.target.value)}
         className="rounded px-2 py-1 text-sm"
         style={{ background: "var(--surface-muted)", color: "var(--text)", border: "1px solid var(--border)" }}>
         <option value="">{presets.length ? "Load preset…" : "No presets yet"}</option>
@@ -44,7 +37,7 @@ export function PresetBar({ presets, onLoad, onSave, onDelete, onReset }: {
       </select>
 
       {selected && (
-        <button type="button" onClick={() => { onDelete(selected.id); setSelectedId(""); }}
+        <button type="button" onClick={() => onDelete(selected.id)}
           aria-label={`Delete preset ${selected.name}`} title="Delete preset"
           className={btn} style={btnStyle}>✕</button>
       )}
@@ -70,7 +63,7 @@ export function PresetBar({ presets, onLoad, onSave, onDelete, onReset }: {
           className={btn} style={btnStyle}>Save preset…</button>
       )}
 
-      <button type="button" onClick={() => { onReset(); setSelectedId(""); }}
+      <button type="button" onClick={onReset}
         title="Reset to defaults" className={btn} style={btnStyle}>Reset</button>
     </div>
   );

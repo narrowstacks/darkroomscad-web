@@ -18,8 +18,12 @@ export function usePresets() {
     savePresets(list);
   }, []);
 
-  const save = useCallback((name: string, values: Record<string, FormValue>) => {
-    persist(upsertPreset(presets, name, values, crypto.randomUUID()));
+  const save = useCallback((name: string, values: Record<string, FormValue>): Preset => {
+    const list = upsertPreset(presets, name, values, crypto.randomUUID());
+    persist(list);
+    // Return the resulting preset (the existing one if overwritten by name, else new).
+    const trimmed = name.trim().toLowerCase();
+    return list.find((p) => p.name.toLowerCase() === trimmed)!;
   }, [presets, persist]);
 
   const remove = useCallback((id: string) => {
