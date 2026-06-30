@@ -86,10 +86,11 @@ export function CarrierView2D({ values }: { values: Record<string, FormValue> })
           {/* Film opening (cut through). */}
           <path data-layer="opening" d={chamferRectInScad(scene.opening.w, scene.opening.h, scene.opening.chamfer)}
             fill={cut} stroke="var(--border)" strokeWidth={0.4} />
-          {/* Pegs (additive) and holes (cut). */}
+          {/* Pegs (additive — saturated so they read on the grey body in every
+              theme) and holes (cut through → viewer background). */}
           {scene.pegs.map((p, i) => (
             <circle key={`peg-${i}`} data-layer="peg" cx={p.cx} cy={p.cy} r={p.r}
-              fill={p.kind === "peg" ? "var(--text-muted)" : cut}
+              fill={p.kind === "peg" ? "var(--primary)" : cut}
               stroke="var(--border)" strokeWidth={0.4} />
           ))}
           {/* Alignment-screw footprint holes. */}
