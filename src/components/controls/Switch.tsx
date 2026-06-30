@@ -18,7 +18,7 @@ export function Switch({ checked, onChange, label, help, disabled }: {
         className="relative h-6 w-11 shrink-0 rounded-full transition-colors focus-visible:outline-2 disabled:cursor-not-allowed"
         style={{ background: checked ? "var(--primary)" : "var(--surface-muted)", border: "1px solid var(--border)" }}>
         <span className="absolute top-0.5 h-4 w-4 rounded-full transition-all"
-          style={{ left: checked ? "1.5rem" : "0.15rem", background: checked ? "#08120b" : "var(--text-muted)" }} />
+          style={{ left: checked ? "1.5rem" : "0.15rem", background: checked ? "var(--on-primary)" : "var(--text-muted)" }} />
       </button>
     </div>
   );

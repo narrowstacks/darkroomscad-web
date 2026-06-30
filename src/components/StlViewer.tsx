@@ -33,7 +33,7 @@ export function StlViewer({ stl, quality, loading }: {
 }) {
   const { viewer } = useTheme();
   return (
-    <div className="relative h-full w-full rounded-lg overflow-hidden"
+    <div className="shadow-subtle relative h-full w-full overflow-hidden rounded-2xl"
       style={{ background: viewer.background, border: "1px solid var(--border)" }}>
       <Canvas camera={{ position: [80, 80, 80], fov: 45 }} shadows>
         <ambientLight intensity={0.6} />
@@ -56,7 +56,7 @@ export function StlViewer({ stl, quality, loading }: {
           model to show yet. Cover the empty canvas with an informative overlay so the
           ~10s first-load wait reads as progress, not a broken page. */}
       {loading && !stl && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center"
+        <div className="animate-fade-in absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center"
           style={{ background: viewer.background }}>
           <span className="h-9 w-9 rounded-full border-2 animate-spin motion-reduce:animate-none"
             style={{ borderColor: "var(--border)", borderTopColor: "var(--accent)" }} aria-hidden />
@@ -79,9 +79,10 @@ export function StlViewer({ stl, quality, loading }: {
         </div>
       )}
       {quality === "preview" && stl && !loading && (
-        <span className="absolute top-2 right-2 rounded px-2 py-0.5 text-xs"
-          style={{ background: "var(--surface-muted)", color: "var(--text-dim)", border: "1px solid var(--border)" }}>
-          preview quality
+        <span className="eyebrow absolute right-3 top-3 flex items-center gap-1.5 rounded-full px-2.5 py-1"
+          style={{ background: "rgba(var(--bg-rgb), 0.6)", border: "1px solid var(--border)", backdropFilter: "blur(6px)" }}>
+          <span className="size-1.5 rounded-full" style={{ background: "var(--primary)" }} aria-hidden />
+          Live preview
         </span>
       )}
     </div>

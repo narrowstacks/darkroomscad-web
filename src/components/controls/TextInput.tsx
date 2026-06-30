@@ -44,8 +44,7 @@ export function TextInput({ id, label, value, onCommit, debounceMs = 500 }: {
         onChange={(e) => handleChange(e.target.value)}
         onBlur={() => { focused.current = false; commit(local); }}
         onKeyDown={(e) => { if (e.key === "Enter") commit((e.target as HTMLInputElement).value); }}
-        className="mt-1 w-full rounded px-2 py-1.5 text-sm"
-        style={{ background: "var(--surface-muted)", color: "var(--text)", border: "1px solid var(--border)" }} />
+        className="app-input mt-1" />
     </div>
   );
 }

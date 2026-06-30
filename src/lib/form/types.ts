@@ -11,6 +11,8 @@ export interface FieldConfig {
   control?: ControlKind;
   optionsFrom?: "fonts";
   optionVisual?: "carrier-outline";
+  /** Friendly display labels per option value, overriding the schema-supplied labels. */
+  optionLabels?: Record<string, string>;
   min?: number;
   max?: number;
   step?: number;

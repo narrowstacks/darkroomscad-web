@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Aperture, TriangleAlert } from "lucide-react";
 import { RenderClient } from "@/lib/openscad/client";
 import type { FormValue } from "@/lib/form/types";
 import { PreviewController, type PreviewState } from "@/lib/openscad/preview-controller";
@@ -10,7 +11,8 @@ import { CarrierForm } from "@/components/CarrierForm";
 import { ExportPanel } from "@/components/ExportPanel";
 import { StlViewer } from "@/components/StlViewer";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { PresetBar } from "@/components/PresetBar";
+import { PresetMenu } from "@/components/PresetMenu";
+import { ToastProvider } from "@/components/ui/Toast";
 
 function newClient(): RenderClient {
   const worker = new Worker(new URL("../lib/openscad/worker.ts", import.meta.url), { type: "module" });
@@ -69,14 +71,23 @@ export default function Home() {
   const isLoading = preview.status === "rendering" || preview.status === "idle";
 
   return (
-    <main className="flex flex-col p-4 md:h-screen md:overflow-hidden md:p-8">
-      <header className="mb-6 flex shrink-0 flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-3xl font-semibold">DarkroomSCAD</h1>
-          <p style={{ color: "var(--text-muted)" }}>Configure your negative carrier and download a print-ready STL.</p>
+    <ToastProvider>
+    <main className="relative z-10 flex flex-col p-4 md:h-screen md:overflow-hidden md:p-8">
+      <header className="animate-fade-in relative z-50 mb-6 flex shrink-0 flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <span className="flex size-11 shrink-0 items-center justify-center rounded-2xl"
+            style={{ background: "rgba(var(--primary-rgb), 0.12)", border: "1px solid var(--border)", color: "var(--primary)" }}>
+            <Aperture className="size-6" />
+          </span>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">DarkroomSCAD</h1>
+            <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+              Configure a negative carrier and download a print-ready STL.
+            </p>
+          </div>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <PresetBar presets={presets} selectedId={selectedPresetId}
+        <div className="flex items-center gap-2">
+          <PresetMenu presets={presets} selectedId={selectedPresetId}
             onSelect={(id) => {
               setSelectedPresetId(id);
               const p = presets.find((x) => x.id === id);
@@ -92,9 +103,8 @@ export default function Home() {
       <div className="grid gap-6 md:min-h-0 md:flex-1 md:grid-cols-[minmax(320px,400px)_1fr]">
         {/* Left column: export stays pinned near the top; the config form scrolls under it. */}
         <div className="flex flex-col gap-4 md:min-h-0">
-          <section className="shrink-0 rounded-xl p-4"
-            style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-            <h2 className="mb-3 text-lg">Export</h2>
+          <section className="panel shadow-subtle animate-slide-fade-bottom shrink-0 p-4">
+            <h2 className="eyebrow mb-3">Export</h2>
             <ExportPanel client={getClient} getParams={() => toParams({})}
               presetName={presets.find((p) => p.id === selectedPresetId)?.name} />
           </section>
@@ -103,12 +113,14 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-col">
+        <div className="animate-fade-in flex min-h-0 flex-col">
           {preview.status === "error" && (
-            <p className="mb-2 rounded px-3 py-2 text-sm"
-              style={{ background: "var(--surface)", color: "var(--error)", border: "1px solid var(--border)" }}>
-              Preview failed: {preview.error}
-            </p>
+            <div className="mb-2 flex items-start gap-2 rounded-xl px-3 py-2.5 text-sm"
+              style={{ background: "rgba(var(--primary-rgb), 0.04)", color: "var(--error)",
+                border: "1px solid color-mix(in srgb, var(--error) 35%, transparent)" }}>
+              <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+              <span><span className="font-medium">Preview failed.</span> {preview.error}</span>
+            </div>
           )}
           <div className="h-[60vh] min-h-0 md:h-auto md:flex-1">
             <StlViewer stl={preview.stl} quality="preview" loading={isLoading} />
@@ -116,5 +128,6 @@ export default function Home() {
         </div>
       </div>
     </main>
+    </ToastProvider>
   );
 }

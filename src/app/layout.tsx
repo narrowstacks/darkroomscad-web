@@ -37,6 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         `}} />
       </head>
       <body>
+        <div className="app-backdrop" aria-hidden />
         <ThemeProvider>{children}</ThemeProvider>
         <Analytics />
       </body>

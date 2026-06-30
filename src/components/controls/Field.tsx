@@ -29,7 +29,7 @@ export function Field({ field, value, onChange, disabled, disabledOptions }: {
               // text color (white in dark, dark in light, red in safelight).
               return o ? (
                 <svg viewBox={o.viewBox} aria-hidden fill="currentColor"
-                  preserveAspectRatio="xMidYMid meet" className="h-9 w-auto opacity-90">
+                  preserveAspectRatio="xMidYMid meet" className="h-11 w-auto opacity-90">
                   <path d={o.d} />
                 </svg>
               ) : null;
@@ -46,8 +46,7 @@ export function Field({ field, value, onChange, disabled, disabledOptions }: {
         <div className="py-1">
           <label htmlFor={id} className="block text-sm font-medium" style={{ color: "var(--text)" }}>{field.label}</label>
           <select id={id} value={String(value)} onChange={(e) => onChange(coerceOptionValue(field.options, e.target.value))}
-            className="mt-1 w-full rounded px-2 py-1.5 text-sm"
-            style={{ background: "var(--surface-muted)", color: "var(--text)", border: "1px solid var(--border)" }}>
+            className="app-input mt-1">
             {field.options?.map((o) => <option key={String(o.value)} value={String(o.value)}>{o.label}</option>)}
           </select>
         </div>
@@ -58,8 +57,7 @@ export function Field({ field, value, onChange, disabled, disabledOptions }: {
           <label htmlFor={id} className="block text-sm font-medium" style={{ color: "var(--text)" }}>{field.label}</label>
           <input id={id} type="number" value={Number(value)} min={field.min} max={field.max} step={field.step ?? "any"}
             onChange={(e) => onChange(e.target.value === "" ? 0 : Number(e.target.value))}
-            className="mt-1 w-full rounded px-2 py-1.5 text-sm"
-            style={{ background: "var(--surface-muted)", color: "var(--text)", border: "1px solid var(--border)" }} />
+            className="app-input mt-1" />
         </div>
       );
     default:

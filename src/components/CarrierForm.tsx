@@ -1,8 +1,11 @@
 "use client";
 import { useState } from "react";
+import { SlidersHorizontal } from "lucide-react";
 import { Field } from "./controls/Field";
 import { FilmFormatPicker } from "./controls/FilmFormatPicker";
 import type { ResolvedGroup, FormValue } from "@/lib/form/types";
+
+const DELAY = ["", "animate-delay-50", "animate-delay-100", "animate-delay-150", "animate-delay-200", "animate-delay-300"];
 
 export function CarrierForm({ groups, values, setValue }: {
   groups: ResolvedGroup[];
@@ -10,8 +13,9 @@ export function CarrierForm({ groups, values, setValue }: {
   setValue: (param: string, v: FormValue) => void;
 }) {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  let visibleIndex = 0;
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {groups.map((group) => {
         const fields = group.fields.filter((f) => !f.visibleWhen || f.visibleWhen(values));
         const isAdvanced = fields.length > 0 && fields.every((f) => f.advanced);
@@ -20,15 +24,16 @@ export function CarrierForm({ groups, values, setValue }: {
         if (isAdvanced && !showAdvanced) {
           return (
             <button key={group.title} onClick={() => setShowAdvanced(true)}
-              className="text-sm underline" style={{ color: "var(--secondary)" }}>
+              className="btn btn-secondary w-full px-3 py-2.5">
+              <SlidersHorizontal className="size-4" style={{ color: "var(--text-dim)" }} />
               Show advanced options
             </button>
           );
         }
+        const delay = DELAY[Math.min(visibleIndex++, DELAY.length - 1)];
         return (
-          <section key={group.title} className="rounded-xl p-4"
-            style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
-            <h2 className="text-lg mb-3">{group.title}</h2>
+          <section key={group.title} className={`panel animate-slide-fade-bottom p-4 ${delay}`}>
+            <h2 className="eyebrow mb-3">{group.title}</h2>
             <div className="space-y-3">
               {showPicker && (
                 <FilmFormatPicker value={String(values.Film_Format)}

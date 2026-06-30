@@ -22,25 +22,20 @@ export function FilmFormatPicker({ value, onChange }: { value: string; onChange:
           const selected = !isCustom && chip.base === base;
           const { width, height } = frameSize(chip.ratio);
           return (
-            <button key={chip.base} type="button" aria-pressed={selected}
+            <button key={chip.base} type="button" aria-pressed={selected} data-selected={selected}
               onClick={() => onChange(toFilmFormatValue(chip.base, filed))}
-              className="flex flex-col items-center justify-end gap-1 rounded-lg px-3 py-2 transition-colors focus-visible:outline-2"
-              style={{ width: 76, height: 76,
-                background: selected ? "var(--surface-muted)" : "var(--surface)",
-                border: `1px solid ${selected ? "var(--primary)" : "var(--border)"}` }}>
+              className="select-card flex flex-col items-center justify-end gap-1 px-3 py-2 focus-visible:outline-2"
+              style={{ width: 76, height: 76 }}>
               <span className="flex flex-1 items-center justify-center">
                 <span style={{ width, height, border: `2px solid ${selected ? "var(--primary)" : "var(--text-dim)"}`, borderRadius: 2 }} />
               </span>
-              <span className="text-xs" style={{ color: selected ? "var(--text)" : "var(--text-muted)" }}>{chip.label}</span>
+              <span className="text-xs">{chip.label}</span>
             </button>
           );
         })}
-        <button type="button" aria-pressed={isCustom} onClick={() => onChange("custom")}
-          className="flex flex-col items-center justify-center gap-1 rounded-lg px-3 py-2 transition-colors focus-visible:outline-2"
-          style={{ width: 76, height: 76,
-            background: isCustom ? "var(--surface-muted)" : "var(--surface)",
-            border: `1px solid ${isCustom ? "var(--primary)" : "var(--border)"}`,
-            color: isCustom ? "var(--text)" : "var(--text-muted)" }}>
+        <button type="button" aria-pressed={isCustom} data-selected={isCustom} onClick={() => onChange("custom")}
+          className="select-card flex flex-col items-center justify-center gap-1 px-3 py-2 focus-visible:outline-2"
+          style={{ width: 76, height: 76 }}>
           <span className="text-lg leading-none">＋</span>
           <span className="text-xs">Custom</span>
         </button>
@@ -49,7 +44,7 @@ export function FilmFormatPicker({ value, onChange }: { value: string; onChange:
       {activeChip?.hasFiled && (
         <div className="mt-2">
           <Switch checked={filed} onChange={(f) => onChange(toFilmFormatValue(base, f))}
-            label="Filed edges" help="Wider opening that shows the filed negative edge." />
+            label="Filed edges" help="Wider opening that enables enlarging the areas around a negative's frame" />
         </div>
       )}
     </div>

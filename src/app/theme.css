@@ -1,5 +1,6 @@
 :root {
   --bg: #09090b;
+  --bg-rgb: 9, 9, 11;
   --surface: #121214;
   --surface-muted: #1c1c1f;
   --border: rgba(255, 255, 255, 0.1);
@@ -8,11 +9,13 @@
   --text-muted: #a1a1aa;
   --text-dim: #71717a;
   --primary: #6ef3a4;
+  --primary-rgb: 110, 243, 164;
   --secondary: #7dd6ff;
   --accent: #f99f96;
   --highlight: #e5ff7d;
   --error: #f99f96;
   --success: #6ef3a4;
+  --on-primary: #08120b;
   --viewer-model: #9a9a9a;
   --viewer-grid: #353535;
 }

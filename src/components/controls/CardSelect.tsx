@@ -17,20 +17,17 @@ export function CardSelect({ options, value, onChange, label, renderVisual }: {
         {options.map((o) => {
           const selected = String(o.value) === String(value);
           return (
-            <button key={String(o.value)} type="button" aria-pressed={selected}
+            <button key={String(o.value)} type="button" aria-pressed={selected} data-selected={selected}
               onClick={() => onChange(coerceOptionValue(options, String(o.value)))}
-              className="rounded-lg px-3 py-2.5 text-sm text-left transition-colors focus-visible:outline-2"
-              style={{
-                background: selected ? "var(--surface-muted)" : "var(--surface)",
-                border: `1px solid ${selected ? "var(--primary)" : "var(--border)"}`,
-                color: selected ? "var(--text)" : "var(--text-muted)",
-              }}>
+              className="select-card flex flex-col items-center justify-start gap-2 px-3 py-3 text-center text-sm focus-visible:outline-2">
               {renderVisual && (
-                <span className="mb-1.5 flex h-10 items-center justify-center" aria-hidden>
+                <span className="flex h-12 shrink-0 items-center justify-center" aria-hidden>
                   {renderVisual(o.value)}
                 </span>
               )}
-              {o.label}
+              {/* Reserve two lines so single- and double-line labels keep the icon and
+                  text at the same position across cards in a row (no stagger). */}
+              <span className="flex min-h-[2.25rem] items-center leading-tight">{o.label}</span>
             </button>
           );
         })}

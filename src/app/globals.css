@@ -7,8 +7,36 @@ body {
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
-h1, h2, h3 {
-  font-family: var(--font-display), Georgia, serif;
+/* Layered so component classes (e.g. .eyebrow, which sets a sans family on its
+   <h2>) win over this element selector — an unlayered rule would beat any class. */
+@layer base {
+  h1, h2, h3 {
+    font-family: var(--font-display), Georgia, serif;
+  }
+}
+
+::selection {
+  background: rgba(var(--primary-rgb), 0.35);
+  color: var(--text);
+}
+
+/* Theme-matched scrollbars — thumb follows the active border/accent tokens so the
+   form scroll region and menus tint with each theme (red under Safelight, etc.). */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-dim);
+  background-clip: padding-box;
 }
 
 /* Visible keyboard focus ring for every interactive control. The control kit uses
@@ -21,4 +49,257 @@ select:focus-visible,
 a:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
+}
+
+/* ───────────────────────── Atmosphere ─────────────────────────
+   A fixed, full-viewport "safelight" wash sits behind all content. In the dark
+   theme it bleeds warm red/peach/orange from the edges over near-black, with a
+   fine film-grain overlay — the page reads as if lit under a darkroom safelight.
+   Painted once into its own layer (position: fixed) and merely composited on
+   scroll. Flattened to a solid field in the two-tone themes. */
+@layer utilities {
+  .app-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  [data-theme="dark"] .app-backdrop,
+  :root:not([data-theme]) .app-backdrop {
+    background:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.09'/%3E%3C/svg%3E"),
+      radial-gradient(120% 80% at 50% -10%, rgba(249, 159, 150, 0.1), transparent 55%),
+      radial-gradient(circle at 12% 90%, rgba(243, 70, 70, 0.14), transparent 50%),
+      radial-gradient(circle at 88% 95%, rgba(229, 122, 60, 0.1), transparent 45%),
+      #070708;
+  }
+
+  [data-theme="light"] .app-backdrop {
+    background:
+      radial-gradient(ellipse 1200px 800px at 15% 15%, rgba(196, 82, 74, 0.1), transparent 60%),
+      radial-gradient(ellipse 1000px 700px at 85% 20%, rgba(30, 96, 145, 0.09), transparent 55%),
+      radial-gradient(ellipse 900px 700px at 40% 85%, rgba(122, 140, 31, 0.08), transparent 60%),
+      #ffffff;
+  }
+
+  [data-theme="darkroom"] .app-backdrop { background: #000000; }
+  [data-theme="high-contrast"] .app-backdrop { background: #ffffff; }
+}
+
+/* ───────────────────────── Motion library ───────────────────── */
+@layer utilities {
+  @keyframes slideInFromTop {
+    0% { opacity: 0; transform: translateY(-1rem); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slideInFromBottom {
+    0% { opacity: 0; transform: translateY(0.75rem); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+  @keyframes scaleFadeIn {
+    0% { opacity: 0; transform: scale(0.96); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  .animate-slide-fade-top { animation: slideInFromTop 450ms ease-out both, fadeIn 450ms ease-out both; }
+  .animate-slide-fade-bottom { animation: slideInFromBottom 450ms ease-out both, fadeIn 450ms ease-out both; }
+  .animate-fade-in { animation: fadeIn 400ms ease-out both; }
+  .animate-scale-fade-in { animation: scaleFadeIn 180ms ease-out both; }
+
+  .animate-delay-50 { animation-delay: 50ms; }
+  .animate-delay-100 { animation-delay: 100ms; }
+  .animate-delay-150 { animation-delay: 150ms; }
+  .animate-delay-200 { animation-delay: 200ms; }
+  .animate-delay-300 { animation-delay: 300ms; }
+
+  /* Two-tone themes drop all motion for clarity; honor user reduced-motion too. */
+  [data-theme="darkroom"] *,
+  [data-theme="darkroom"] *::before,
+  [data-theme="darkroom"] *::after,
+  [data-theme="high-contrast"] *,
+  [data-theme="high-contrast"] *::before,
+  [data-theme="high-contrast"] *::after {
+    /* biome-ignore lint: override component-level animations/transitions */
+    animation: none !important;
+    transition: none !important;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-slide-fade-top,
+    .animate-slide-fade-bottom,
+    .animate-fade-in,
+    .animate-scale-fade-in {
+      animation: none;
+    }
+  }
+}
+
+/* ───────────────────────── Components ───────────────────────── */
+@layer components {
+  /* Tracked, uppercase eyebrow — the recurring structural label. Matches the
+     Dorkroom calculator section header: Montserrat, semibold, text-xs, 0.18em. */
+  .eyebrow {
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.1;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--text-muted);
+    font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  }
+
+  /* Elevation: a quiet shadow that reads as "lifted off the safelight". */
+  .shadow-subtle {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 8px 24px rgba(0, 0, 0, 0.18);
+  }
+  [data-theme="light"] .shadow-subtle {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 8px 24px rgba(0, 0, 0, 0.07);
+  }
+  [data-theme="high-contrast"] .shadow-subtle { box-shadow: 0 2px 0 var(--border); }
+  [data-theme="darkroom"] .shadow-subtle { box-shadow: none; }
+
+  /* Surface panel — translucent so the safelight glows faintly through it. */
+  .panel {
+    border-radius: 1rem;
+    border: 1px solid var(--border);
+    background: color-mix(in srgb, var(--surface) 82%, transparent);
+    backdrop-filter: blur(8px);
+  }
+  [data-theme="darkroom"] .panel,
+  [data-theme="high-contrast"] .panel {
+    background: var(--surface);
+    backdrop-filter: none;
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease, opacity 0.15s ease;
+    cursor: pointer;
+  }
+  .btn:disabled { cursor: not-allowed; opacity: 0.55; }
+
+  .btn-primary {
+    background: var(--primary);
+    color: var(--on-primary);
+    border: 1px solid transparent;
+    font-weight: 600;
+  }
+  @media (hover: hover) {
+    .btn-primary:not(:disabled):hover { filter: brightness(1.06); }
+  }
+
+  .btn-secondary {
+    background: var(--surface-muted);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  @media (hover: hover) {
+    .btn-secondary:not(:disabled):hover { border-color: var(--border-strong); background: color-mix(in srgb, var(--surface-muted) 80%, var(--text) 6%); }
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid transparent;
+  }
+  @media (hover: hover) {
+    .btn-ghost:not(:disabled):hover { color: var(--text); background: var(--surface-muted); }
+  }
+
+  /* Circular icon button with a soft hover lift — the nav signature. */
+  .icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text);
+    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+    cursor: pointer;
+  }
+  @media (hover: hover) {
+    .icon-button:hover {
+      transform: translateY(-1px);
+      border-color: var(--border-strong);
+      background: var(--surface-muted);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+    }
+  }
+  [data-theme="darkroom"] .icon-button:hover,
+  [data-theme="high-contrast"] .icon-button:hover { transform: none; box-shadow: none; }
+
+  /* Pill container for grouped controls (nav rail / preset menu). */
+  .nav-pill {
+    border-radius: 9999px;
+    border: 1px solid var(--border);
+    background: color-mix(in srgb, var(--surface) 70%, transparent);
+    backdrop-filter: blur(8px);
+  }
+  [data-theme="darkroom"] .nav-pill,
+  [data-theme="high-contrast"] .nav-pill { background: var(--surface); backdrop-filter: none; }
+
+  /* Monospace "instrument readout" — for STL part sizes and render progress. */
+  .readout {
+    border-radius: 0.875rem;
+    border: 1px solid var(--border);
+    background: rgba(var(--bg-rgb), 0.35);
+    font-family: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, monospace;
+  }
+
+  /* Inputs — surface-muted fill, themed border, comfortable hit area. */
+  .app-input {
+    width: 100%;
+    border-radius: 0.625rem;
+    border: 1px solid var(--border);
+    background: var(--surface-muted);
+    color: var(--text);
+    font-size: 0.875rem;
+    padding: 0.5rem 0.625rem;
+    transition: border-color 0.15s ease;
+  }
+  .app-input:hover { border-color: var(--border-strong); }
+  .app-input:focus { border-color: var(--primary); }
+
+  /* Selectable card — the enlarger / film-format pickers. Lifts on hover and
+     adopts the accent border when chosen (the ToolCard signature, restrained). */
+  .select-card {
+    border-radius: 0.75rem;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .select-card[data-selected="true"] {
+    border-color: var(--primary);
+    background: var(--surface-muted);
+    color: var(--text);
+  }
+  @media (hover: hover) {
+    .select-card:hover { transform: translateY(-2px); border-color: var(--border-strong); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16); }
+    .select-card[data-selected="true"]:hover { border-color: var(--primary); }
+  }
+  [data-theme="darkroom"] .select-card:hover,
+  [data-theme="high-contrast"] .select-card:hover { transform: none; box-shadow: none; }
+
+  /* Dropdown menu surface (theme menu / preset menu). */
+  .menu-surface {
+    border-radius: 1rem;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  }
+  [data-theme="light"] .menu-surface { box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12); }
 }
