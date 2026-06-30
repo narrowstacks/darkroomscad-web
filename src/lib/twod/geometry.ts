@@ -87,6 +87,70 @@ export function screwFootprint(c: TwoDConfig): { cx: number; cy: number; r: numb
   return out;
 }
 
+import type { TextPlacement } from "./types";
+import { filmTypeName } from "./film-data";
+import { measureTextWidthMm } from "./measure-text";
+
+// Port of _get_text_settings (carrier-configs.scad): [yTranslate, carrierEdge, edgeMargin].
+function textSettings(carrierType: string): [number, number, number] {
+  if (carrierType === "omega-d") return [-90, 69.5, 5];
+  if (carrierType === "lpl-saunders-45xx") return [-65, 85, 5];
+  if (carrierType === "beseler-23c") return [-65, 60, 5];
+  return [0, 60, 5];
+}
+
+// Port of get_text_rotation.
+function textRotation(carrierType: string): number {
+  return carrierType === "omega-d" || carrierType === "lpl-saunders-45xx" ? 270 : 0;
+}
+
+const BESELER_DIAMETER = 160;
+const BESELER_HANDLE_WIDTH = 42;
+
+// Port of calculate_text_position (pre-rotation [x, y]).
+function textPositionPre(
+  c: TwoDConfig, kind: "owner" | "type", textWidth: number,
+): [number, number] {
+  if (c.carrierType === "beseler-23c") {
+    const handleCenterX = -BESELER_DIAMETER / 2;                 // -80
+    const yBase = kind === "owner" ? BESELER_HANDLE_WIDTH / 4 : -BESELER_HANDLE_WIDTH / 4; // ±10.5
+    const yOffset = c.topOrBottom === "bottom" ? -yBase : yBase;
+    const xPos = kind === "owner" ? handleCenterX : handleCenterX - 15; // -80 / -95
+    return [xPos, yOffset];
+  }
+  const [yTranslate, carrierEdge, edgeMargin] = textSettings(c.carrierType);
+  const xCenter = carrierEdge - edgeMargin - textWidth / 2;
+  const xBase = kind === "owner" ? -xCenter : xCenter;
+  return [xBase, yTranslate];
+}
+
+function rotateZ([x, y]: [number, number], deg: number): [number, number] {
+  const r = (deg * Math.PI) / 180, cos = Math.cos(r), sin = Math.sin(r);
+  return [x * cos - y * sin, x * sin + y * cos];
+}
+
+export function textPlacements(
+  c: TwoDConfig,
+  measure: (t: string, f: string, s: number) => number = measureTextWidthMm,
+): TextPlacement[] {
+  const out: TextPlacement[] = [];
+  const rotationDeg = textRotation(c.carrierType);
+  const add = (kind: "owner" | "type", value: string, offset: [number, number]) => {
+    if (!value) return;
+    const width = measure(value, c.fontFace, c.fontSize);
+    const pre = textPositionPre(c, kind, width);
+    const adj: [number, number] = [pre[0] + offset[0], pre[1] + offset[1]];
+    const [cx, cy] = rotateZ(adj, rotationDeg);
+    out.push({ value, cx, cy, rotationDeg, fontFace: c.fontFace, fontSize: c.fontSize });
+  };
+  if (c.enableOwnerEtch) add("owner", c.ownerName, c.ownerTextOffset);
+  if (c.enableTypeEtch) {
+    const typeValue = c.typeNameSource === "Custom" ? c.customTypeName : filmTypeName(c.filmFormat);
+    add("type", typeValue, c.typeTextOffset);
+  }
+  return out;
+}
+
 // Port of directional arrow (carrier-features.scad). Only 6x6 / 6x6 filed.
 // Replicates: translate(pos) rotate(rotZ) [ translate(-10,0) polygon ].
 const ARROW_LENGTH = 8;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { openingDimensions, pegPositions, pegRadiusAndKind, screwFootprint, directionalArrow } from "./geometry";
+import { openingDimensions, pegPositions, pegRadiusAndKind, screwFootprint, directionalArrow, textPlacements } from "./geometry";
 import type { TwoDConfig } from "./types";
 
 const base: TwoDConfig = {
@@ -120,5 +120,62 @@ describe("directionalArrow", () => {
   });
   it("6x6 filed also gets an arrow", () => {
     expect(directionalArrow({ ...base, filmFormat: "6x6 filed" })).not.toBeNull();
+  });
+});
+
+const stub = () => 10; // fixed measured width
+
+describe("textPlacements", () => {
+  it("omega owner+type: rotated 270, centered by the edge-margin formula", () => {
+    const ts = textPlacements(
+      { ...base, enableOwnerEtch: true, ownerName: "ADA", enableTypeEtch: true },
+      stub,
+    );
+    // x_center = 69.5 - 5 - 10/2 = 59.5 ; center = rotate270(x_base, -90) = (-90, ∓x_center)
+    const owner = ts.find((t) => t.value === "ADA")!;
+    expect(owner.rotationDeg).toBe(270);
+    expect(owner.cx).toBeCloseTo(-90, 6);
+    expect(owner.cy).toBeCloseTo(59.5, 6);
+    const type = ts.find((t) => t.value === "35MM")!; // Carrier Type → film type name
+    expect(type.cx).toBeCloseTo(-90, 6);
+    expect(type.cy).toBeCloseTo(-59.5, 6);
+  });
+
+  it("applies user offsets before rotation", () => {
+    const [owner] = textPlacements(
+      { ...base, enableOwnerEtch: true, ownerName: "ADA", ownerTextOffset: [2, 3] },
+      stub,
+    );
+    // px=-59.5+2=-57.5, py=-90+3=-87 → rotate270 = (-87, 57.5)
+    expect(owner.cx).toBeCloseTo(-87, 6);
+    expect(owner.cy).toBeCloseTo(57.5, 6);
+  });
+
+  it("beseler owner sits on the handle (rotation 0); bottom mirrors Y", () => {
+    const top = textPlacements(
+      { ...base, carrierType: "beseler-23c", alignmentBoardType: "beseler-23c", topOrBottom: "top", enableOwnerEtch: true, ownerName: "ADA" },
+      stub,
+    )[0];
+    expect(top.rotationDeg).toBe(0);
+    expect(top.cx).toBeCloseTo(-80, 6);
+    expect(top.cy).toBeCloseTo(10.5, 6);
+    const bottom = textPlacements(
+      { ...base, carrierType: "beseler-23c", alignmentBoardType: "beseler-23c", topOrBottom: "bottom", enableOwnerEtch: true, ownerName: "ADA" },
+      stub,
+    )[0];
+    expect(bottom.cy).toBeCloseTo(-10.5, 6);
+  });
+
+  it("uses the custom type label when the source is Custom", () => {
+    const [type] = textPlacements(
+      { ...base, enableTypeEtch: true, typeNameSource: "Custom", customTypeName: "MINE" },
+      stub,
+    );
+    expect(type.value).toBe("MINE");
+  });
+
+  it("omits disabled or empty texts", () => {
+    expect(textPlacements({ ...base, enableOwnerEtch: false, enableTypeEtch: false }, stub)).toEqual([]);
+    expect(textPlacements({ ...base, enableOwnerEtch: true, ownerName: "" }, stub)).toEqual([]);
   });
 });
