@@ -8,8 +8,11 @@ import { PreviewController, type PreviewState } from "@/lib/openscad/preview-con
 import { useCarrierForm } from "@/hooks/use-carrier-form";
 import { usePresets } from "@/hooks/use-presets";
 import { CarrierForm } from "@/components/CarrierForm";
+import { CarrierView2D } from "@/components/CarrierView2D";
 import { ExportPanel } from "@/components/ExportPanel";
 import { StlViewer } from "@/components/StlViewer";
+import { Segmented } from "@/components/controls/Segmented";
+import { loadViewMode, saveViewMode, type ViewMode } from "@/lib/twod/view-mode";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { PresetMenu } from "@/components/PresetMenu";
 import { ToastProvider } from "@/components/ui/Toast";
@@ -24,6 +27,15 @@ export default function Home() {
   const { presets, save: savePreset, remove: deletePreset } = usePresets();
   const [selectedPresetId, setSelectedPresetId] = useState("");
   const [preview, setPreview] = useState<PreviewState>({ status: "idle" });
+
+  // 2D is the default so first paint is instant; restore the persisted choice
+  // after mount (effect, not initializer) to avoid an SSR hydration mismatch.
+  const [viewMode, setViewMode] = useState<ViewMode>("2d");
+  useEffect(() => { setViewMode(loadViewMode()); }, []);
+  const changeViewMode = useCallback((m: ViewMode) => {
+    setViewMode(m);
+    saveViewMode(m);
+  }, []);
 
   // A manual field edit means the config no longer matches the loaded preset —
   // clear the dropdown selection. Preset loads go through applyValues (not this).
@@ -46,11 +58,12 @@ export default function Home() {
     return ctlRef.current;
   }
 
-  // Request a preview whenever params change (and once on mount).
+  // Request a 3D preview only once 3D is active — pure-2D sessions never spawn
+  // the OpenSCAD worker, so there is no cold-load wait.
   const params = useMemo(() => toParams({ Render_Quality: "preview" }), [toParams]);
   useEffect(() => {
-    controller().request(params);
-  }, [params]);
+    if (viewMode === "3d") controller().request(params);
+  }, [params, viewMode]);
 
   // Null the refs after disposing so a remount (React StrictMode dev double-invoke,
   // fast-refresh, route nav) re-creates a fresh worker + controller instead of
@@ -114,7 +127,13 @@ export default function Home() {
         </div>
 
         <div className="animate-fade-in flex min-h-0 flex-col">
-          {preview.status === "error" && (
+          <div className="mb-2 flex items-center justify-end">
+            <Segmented label="" ariaLabel="View mode"
+              options={[{ value: "2d", label: "2D" }, { value: "3d", label: "3D" }]}
+              value={viewMode}
+              onChange={(v) => changeViewMode(v === "3d" ? "3d" : "2d")} />
+          </div>
+          {viewMode === "3d" && preview.status === "error" && (
             <div className="mb-2 flex items-start gap-2 rounded-xl px-3 py-2.5 text-sm"
               style={{ background: "rgba(var(--primary-rgb), 0.04)", color: "var(--error)",
                 border: "1px solid color-mix(in srgb, var(--error) 35%, transparent)" }}>
@@ -123,7 +142,9 @@ export default function Home() {
             </div>
           )}
           <div className="h-[60vh] min-h-0 md:h-auto md:flex-1">
-            <StlViewer stl={preview.stl} quality="preview" loading={isLoading} />
+            {viewMode === "2d"
+              ? <CarrierView2D values={values} />
+              : <StlViewer stl={preview.stl} quality="preview" loading={isLoading} />}
           </div>
         </div>
       </div>
