@@ -95,7 +95,8 @@ export default function Home() {
           <section className="shrink-0 rounded-xl p-4"
             style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
             <h2 className="mb-3 text-lg">Export</h2>
-            <ExportPanel client={getClient} getParams={() => toParams({})} />
+            <ExportPanel client={getClient} getParams={() => toParams({})}
+              presetName={presets.find((p) => p.id === selectedPresetId)?.name} />
           </section>
           <div className="md:min-h-0 md:flex-1 md:overflow-y-auto md:pr-1">
             <CarrierForm groups={groups} values={values} setValue={editValue} />

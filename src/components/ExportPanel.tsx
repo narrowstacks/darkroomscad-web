@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { renderParts, zipParts, type ExportProgress, type ExportedPart } from "@/lib/export/export-controller";
+import { zipFileName } from "@/lib/export/zip-name";
 import type { RenderParams } from "@/lib/openscad/types";
 import type { RenderClient } from "@/lib/openscad/client";
 
@@ -12,9 +13,11 @@ function download(name: string, data: Uint8Array, type: string) {
   URL.revokeObjectURL(url);
 }
 
-export function ExportPanel({ client, getParams }: {
+export function ExportPanel({ client, getParams, presetName }: {
   client: () => RenderClient;
   getParams: () => RenderParams;
+  // Name of the loaded, unchanged preset (if any) — used in the ZIP filename.
+  presetName?: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<ExportProgress | null>(null);
@@ -41,8 +44,7 @@ export function ExportPanel({ client, getParams }: {
     const p = await run();
     if (!p || p.length === 0) return;
     const form = getParams();
-    const zipName = `${String(form.Carrier_Type)}_${String(form.Film_Format)}_carrier-set.zip`.replace(/\s+/g, "-");
-    download(zipName, zipParts(p), "application/zip");
+    download(zipFileName(form, presetName), zipParts(p), "application/zip");
   }
 
   return (
