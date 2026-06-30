@@ -178,4 +178,15 @@ describe("textPlacements", () => {
     expect(textPlacements({ ...base, enableOwnerEtch: false, enableTypeEtch: false }, stub)).toEqual([]);
     expect(textPlacements({ ...base, enableOwnerEtch: true, ownerName: "" }, stub)).toEqual([]);
   });
+
+  it("lpl-saunders owner: rotated 270 with its own carrier edge (85)", () => {
+    const [owner] = textPlacements(
+      { ...base, carrierType: "lpl-saunders-45xx", alignmentBoardType: "lpl-saunders", enableOwnerEtch: true, ownerName: "ADA" },
+      stub,
+    );
+    // xCenter = 85 - 5 - 10/2 = 75 ; xBase = -75 ; py = -65 ; rotate270(-75,-65) = (-65, 75)
+    expect(owner.rotationDeg).toBe(270);
+    expect(owner.cx).toBeCloseTo(-65, 6);
+    expect(owner.cy).toBeCloseTo(75, 6);
+  });
 });

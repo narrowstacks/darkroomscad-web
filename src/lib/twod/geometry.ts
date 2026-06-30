@@ -1,5 +1,6 @@
-import type { TwoDConfig } from "./types";
-import { FILM_FORMATS, isFiledFormat } from "./film-data";
+import type { TwoDConfig, TextPlacement } from "./types";
+import { FILM_FORMATS, isFiledFormat, filmTypeName } from "./film-data";
+import { measureTextWidthMm } from "./measure-text";
 
 // Constants from carrier-features.scad / carrier-configs.scad.
 const PEG_DIAMETER = 5.6;
@@ -87,10 +88,6 @@ export function screwFootprint(c: TwoDConfig): { cx: number; cy: number; r: numb
   return out;
 }
 
-import type { TextPlacement } from "./types";
-import { filmTypeName } from "./film-data";
-import { measureTextWidthMm } from "./measure-text";
-
 // Port of _get_text_settings (carrier-configs.scad): [yTranslate, carrierEdge, edgeMargin].
 function textSettings(carrierType: string): [number, number, number] {
   if (carrierType === "omega-d") return [-90, 69.5, 5];
@@ -124,11 +121,6 @@ function textPositionPre(
   return [xBase, yTranslate];
 }
 
-function rotateZ([x, y]: [number, number], deg: number): [number, number] {
-  const r = (deg * Math.PI) / 180, cos = Math.cos(r), sin = Math.sin(r);
-  return [x * cos - y * sin, x * sin + y * cos];
-}
-
 export function textPlacements(
   c: TwoDConfig,
   measure: (t: string, f: string, s: number) => number = measureTextWidthMm,
@@ -140,7 +132,7 @@ export function textPlacements(
     const width = measure(value, c.fontFace, c.fontSize);
     const pre = textPositionPre(c, kind, width);
     const adj: [number, number] = [pre[0] + offset[0], pre[1] + offset[1]];
-    const [cx, cy] = rotateZ(adj, rotationDeg);
+    const [cx, cy] = rotate2d(adj, rotationDeg);
     out.push({ value, cx, cy, rotationDeg, fontFace: c.fontFace, fontSize: c.fontSize });
   };
   if (c.enableOwnerEtch) add("owner", c.ownerName, c.ownerTextOffset);
