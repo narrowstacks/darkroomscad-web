@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { openingDimensions, pegPositions, pegRadiusAndKind } from "./geometry";
+import { openingDimensions, pegPositions, pegRadiusAndKind, screwFootprint, directionalArrow } from "./geometry";
 import type { TwoDConfig } from "./types";
 
 const base: TwoDConfig = {
@@ -68,5 +68,39 @@ describe("pegRadiusAndKind", () => {
   it("top heat-set → socket hole r=2.15", () => {
     expect(pegRadiusAndKind({ ...base, topOrBottom: "top", pegStyle: "heat_set" }))
       .toEqual({ r: 2.15, kind: "hole" });
+  });
+});
+
+describe("screwFootprint", () => {
+  it("board off + omega type → 4 holes at (±41, ±56.5) r=1", () => {
+    const holes = screwFootprint({ ...base, alignmentBoard: false, alignmentBoardType: "omega" });
+    expect(holes).toHaveLength(4);
+    for (const h of holes) {
+      expect(Math.abs(h.cx)).toBe(41);
+      expect(Math.abs(h.cy)).toBe(56.5);
+      expect(h.r).toBe(1);
+    }
+  });
+  it("none when the board is attached", () => {
+    expect(screwFootprint({ ...base, alignmentBoard: true, alignmentBoardType: "omega" })).toEqual([]);
+  });
+  it("none for the beseler board type", () => {
+    expect(screwFootprint({ ...base, alignmentBoard: false, alignmentBoardType: "beseler-23c" })).toEqual([]);
+  });
+  it("none for non-board carriers (test frame)", () => {
+    expect(screwFootprint({ ...base, carrierType: "frameAndPegTest", alignmentBoard: false })).toEqual([]);
+  });
+});
+
+describe("directionalArrow", () => {
+  it("null for non-square formats", () => {
+    expect(directionalArrow(base)).toBeNull();
+  });
+  it("6x6 vertical → triangle centered below the opening", () => {
+    const a = directionalArrow({ ...base, filmFormat: "6x6" });
+    expect(a).not.toBeNull();
+    expect(a!.points).toHaveLength(3);
+    // opening_width = 56 → arrow band centered at y = -(56/2 + 9) = -37
+    expect(a!.points).toEqual([[-4, -37], [4, -34.5], [4, -39.5]]);
   });
 });
