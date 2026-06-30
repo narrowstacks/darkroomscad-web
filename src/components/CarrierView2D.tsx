@@ -62,13 +62,6 @@ export function CarrierView2D({ values }: { values: Record<string, FormValue> })
       style={{ background: viewer.background, border: "1px solid var(--border)" }}>
       <svg viewBox={`${view.minX} ${view.minY} ${view.w} ${view.h}`}
         className="h-full w-full" preserveAspectRatio="xMidYMid meet">
-        {/* Board overlay: distinct dashed underlay (separate part). */}
-        {board && (
-          <g transform="scale(1 -1)" opacity={0.5}>
-            <path d={board.d} fillRule="evenodd" fill="none"
-              stroke="var(--text-muted)" strokeWidth={1} strokeDasharray="4 3" />
-          </g>
-        )}
         {/* Body + cut/additive features share the SCAD→SVG y-flip via scale(1,-1). */}
         <g transform="scale(1 -1)">
           {body && <path data-layer="body" d={body.d} fill={viewer.model} />}
@@ -93,6 +86,13 @@ export function CarrierView2D({ values }: { values: Record<string, FormValue> })
               fill="var(--text-muted)" />
           )}
         </g>
+        {/* Board overlay: dashed ghost of the stacked alignment board, on top of the body. */}
+        {board && (
+          <g transform="scale(1 -1)" opacity={0.5}>
+            <path d={board.d} fillRule="evenodd" fill="none"
+              stroke="var(--text-muted)" strokeWidth={1} strokeDasharray="4 3" />
+          </g>
+        )}
         {/* Text in an unscaled group so glyphs are not mirrored. */}
         <g>
           {scene.texts.map((t, i) => (
