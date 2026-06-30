@@ -90,6 +90,15 @@ describe("screwFootprint", () => {
   it("none for non-board carriers (test frame)", () => {
     expect(screwFootprint({ ...base, carrierType: "frameAndPegTest", alignmentBoard: false })).toEqual([]);
   });
+  it("board off + lpl-saunders type → 4 holes (same pattern as omega)", () => {
+    const holes = screwFootprint({ ...base, alignmentBoard: false, alignmentBoardType: "lpl-saunders" });
+    expect(holes).toHaveLength(4);
+    for (const h of holes) {
+      expect(Math.abs(h.cx)).toBe(41);
+      expect(Math.abs(h.cy)).toBe(56.5);
+      expect(h.r).toBe(1);
+    }
+  });
 });
 
 describe("directionalArrow", () => {
@@ -102,5 +111,14 @@ describe("directionalArrow", () => {
     expect(a!.points).toHaveLength(3);
     // opening_width = 56 → arrow band centered at y = -(56/2 + 9) = -37
     expect(a!.points).toEqual([[-4, -37], [4, -34.5], [4, -39.5]]);
+  });
+  it("6x6 horizontal → triangle to the right of the opening", () => {
+    const a = directionalArrow({ ...base, filmFormat: "6x6", orientation: "horizontal" });
+    expect(a).not.toBeNull();
+    // openingWidth=56 → pos=[56/2+9, -10]=[37,-10], rotZ=90
+    expect(a!.points).toEqual([[37, -24], [34.5, -16], [39.5, -16]]);
+  });
+  it("6x6 filed also gets an arrow", () => {
+    expect(directionalArrow({ ...base, filmFormat: "6x6 filed" })).not.toBeNull();
   });
 });
