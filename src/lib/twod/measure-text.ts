@@ -17,6 +17,10 @@ function getCtx(): CanvasRenderingContext2D | null {
   return cachedCtx;
 }
 
+export function estimateTextWidthMm(text: string, _fontFace: string, fontSize: number): number {
+  return text ? text.length * fontSize * FALLBACK_EM_RATIO : 0;
+}
+
 export function measureTextWidthMm(text: string, fontFace: string, fontSize: number): number {
   if (!text) return 0;
   const ctx = getCtx();
@@ -25,5 +29,5 @@ export function measureTextWidthMm(text: string, fontFace: string, fontSize: num
     const w = ctx.measureText(text).width;
     if (w > 0) return w;
   }
-  return text.length * fontSize * FALLBACK_EM_RATIO;
+  return estimateTextWidthMm(text, fontFace, fontSize);
 }

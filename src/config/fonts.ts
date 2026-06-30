@@ -24,3 +24,11 @@ export const BUNDLED_FONTS: BundledFont[] = [
 
 // DarkroomSCAD ships Lucida Console (proprietary); remap to a bundled face.
 export const DEFAULT_FONT_FAMILY = "Liberation Mono";
+
+// Browser @font-face rules so the 2D SVG preview (and canvas text measurement)
+// can render in the bundled families. Files live in public/fonts/.
+export function bundledFontFaceCss(): string {
+  return BUNDLED_FONTS
+    .map((f) => `@font-face{font-family:"${f.family}";src:url("/fonts/${f.file}") format("truetype");font-display:swap;}`)
+    .join("\n");
+}

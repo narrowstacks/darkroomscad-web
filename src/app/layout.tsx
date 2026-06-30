@@ -3,6 +3,7 @@ import { Fraunces, Montserrat } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { THEMES } from "@/lib/theme/themes";
+import { bundledFontFaceCss } from "@/config/fonts";
 import "./globals.css";
 
 const fraunces = Fraunces({ subsets: ["latin"], variable: "--font-display", display: "swap" });
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${fraunces.variable} ${montserrat.variable}`} suppressHydrationWarning>
       <head>
+        <style dangerouslySetInnerHTML={{ __html: bundledFontFaceCss() }} />
         <script dangerouslySetInnerHTML={{ __html: `
 (function(){try{
   var VARS=${JSON.stringify(themeVarsMap)};

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { measureTextWidthMm } from "./measure-text";
+import { measureTextWidthMm, estimateTextWidthMm } from "./measure-text";
 
 // jsdom has no canvas implementation, so the deterministic fallback is exercised.
 describe("measureTextWidthMm", () => {
@@ -11,5 +11,17 @@ describe("measureTextWidthMm", () => {
   });
   it("scales with font size", () => {
     expect(measureTextWidthMm("AB", "Arial", 20)).toBeCloseTo(24, 5); // 2 * 20 * 0.6
+  });
+});
+
+describe("estimateTextWidthMm", () => {
+  it("returns 0 for empty text", () => {
+    expect(estimateTextWidthMm("", "Arial", 10)).toBe(0);
+  });
+  it("computes length * fontSize * 0.6", () => {
+    expect(estimateTextWidthMm("ABCD", "Arial", 10)).toBeCloseTo(24, 5); // 4 * 10 * 0.6
+  });
+  it("scales with font size", () => {
+    expect(estimateTextWidthMm("AB", "Arial", 20)).toBeCloseTo(24, 5); // 2 * 20 * 0.6
   });
 });

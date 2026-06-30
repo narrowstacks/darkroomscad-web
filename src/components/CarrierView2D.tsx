@@ -1,8 +1,9 @@
 "use client";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import type { FormValue } from "@/lib/form/types";
 import { parseConfig } from "@/lib/twod/types";
 import { buildScene } from "@/lib/twod/geometry";
+import { measureTextWidthMm, estimateTextWidthMm } from "@/lib/twod/measure-text";
 import { CARRIER_OUTLINES } from "@/lib/outline/outlines";
 import { BOARD_OUTLINES } from "@/lib/outline/board-outlines";
 import { useTheme } from "./ThemeProvider";
@@ -41,7 +42,24 @@ function chamferRectInScad(w: number, h: number, c: number): string {
 export function CarrierView2D({ values }: { values: Record<string, FormValue> }) {
   const { viewer } = useTheme();
   const config = useMemo(() => parseConfig(values), [values]);
-  const scene = useMemo(() => buildScene(config), [config]);
+
+  const [measureReady, setMeasureReady] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    setMeasureReady(false);
+    const finish = () => { if (!cancelled) setMeasureReady(true); };
+    if (typeof document !== "undefined" && "fonts" in document) {
+      document.fonts.load(`${config.fontSize}px "${config.fontFace}"`).then(finish, finish);
+    } else {
+      finish();
+    }
+    return () => { cancelled = true; };
+  }, [config.fontFace, config.fontSize]);
+
+  const scene = useMemo(
+    () => buildScene(config, measureReady ? measureTextWidthMm : estimateTextWidthMm),
+    [config, measureReady],
+  );
 
   const body = CARRIER_OUTLINES[config.carrierType];
   const board = scene.boardKey ? BOARD_OUTLINES[scene.boardKey] : undefined;
@@ -88,9 +106,9 @@ export function CarrierView2D({ values }: { values: Record<string, FormValue> })
         </g>
         {/* Board overlay: dashed ghost of the stacked alignment board, on top of the body. */}
         {board && (
-          <g transform="scale(1 -1)" opacity={0.5}>
+          <g transform="scale(1 -1)" opacity={0.9}>
             <path d={board.d} fillRule="evenodd" fill="none"
-              stroke="var(--text-muted)" strokeWidth={1} strokeDasharray="4 3" />
+              stroke="var(--accent)" strokeWidth={1.2} strokeDasharray="4 3" />
           </g>
         )}
         {/* Text in an unscaled group so glyphs are not mirrored. */}
