@@ -16,6 +16,10 @@ export interface FieldConfig {
   step?: number;
   unit?: string;
   visibleWhen?: (values: Record<string, FormValue>) => boolean;
+  /** Disable the whole control while this predicate holds. */
+  disabledWhen?: (values: Record<string, FormValue>) => boolean;
+  /** Disable individual options (segmented) while this predicate holds for that option. */
+  optionDisabledWhen?: (optionValue: string | number, values: Record<string, FormValue>) => boolean;
 }
 
 export interface GroupConfig {
@@ -37,6 +41,8 @@ export interface ResolvedField {
   default: FormValue;
   optionVisual?: "carrier-outline";
   visibleWhen?: (values: Record<string, FormValue>) => boolean;
+  disabledWhen?: (values: Record<string, FormValue>) => boolean;
+  optionDisabledWhen?: (optionValue: string | number, values: Record<string, FormValue>) => boolean;
 }
 
 export interface ResolvedGroup {

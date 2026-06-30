@@ -43,6 +43,8 @@ export function resolveFormModel(schema: ParamSchema, ui: GroupConfig[]): Resolv
         default: override !== undefined ? override : p.default,
         optionVisual: fc.optionVisual,
         visibleWhen: fc.visibleWhen,
+        disabledWhen: fc.disabledWhen,
+        optionDisabledWhen: fc.optionDisabledWhen,
       };
     }),
   }));

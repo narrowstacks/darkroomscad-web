@@ -7,15 +7,18 @@ import { CardSelect } from "./CardSelect";
 import { coerceOptionValue } from "@/lib/form/control-value";
 import { CARRIER_OUTLINES } from "@/lib/outline/outlines";
 
-export function Field({ field, value, onChange }: {
+export function Field({ field, value, onChange, disabled, disabledOptions }: {
   field: ResolvedField;
   value: FormValue;
   onChange: (v: FormValue) => void;
+  disabled?: boolean;
+  disabledOptions?: (string | number)[];
 }) {
   const id = `field-${field.param}`;
   switch (field.control) {
     case "segmented":
-      return <Segmented options={field.options ?? []} value={value} onChange={onChange} label={field.label} />;
+      return <Segmented options={field.options ?? []} value={value} onChange={onChange} label={field.label}
+        disabledOptions={disabledOptions} />;
     case "cards":
       return <CardSelect options={field.options ?? []} value={value} onChange={onChange} label={field.label}
         renderVisual={field.optionVisual === "carrier-outline"
@@ -33,7 +36,7 @@ export function Field({ field, value, onChange }: {
           : undefined} />;
     case "switch":
     case "toggle":
-      return <Switch checked={value === true} onChange={onChange} label={field.label} help={field.help} />;
+      return <Switch checked={value === true} onChange={onChange} label={field.label} help={field.help} disabled={disabled} />;
     case "slider":
       return <Slider value={Number(value)} min={field.min} max={field.max} step={field.step}
         onChange={onChange} label={field.label} unit={field.unit} />;

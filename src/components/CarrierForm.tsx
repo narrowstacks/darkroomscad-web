@@ -35,7 +35,11 @@ export function CarrierForm({ groups, values, setValue }: {
                   onChange={(v) => setValue("Film_Format", v)} />
               )}
               {fields.map((f) => (
-                <Field key={f.param} field={f} value={values[f.param]} onChange={(v) => setValue(f.param, v)} />
+                <Field key={f.param} field={f} value={values[f.param]} onChange={(v) => setValue(f.param, v)}
+                  disabled={f.disabledWhen?.(values) ?? false}
+                  disabledOptions={f.optionDisabledWhen
+                    ? (f.options ?? []).filter((o) => f.optionDisabledWhen!(o.value, values)).map((o) => o.value)
+                    : undefined} />
               ))}
             </div>
           </section>

@@ -45,11 +45,14 @@ export const CARRIER_UI: GroupConfig[] = [
   {
     title: "Options",
     fields: [
-      { param: "Alignment_Board", label: "Include alignment board", control: "switch" },
+      { param: "Alignment_Board", label: "Attach alignment board", control: "switch",
+        help: "Needs heat-set pegs — disabled while printed pegs are selected.",
+        disabledWhen: (v) => v.Printed_or_Heat_Set_Pegs === "printed" },
       { param: "Alignment_Board_Type", label: "Board type", control: "segmented",
         visibleWhen: (v) => v.Alignment_Board === true },
       { param: "Printed_or_Heat_Set_Pegs", label: "Pegs", control: "segmented",
-        help: "Heat-set required when including the alignment board." },
+        help: "Printed pegs can't be combined with the alignment board.",
+        optionDisabledWhen: (opt, v) => opt === "printed" && v.Alignment_Board === true },
       { param: "Flip_Bottom_For_Printing", label: "Flip bottom for printing", control: "switch" },
     ],
   },
