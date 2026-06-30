@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractOuterContour } from "./outer-contour";
+import { extractOuterContour, extractAllContours } from "./outer-contour";
 
 // An OpenSCAD-style SVG: a big outer square (0,0..100,100) and a small inner
 // square (40,40..60,60) — the inner one is a "hole" and must be dropped.
@@ -17,5 +17,22 @@ describe("extractOuterContour", () => {
   });
   it("throws when no path data is present", () => {
     expect(() => extractOuterContour("<svg></svg>")).toThrow();
+  });
+});
+
+describe("extractAllContours", () => {
+  it("keeps every subpath and spans all coordinates in the viewBox", () => {
+    // Outer square 0..100 with an inner hole 40..60 (two subpaths).
+    const svg =
+      '<svg><path d="M 0,0 L 100,0 L 100,100 L 0,100 z ' +
+      'M 40,40 L 60,40 L 60,60 L 40,60 z" /></svg>';
+    const { d, viewBox } = extractAllContours(svg);
+    // Both subpaths retained (two moveto commands).
+    expect((d.match(/M/g) ?? []).length).toBe(2);
+    expect(viewBox).toBe("0 0 100 100");
+  });
+
+  it("throws when there is no path data", () => {
+    expect(() => extractAllContours("<svg></svg>")).toThrow();
   });
 });

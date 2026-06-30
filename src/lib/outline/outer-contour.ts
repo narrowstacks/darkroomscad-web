@@ -36,3 +36,17 @@ export function extractOuterContour(svg: string): { d: string; viewBox: string }
   const w = Math.ceil(Math.max(...xs)) - minX, h = Math.ceil(Math.max(...ys)) - minY;
   return { d: outer, viewBox: `${minX} ${minY} ${w} ${h}` };
 }
+
+// Keep ALL contours (outer outline + holes) — used for shapes whose interior
+// cutouts must render (e.g. alignment boards), via SVG fill-rule="evenodd".
+export function extractAllContours(svg: string): { d: string; viewBox: string } {
+  const dMatch = svg.match(/\bd\s*=\s*"([^"]+)"/);
+  if (!dMatch) throw new Error("no path data found in SVG");
+  const subs = subpaths(dMatch[1]);
+  if (subs.length === 0) throw new Error("no subpaths in path data");
+  const all = subs.join(" ");
+  const { xs, ys } = coords(all);
+  const minX = Math.floor(Math.min(...xs)), minY = Math.floor(Math.min(...ys));
+  const w = Math.ceil(Math.max(...xs)) - minX, h = Math.ceil(Math.max(...ys)) - minY;
+  return { d: all, viewBox: `${minX} ${minY} ${w} ${h}` };
+}
