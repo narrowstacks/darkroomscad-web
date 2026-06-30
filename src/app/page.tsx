@@ -52,9 +52,13 @@ export default function Home() {
     return clientRef.current ?? (clientRef.current = newClient());
   }
 
+  // Cover both the initial engine download ("idle" before the first render fires) and
+  // every subsequent re-render, so the viewer never shows a bare canvas.
+  const isLoading = preview.status === "rendering" || preview.status === "idle";
+
   return (
-    <main className="min-h-screen p-4 md:p-8">
-      <header className="mb-6 flex items-start justify-between">
+    <main className="flex flex-col p-4 md:h-screen md:overflow-hidden md:p-8">
+      <header className="mb-6 flex shrink-0 items-start justify-between">
         <div>
           <h1 className="text-3xl font-semibold">DarkroomSCAD</h1>
           <p style={{ color: "var(--text-muted)" }}>Configure your negative carrier and download a print-ready STL.</p>
@@ -62,21 +66,28 @@ export default function Home() {
         <ThemeToggle />
       </header>
 
-      <div className="grid gap-6 md:grid-cols-[minmax(320px,420px)_1fr]">
-        <div>
-          <CarrierForm groups={groups} values={values} setValue={setValue} />
-          <ExportPanel client={getClient} getParams={() => toParams({})} />
+      <div className="grid gap-6 md:min-h-0 md:flex-1 md:grid-cols-[minmax(320px,400px)_1fr]">
+        {/* Left column: export stays pinned near the top; the config form scrolls under it. */}
+        <div className="flex flex-col gap-4 md:min-h-0">
+          <section className="shrink-0 rounded-xl p-4"
+            style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+            <h2 className="mb-3 text-lg">Export</h2>
+            <ExportPanel client={getClient} getParams={() => toParams({})} />
+          </section>
+          <div className="md:min-h-0 md:flex-1 md:overflow-y-auto md:pr-1">
+            <CarrierForm groups={groups} values={values} setValue={setValue} />
+          </div>
         </div>
 
-        <div className="sticky top-8">
+        <div className="flex min-h-0 flex-col">
           {preview.status === "error" && (
             <p className="mb-2 rounded px-3 py-2 text-sm"
               style={{ background: "var(--surface)", color: "var(--error)", border: "1px solid var(--border)" }}>
               Preview failed: {preview.error}
             </p>
           )}
-          <div className="h-[60vh] md:h-[calc(100vh-8rem)]">
-            <StlViewer stl={preview.stl} quality="preview" loading={preview.status === "rendering"} />
+          <div className="h-[60vh] min-h-0 md:h-auto md:flex-1">
+            <StlViewer stl={preview.stl} quality="preview" loading={isLoading} />
           </div>
         </div>
       </div>

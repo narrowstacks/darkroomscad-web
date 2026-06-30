@@ -46,7 +46,7 @@ export function ExportPanel({ client, getParams }: {
   }
 
   return (
-    <div className="mt-6 space-y-2">
+    <div className="space-y-2">
       <button onClick={handleZip} disabled={busy}
         className="w-full rounded px-4 py-2.5 font-medium"
         style={{ background: "var(--primary)", color: "#08120b", opacity: busy ? 0.6 : 1 }}>
