@@ -54,7 +54,8 @@ export function CarrierView2D({ values }: { values: Record<string, FormValue> })
     [config, measureReady],
   );
 
-  const body = CARRIER_OUTLINES[config.carrierType];
+  const body = (config.topOrBottom === "top" ? CARRIER_OUTLINES[`${config.carrierType}:top`] : undefined)
+    ?? CARRIER_OUTLINES[config.carrierType];
   const board = scene.boardKey ? BOARD_OUTLINES[scene.boardKey] : undefined;
 
   // Padded union viewBox in the outline's native export coordinates (the body and
