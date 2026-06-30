@@ -33,7 +33,7 @@ function chamferRectInScad(w: number, h: number, c: number): string {
 }
 
 export function CarrierView2D({ values }: { values: Record<string, FormValue> }) {
-  const { viewer } = useTheme();
+  const { theme, viewer } = useTheme();
   const config = useMemo(() => parseConfig(values), [values]);
 
   const [measureReady, setMeasureReady] = useState(false);
@@ -70,6 +70,9 @@ export function CarrierView2D({ values }: { values: Record<string, FormValue> })
 
   // Cut-throughs read as the viewer background; etches as muted ink.
   const cut = viewer.background;
+  // High contrast draws the carrier as line art: an unfilled silhouette with a
+  // white perimeter stroke (the other themes keep the solid grey body).
+  const outlineOnly = theme === "high-contrast";
   return (
     <div className="shadow-subtle relative h-full w-full overflow-hidden rounded-2xl"
       style={{ background: viewer.background, border: "1px solid var(--border)" }}>
@@ -78,7 +81,12 @@ export function CarrierView2D({ values }: { values: Record<string, FormValue> })
         {/* Body: raw outline from the OpenSCAD SVG export, which already maps the
             model's +Y to screen-up. Drawn untransformed so it shares orientation
             with the 3D view. */}
-        {body && <path data-layer="body" d={body.d} fill={viewer.model} />}
+        {body && (
+          <path data-layer="body" d={body.d}
+            fill={outlineOnly ? "none" : viewer.model}
+            stroke={outlineOnly ? "var(--border)" : "none"}
+            strokeWidth={outlineOnly ? 1 : undefined} />
+        )}
         {/* Cut + additive features are computed in trueSCAD coords; scale(1,-1)
             maps them into the export space (model +Y → screen-up) so they align
             with the body and match the 3D layout. */}

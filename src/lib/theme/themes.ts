@@ -42,14 +42,17 @@ export const THEMES: Record<ThemeName, ThemeTokens> = {
     },
     viewer: { model: "#8a0000", grid: "#3a0000", background: "#0a0000" },
   },
+  // Pure greyscale, maximum contrast: black field, white text, white borders.
+  // Accents collapse to white (with black text on filled controls); muted/dim
+  // text steps down through light greys that all stay legible on black.
   "high-contrast": {
     vars: {
-      "--bg": "#000000", "--bg-rgb": "0,0,0", "--surface": "#000000", "--surface-muted": "#111111",
+      "--bg": "#000000", "--bg-rgb": "0,0,0", "--surface": "#000000", "--surface-muted": "#1a1a1a",
       "--border": "#ffffff", "--border-strong": "#ffffff",
-      "--text": "#ffffff", "--text-muted": "#e4e4e7", "--text-dim": "#a1a1aa",
-      "--primary": "#ffff00", "--secondary": "#00ffff", "--accent": "#ffff00",
-      "--highlight": "#ffff00", "--error": "#ff6a6a", "--success": "#00ff00",
-      "--on-primary": "#000000", "--primary-rgb": "255,255,0",
+      "--text": "#ffffff", "--text-muted": "#d4d4d4", "--text-dim": "#9a9a9a",
+      "--primary": "#ffffff", "--secondary": "#ffffff", "--accent": "#ffffff",
+      "--highlight": "#ffffff", "--error": "#ffffff", "--success": "#ffffff",
+      "--on-primary": "#000000", "--primary-rgb": "255,255,255",
       "--viewer-model": "#d4d4d4", "--viewer-grid": "#666666",
     },
     viewer: { model: "#d4d4d4", grid: "#666666", background: "#000000" },

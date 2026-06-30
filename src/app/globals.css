@@ -84,7 +84,7 @@ a:focus-visible {
   }
 
   [data-theme="darkroom"] .app-backdrop { background: #000000; }
-  [data-theme="high-contrast"] .app-backdrop { background: #ffffff; }
+  [data-theme="high-contrast"] .app-backdrop { background: #000000; }
 }
 
 /* ───────────────────────── Motion library ───────────────────── */
