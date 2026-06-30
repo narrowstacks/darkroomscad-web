@@ -1,6 +1,11 @@
-import type { TwoDConfig, TextPlacement, Scene } from "./types";
+import type { TwoDConfig, TextPlacement, Scene, PegShape } from "./types";
 import { FILM_FORMATS, isFiledFormat, filmTypeName } from "./film-data";
 import { measureTextWidthMm } from "./measure-text";
+
+// Default film dimensions used by SCAD when format is "custom" and no override
+// is passed — matches film-sizes.scad customFilmFormatWidth / customFilmFormatHeight.
+const CUSTOM_FILM_DEFAULT_WIDTH = 37;   // film-sizes.scad customFilmFormatWidth
+const CUSTOM_FILM_DEFAULT_HEIGHT = 37;  // film-sizes.scad customFilmFormatHeight
 
 // Constants from carrier-features.scad / carrier-configs.scad.
 const PEG_DIAMETER = 5.6;
@@ -16,7 +21,11 @@ export function effectiveOrientation(c: TwoDConfig): "vertical" | "horizontal" {
 
 function filmDims(c: TwoDConfig): { height: number; width: number; pegDistance: number } {
   if (c.filmFormat === "custom") {
-    return { height: c.customFilmHeight, width: c.customFilmWidth, pegDistance: c.customFilmWidth };
+    // SCAD's peg calc calls get_film_format_width("custom") WITHOUT the custom
+    // override, so the dominant peg axis uses the 37mm default; only the peg
+    // distance uses Custom_Film_Width. (openingDimensions handles custom opening
+    // sizes separately and never reads these.)
+    return { height: CUSTOM_FILM_DEFAULT_HEIGHT, width: CUSTOM_FILM_DEFAULT_WIDTH, pegDistance: c.customFilmWidth };
   }
   const f = FILM_FORMATS[c.filmFormat] ?? FILM_FORMATS["35mm"];
   return { height: f.height, width: f.width, pegDistance: f.pegDistance };
@@ -192,7 +201,7 @@ export function buildScene(
   const { openingHeight, openingWidth } = openingDimensions(c);
   const { x, y } = pegPositions(c);
   const { r, kind } = pegRadiusAndKind(c);
-  const pegs = [];
+  const pegs: PegShape[] = [];
   for (const sx of [-1, 1]) for (const sy of [-1, 1]) pegs.push({ cx: sx * x, cy: sy * y, r, kind });
   return {
     // film_opening cuboid([opening_height, opening_width, …]): X=height, Y=width.

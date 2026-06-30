@@ -32,6 +32,10 @@ describe("openingDimensions", () => {
     expect(openingDimensions({ ...base, filmFormat: "custom", customOpeningHeight: 50, customOpeningWidth: 40, adjustFilmHeight: 9 }))
       .toEqual({ openingHeight: 50, openingWidth: 40 });
   });
+  it("unknown format falls back to 35mm dimensions", () => {
+    expect(openingDimensions({ ...base, filmFormat: "bogus" }))
+      .toEqual({ openingHeight: 37, openingWidth: 24 });
+  });
 });
 
 describe("pegPositions", () => {
@@ -49,6 +53,11 @@ describe("pegPositions", () => {
   });
   it("peg gap shifts only the peg-distance axis", () => {
     expect(pegPositions({ ...base, pegGap: 0.5 })).toEqual({ x: 14.8, y: 20.8 });
+  });
+  it("custom format: dominant axis uses default 37, peg distance uses custom width", () => {
+    // SCAD parity: dominant = 37/2+2.8 = 21.3 ; non-dominant = 50/2+2.8-1 = 26.8
+    expect(pegPositions({ ...base, filmFormat: "custom", customFilmWidth: 50 }))
+      .toEqual({ x: 21.3, y: 26.8 });
   });
 });
 
@@ -178,6 +187,16 @@ describe("textPlacements", () => {
     expect(textPlacements({ ...base, enableOwnerEtch: false, enableTypeEtch: false }, stub)).toEqual([]);
     expect(textPlacements({ ...base, enableOwnerEtch: true, ownerName: "" }, stub)).toEqual([]);
   });
+  it("unknown carrier uses the default text settings (rotation 0)", () => {
+    const [owner] = textPlacements(
+      { ...base, carrierType: "beseler-45", enableOwnerEtch: true, ownerName: "ADA" },
+      stub,
+    );
+    // default [0,60,5]: xCenter = 60-5-5 = 50 ; xBase = -50 ; py = 0 ; rotate0 → (-50, 0)
+    expect(owner.rotationDeg).toBe(0);
+    expect(owner.cx).toBeCloseTo(-50, 6);
+    expect(owner.cy).toBeCloseTo(0, 6);
+  });
 
   it("lpl-saunders owner: rotated 270 with its own carrier edge (85)", () => {
     const [owner] = textPlacements(
@@ -206,5 +225,9 @@ describe("buildScene", () => {
     expect(buildScene({ ...base, alignmentBoard: true, alignmentBoardType: "omega", filmFormat: "4x5" }).boardKey).toBe("omega-4x5");
     expect(buildScene({ ...base, alignmentBoard: true, alignmentBoardType: "lpl-saunders" }).boardKey).toBe("lpl-saunders");
     expect(buildScene({ ...base, alignmentBoard: true, alignmentBoardType: "omega" }).screwHoles).toEqual([]);
+  });
+  it("beseler-23c board selects its own outline key", () => {
+    expect(buildScene({ ...base, carrierType: "beseler-23c", alignmentBoard: true, alignmentBoardType: "beseler-23c" }).boardKey)
+      .toBe("beseler-23c");
   });
 });
