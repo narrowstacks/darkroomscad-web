@@ -16,6 +16,8 @@ To change carrier/board geometry:
 
 Mapping: `public/scad/src/...` ↔ `../DarkroomSCAD/negative-carriers/src/...`.
 
+> Enforced by a `PreToolUse` hook in `.claude/settings.json` that **blocks** Edit/Write on `public/scad/**.scad` and points you at the upstream file. (The guard only covers the edit tools — don't route around it with shell redirects either.)
+
 ## 2D view (`src/lib/twod/`, `src/components/CarrierView2D.tsx`)
 
 Pure TS ports of the OpenSCAD geometry math — no WASM. The 3D STL is the ground truth; match it.
