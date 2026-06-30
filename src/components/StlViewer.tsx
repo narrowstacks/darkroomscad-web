@@ -1,10 +1,21 @@
 "use client";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Grid, Bounds } from "@react-three/drei";
+import { OrbitControls, Grid, Bounds, OrthographicCamera, PerspectiveCamera } from "@react-three/drei";
 import * as THREE from "three";
 import { parseBinaryStl } from "@/lib/stl/parse-stl";
+import { safeGet, safeSet } from "@/lib/storage/local-storage";
 import { useTheme } from "./ThemeProvider";
+
+type Projection = "ortho" | "perspective";
+const PROJECTION_KEY = "darkroomscad-projection";
+const loadProjection = (): Projection => (safeGet(PROJECTION_KEY) === "perspective" ? "perspective" : "ortho");
+
+// Shared top-down framing: overhead, OpenSCAD +Y up, carrier landscape — matches
+// the 2D preview. Both cameras start here so the default view is top-down; ortho
+// is a true flat projection (no perspective skew), perspective adds depth.
+const CAM_POSITION: [number, number, number] = [0, 140, 0];
+const CAM_UP: [number, number, number] = [0, 0, -1];
 
 function Model({ stl, color }: { stl: Uint8Array; color: string }) {
   const geometry = useMemo(() => {
@@ -32,25 +43,57 @@ export function StlViewer({ stl, quality, loading }: {
   loading?: boolean;
 }) {
   const { viewer } = useTheme();
+  // StlViewer only mounts in 3D mode (client-side), so reading the persisted
+  // projection in the initializer is safe — it never server-renders.
+  const [projection, setProjection] = useState<Projection>(loadProjection);
+  const changeProjection = (p: Projection) => { setProjection(p); safeSet(PROJECTION_KEY, p); };
+
   return (
     <div className="shadow-subtle relative h-full w-full overflow-hidden rounded-2xl"
       style={{ background: viewer.background, border: "1px solid var(--border)" }}>
-      <Canvas camera={{ position: [80, 80, 80], fov: 45 }} shadows>
+      <Canvas shadows>
+        {/* Conditionally mount the active camera (makeDefault) so projection can be
+            switched at runtime; each mounts at the shared top-down framing. */}
+        {projection === "ortho"
+          ? <OrthographicCamera makeDefault position={CAM_POSITION} up={CAM_UP} zoom={3} near={0.1} far={2000} />
+          : <PerspectiveCamera makeDefault position={CAM_POSITION} up={CAM_UP} fov={45} near={0.1} far={2000} />}
         <ambientLight intensity={0.6} />
         <directionalLight position={[50, 80, 30]} intensity={1.1} castShadow />
         <Grid args={[400, 400]} cellSize={10} sectionSize={50}
           cellColor={viewer.grid} sectionColor={viewer.grid} infiniteGrid fadeDistance={500}
           position={[0, -0.01, 0]} />
         {stl && (
-          <Bounds fit clip observe margin={1.2}>
+          // Re-fit when the projection changes so the new camera frames the model.
+          <Bounds key={projection} fit clip observe margin={1.2}>
             {/* rotate so OpenSCAD's Z-up reads upright in three's Y-up */}
             <group rotation={[-Math.PI / 2, 0, 0]}>
               <Model stl={stl} color={viewer.model} />
             </group>
           </Bounds>
         )}
-        <OrbitControls makeDefault enableDamping />
+        {/* Remount on projection change so OrbitControls rebinds to the new default camera. */}
+        <OrbitControls key={projection} makeDefault enableDamping />
       </Canvas>
+
+      {/* Projection toggle — only while a model is shown (kept clear of the load overlays). */}
+      {stl && !loading && (
+        <div className="absolute left-3 top-3 inline-flex gap-1 rounded-full p-0.5"
+          style={{ background: "rgba(var(--bg-rgb), 0.6)", border: "1px solid var(--border)", backdropFilter: "blur(6px)" }}>
+          {([["ortho", "Flat"], ["perspective", "3D"]] as const).map(([value, label]) => {
+            const active = projection === value;
+            return (
+              <button key={value} type="button" aria-pressed={active}
+                onClick={() => changeProjection(value)}
+                className="rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors focus-visible:outline-2"
+                style={active
+                  ? { background: "var(--primary)", color: "var(--on-primary)" }
+                  : { color: "var(--text-muted)" }}>
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Cold start: the WASM engine is still downloading/compiling and there is no
           model to show yet. Cover the empty canvas with an informative overlay so the
