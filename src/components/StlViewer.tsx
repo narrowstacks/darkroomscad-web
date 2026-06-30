@@ -61,22 +61,22 @@ export function StlViewer({ stl, quality, loading }: {
           <span className="h-9 w-9 rounded-full border-2 animate-spin motion-reduce:animate-none"
             style={{ borderColor: "var(--border)", borderTopColor: "var(--accent)" }} aria-hidden />
           <div>
-            <p className="text-sm font-medium" style={{ color: "var(--text)" }}>Loading 3D engine…</p>
+            <p className="text-sm font-medium" style={{ color: "var(--text)" }}>Starting the 3D engine…</p>
             <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
-              First load downloads the renderer (~10&nbsp;MB). This only happens once.
+              Rendering your first preview. The engine (~10&nbsp;MB) downloads once, then loads from cache.
             </p>
           </div>
         </div>
       )}
-      {/* Re-render: a model is already on screen — keep it visible and show a quiet
-          badge instead of dimming the whole viewer. */}
+      {/* Re-render: a model is already on screen — darken the viewport and show a
+          centered indicator so it's clear the preview is updating. */}
       {loading && stl && (
-        <span className="absolute top-2 left-2 inline-flex items-center gap-2 rounded px-2 py-1 text-xs"
-          style={{ background: "var(--surface)", color: "var(--text-muted)", border: "1px solid var(--border)" }}>
-          <span className="h-3 w-3 rounded-full border-2 animate-spin motion-reduce:animate-none"
-            style={{ borderColor: "var(--border)", borderTopColor: "var(--accent)" }} aria-hidden />
-          Rendering…
-        </span>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3"
+          style={{ background: "rgba(0,0,0,0.5)" }}>
+          <span className="h-9 w-9 rounded-full border-2 animate-spin motion-reduce:animate-none"
+            style={{ borderColor: "rgba(255,255,255,0.25)", borderTopColor: "var(--accent)" }} aria-hidden />
+          <p className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.95)" }}>Rendering…</p>
+        </div>
       )}
       {quality === "preview" && stl && !loading && (
         <span className="absolute top-2 right-2 rounded px-2 py-0.5 text-xs"
