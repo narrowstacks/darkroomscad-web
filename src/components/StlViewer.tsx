@@ -70,6 +70,8 @@ export function StlViewer({ stl, quality, loading }: {
           <orthographicCamera attach="shadow-camera" args={[-150, 150, 150, -150, 0.1, 500]} />
         </directionalLight>
         <directionalLight position={[-50, 40, -30]} intensity={0.4} />
+        {/* Under-fill so the carrier's bottom face is decently lit when orbited. */}
+        <directionalLight position={[-20, -55, 25]} intensity={0.55} />
         <Grid args={[400, 400]} cellSize={10} sectionSize={50}
           cellColor={viewer.grid} sectionColor={viewer.grid} infiniteGrid fadeDistance={500}
           position={[0, -0.01, 0]} />

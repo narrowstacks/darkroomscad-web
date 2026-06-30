@@ -15,13 +15,6 @@ function parseVB(vb: string): Box {
   return { minX, minY, w, h };
 }
 
-// Convert a SCAD-coord viewBox (Y up) into the SVG view space (Y down) used by
-// the whole scene: SCAD (x, y) → SVG (x, -y). So a SCAD box maps to
-// [minX, -(minY + h)] with the same width/height.
-function toSvgBox(b: Box): Box {
-  return { minX: b.minX, minY: -(b.minY + b.h), w: b.w, h: b.h };
-}
-
 function unionBox(a: Box, b: Box): Box {
   const minX = Math.min(a.minX, b.minX), minY = Math.min(a.minY, b.minY);
   const maxX = Math.max(a.minX + a.w, b.minX + b.w), maxY = Math.max(a.minY + a.h, b.minY + b.h);
@@ -64,11 +57,12 @@ export function CarrierView2D({ values }: { values: Record<string, FormValue> })
   const body = CARRIER_OUTLINES[config.carrierType];
   const board = scene.boardKey ? BOARD_OUTLINES[scene.boardKey] : undefined;
 
-  // Padded union viewBox (SVG space).
+  // Padded union viewBox in the outline's native export coordinates (the body and
+  // board paths are rendered raw in that space; features/text are mapped into it).
   const view = useMemo(() => {
     if (!body) return { minX: -100, minY: -100, w: 200, h: 200 };
-    let b = toSvgBox(parseVB(body.viewBox));
-    if (board) b = unionBox(b, toSvgBox(parseVB(board.viewBox)));
+    let b = parseVB(body.viewBox);
+    if (board) b = unionBox(b, parseVB(board.viewBox));
     const pad = 8;
     return { minX: b.minX - pad, minY: b.minY - pad, w: b.w + pad * 2, h: b.h + pad * 2 };
   }, [body, board]);
@@ -80,9 +74,14 @@ export function CarrierView2D({ values }: { values: Record<string, FormValue> })
       style={{ background: viewer.background, border: "1px solid var(--border)" }}>
       <svg viewBox={`${view.minX} ${view.minY} ${view.w} ${view.h}`}
         className="h-full w-full" preserveAspectRatio="xMidYMid meet">
-        {/* Body + cut/additive features share the SCAD→SVG y-flip via scale(1,-1). */}
+        {/* Body: raw outline from the OpenSCAD SVG export, which already maps the
+            model's +Y to screen-up. Drawn untransformed so it shares orientation
+            with the 3D view. */}
+        {body && <path data-layer="body" d={body.d} fill={viewer.model} />}
+        {/* Cut + additive features are computed in trueSCAD coords; scale(1,-1)
+            maps them into the export space (model +Y → screen-up) so they align
+            with the body and match the 3D layout. */}
         <g transform="scale(1 -1)">
-          {body && <path data-layer="body" d={body.d} fill={viewer.model} />}
           {/* Film opening (cut through). */}
           <path data-layer="opening" d={chamferRectInScad(scene.opening.w, scene.opening.h, scene.opening.chamfer)}
             fill={cut} stroke="var(--border)" strokeWidth={0.4} />
@@ -104,9 +103,10 @@ export function CarrierView2D({ values }: { values: Record<string, FormValue> })
               fill="var(--text-muted)" />
           )}
         </g>
-        {/* Board overlay: dashed ghost of the stacked alignment board, on top of the body. */}
+        {/* Board overlay: dashed ghost of the stacked alignment board (raw export
+            coords like the body), on top of the carrier. */}
         {board && (
-          <g transform="scale(1 -1)" opacity={0.9}>
+          <g opacity={0.9}>
             <path d={board.d} fillRule="evenodd" fill="none"
               stroke="var(--accent)" strokeWidth={1.2} strokeDasharray="4 3" />
           </g>
