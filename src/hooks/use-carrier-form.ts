@@ -9,6 +9,17 @@ import type { ParamSchema } from "@/lib/params/types";
 import type { FormValue } from "@/lib/form/types";
 import type { RenderParams } from "@/lib/openscad/types";
 
+// The UI forbids this pair (see carrier-ui.ts guards); stored/imported state
+// can still contain it, and the SCAD asserts on it (universal-carrier-assembly
+// .scad:135) killing the render. Board wins; pegs fall back to heat_set
+// (matches the help text: an attached board requires heat-set pegs).
+function normalizeConflicts(v: Record<string, FormValue>): Record<string, FormValue> {
+  if (v.Alignment_Board === true && v.Printed_or_Heat_Set_Pegs === "printed") {
+    return { ...v, Printed_or_Heat_Set_Pegs: "heat_set" };
+  }
+  return v;
+}
+
 export function useCarrierForm() {
   const groups = useMemo(() => resolveFormModel(schema as ParamSchema, CARRIER_UI), []);
 
@@ -32,7 +43,7 @@ export function useCarrierForm() {
   // avoiding a hydration mismatch.
   useEffect(() => {
     const stored = loadConfig(knownKeys);
-    if (Object.keys(stored).length) setValues((prev) => ({ ...prev, ...stored }));
+    if (Object.keys(stored).length) setValues((prev) => normalizeConflicts({ ...prev, ...stored }));
   }, [knownKeys]);
 
   // Persist the current config (debounced) on every change.
@@ -49,7 +60,7 @@ export function useCarrierForm() {
   const applyValues = useCallback((next: Record<string, FormValue>) => {
     const filtered: Record<string, FormValue> = {};
     for (const [k, v] of Object.entries(next)) if (knownKeys.has(k)) filtered[k] = v;
-    setValues((prev) => ({ ...prev, ...filtered }));
+    setValues((prev) => normalizeConflicts({ ...prev, ...filtered }));
   }, [knownKeys]);
 
   const reset = useCallback(() => setValues(seed), [seed]);

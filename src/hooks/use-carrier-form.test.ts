@@ -53,6 +53,34 @@ describe("useCarrierForm", () => {
     expect(stored.Owner_Name).toBe("Z");
   });
 
+  it("normalizes a conflicting board/printed-pegs pair restored from localStorage", () => {
+    localStorage.setItem(
+      CONFIG_KEY,
+      JSON.stringify({ Alignment_Board: true, Printed_or_Heat_Set_Pegs: "printed" }),
+    );
+    const { result } = renderHook(() => useCarrierForm());
+    expect(result.current.values.Alignment_Board).toBe(true);
+    expect(result.current.values.Printed_or_Heat_Set_Pegs).toBe("heat_set");
+  });
+
+  it("applyValues normalizes a conflicting board/printed-pegs pair", () => {
+    const { result } = renderHook(() => useCarrierForm());
+    act(() => {
+      result.current.applyValues({ Alignment_Board: true, Printed_or_Heat_Set_Pegs: "printed" });
+    });
+    expect(result.current.values.Alignment_Board).toBe(true);
+    expect(result.current.values.Printed_or_Heat_Set_Pegs).toBe("heat_set");
+  });
+
+  it("applyValues leaves a legit board/heat_set pair untouched", () => {
+    const { result } = renderHook(() => useCarrierForm());
+    act(() => {
+      result.current.applyValues({ Alignment_Board: true, Printed_or_Heat_Set_Pegs: "heat_set" });
+    });
+    expect(result.current.values.Alignment_Board).toBe(true);
+    expect(result.current.values.Printed_or_Heat_Set_Pegs).toBe("heat_set");
+  });
+
   it("reset returns to the seed values", () => {
     const fresh = renderHook(() => useCarrierForm());
     const seedValues = fresh.result.current.values;
