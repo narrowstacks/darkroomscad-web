@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 import { renderScad, type FsAssets, type FsFile } from "./render";
 import { selectRenderTarget } from "./preview-engine";
+import { filesForTarget } from "./worker-assets";
 import type { RenderRequest, RenderResult } from "./types";
 
 declare const self: DedicatedWorkerGlobalScope;
@@ -73,7 +74,16 @@ self.onmessage = async (e: MessageEvent) => {
     // renders and unsupported configs fall through to the exact parametric carrier.
     const target = selectRenderTarget(req);
     const routedReq: RenderRequest = { ...req, mainFile: target.mainFile, params: target.params };
-    const result: RenderResult = await renderScad(() => createModule(log), assets, routedReq, log);
+    // Mount only the STLs/fonts this render target can reference — the baked
+    // preview path reads exactly one base STL, at most one board STL, and one
+    // font; the parametric path reads none. Avoids writing all ~7.3 MB of
+    // manifest assets into the fresh per-render FS on every debounced edit.
+    const result: RenderResult = await renderScad(
+      () => createModule(log),
+      { files: filesForTarget(assets.files, target) },
+      routedReq,
+      log,
+    );
     result.engine = target.baked ? "baked" : "parametric";
     self.postMessage({ type: "result", id, result }, [result.stl.buffer]);
   } catch (err) {
