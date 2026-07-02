@@ -37,8 +37,10 @@ const VARIANT_LIST: { name: string; include: string; call: string }[] = [
     .flatMap(([key, spec]) =>
       (["bottom", "top"] as const).map((part) => ({
         name: `${key}-${part}`,
-        include: spec.include,
-        call: bakeCall(spec.call(part)),
+        // beseler-45 bakes extra geometry (corner pegs) that lives in the
+        // universal assembly, so it overrides the outline's include/call.
+        include: spec.bakeInclude ?? spec.include,
+        call: bakeCall((spec.bakeCallOverride ?? spec.call)(part)),
       })),
     ),
   ...Object.values(BOARD_SPECS)

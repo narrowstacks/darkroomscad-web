@@ -189,13 +189,29 @@ describe("textPlacements", () => {
   });
   it("unknown carrier uses the default text settings (rotation 0)", () => {
     const [owner] = textPlacements(
-      { ...base, carrierType: "beseler-45", enableOwnerEtch: true, ownerName: "ADA" },
+      { ...base, carrierType: "bogus-carrier", enableOwnerEtch: true, ownerName: "ADA" },
       stub,
     );
     // default [0,60,5]: xCenter = 60-5-5 = 50 ; xBase = -50 ; py = 0 ; rotate0 → (-50, 0)
     expect(owner.rotationDeg).toBe(0);
     expect(owner.cx).toBeCloseTo(-50, 6);
     expect(owner.cy).toBeCloseTo(0, 6);
+  });
+
+  it("beseler-45 owner+type: two columns on the top handle, rotated 90", () => {
+    const ts = textPlacements(
+      { ...base, carrierType: "beseler-45", enableOwnerEtch: true, ownerName: "ADA", enableTypeEtch: true },
+      stub,
+    );
+    // pre-rotation [handleMidY, -xBase] = [127, ∓7.25]; world = R(90)·pre = [±7.25, 127]
+    const owner = ts.find((t) => t.value === "ADA")!;
+    expect(owner.rotationDeg).toBe(90);
+    expect(owner.cx).toBeCloseTo(7.25, 6);
+    expect(owner.cy).toBeCloseTo(127, 6);
+    const type = ts.find((t) => t.value === "35MM")!;
+    expect(type.rotationDeg).toBe(90);
+    expect(type.cx).toBeCloseTo(-7.25, 6);
+    expect(type.cy).toBeCloseTo(127, 6);
   });
 
   it("lpl-saunders owner: rotated 270 with its own carrier edge (85)", () => {
@@ -229,6 +245,43 @@ describe("buildScene", () => {
   it("beseler-23c board selects its own outline key", () => {
     expect(buildScene({ ...base, carrierType: "beseler-23c", alignmentBoard: true, alignmentBoardType: "beseler-23c" }).boardKey)
       .toBe("beseler-23c");
+  });
+
+  it("beseler-45 bottom: 4 film pegs + 4 corner pegs at (±59.85, ±59.85) r=2.3", () => {
+    const s = buildScene({ ...base, carrierType: "beseler-45", topOrBottom: "bottom" });
+    expect(s.pegs).toHaveLength(8);
+    const corners = s.pegs.slice(4);
+    expect(corners).toHaveLength(4);
+    for (const p of corners) {
+      expect(Math.abs(p.cx)).toBeCloseTo(59.85, 6);
+      expect(Math.abs(p.cy)).toBeCloseTo(59.85, 6);
+      expect(p.r).toBe(2.3);
+      expect(p.kind).toBe("peg");
+    }
+    // All four corner sign combinations present.
+    const signs = new Set(corners.map((p) => `${Math.sign(p.cx)},${Math.sign(p.cy)}`));
+    expect(signs.size).toBe(4);
+    // No screw footprint / board overlay for beseler-45 (no alignment board by design).
+    expect(s.screwHoles).toEqual([]);
+    expect(s.boardKey).toBeNull();
+  });
+
+  it("beseler-45 top: 4 corner stacking holes r=3", () => {
+    const s = buildScene({ ...base, carrierType: "beseler-45", topOrBottom: "top" });
+    expect(s.pegs).toHaveLength(8);
+    const corners = s.pegs.slice(4);
+    for (const p of corners) {
+      expect(Math.abs(p.cx)).toBeCloseTo(59.85, 6);
+      expect(Math.abs(p.cy)).toBeCloseTo(59.85, 6);
+      expect(p.r).toBe(3);
+      expect(p.kind).toBe("hole");
+    }
+  });
+
+  it("other carriers keep exactly 4 pegs (no corner pegs)", () => {
+    for (const carrierType of ["omega-d", "lpl-saunders-45xx", "beseler-23c", "frameAndPegTest"]) {
+      expect(buildScene({ ...base, carrierType }).pegs).toHaveLength(4);
+    }
   });
 });
 

@@ -3,8 +3,9 @@
 // list (they used to drift: carrier-ui, preview-engine, twod/geometry, and
 // part-enumeration each carried a copy).
 //
-// beseler-45 is intentionally absent: it is unimplemented (carrier.scad asserts
-// on it) and hidden in the UI — add it here only when it actually works.
+// beseler-45 has no alignment board BY DESIGN (its fixed corner pegs align it
+// in the enlarger; carrier.scad forces board type "none"), so its
+// hasAlignmentBoard is false while hasBakedBase is true.
 
 export interface CarrierCapabilities {
   /** Carrier can pair with an alignment board (test frames can't). */
@@ -17,6 +18,7 @@ export const CARRIER_CAPABILITIES: Record<string, CarrierCapabilities> = {
   "omega-d":           { hasAlignmentBoard: true,  hasBakedBase: true },
   "lpl-saunders-45xx": { hasAlignmentBoard: true,  hasBakedBase: true },
   "beseler-23c":       { hasAlignmentBoard: true,  hasBakedBase: true },
+  "beseler-45":        { hasAlignmentBoard: false, hasBakedBase: true },
   "frameAndPegTest":   { hasAlignmentBoard: false, hasBakedBase: false },
 };
 

@@ -60,12 +60,16 @@ describe.runIf(hasAll)("baked-base preview path (prototype)", () => {
     '-D', 'Enable_Type_Name_Etch=true', '-D', 'Fontface="Liberation Mono"',
   ];
 
-  // Every baked carrier + its default board. Each renders both paths and asserts the
-  // outer bounding box matches the exact parametric assembly within tolerance.
-  const CARRIERS = [
+  // Every baked carrier + its default board (board: null = no alignment board —
+  // beseler-45 has none by design; its fixed corner pegs are baked into the base
+  // STL, and the bbox check below proves neither path drops them: the bottom's
+  // down-only pegs extend Z by exactly 2mm). Each renders both paths and asserts
+  // the outer bounding box matches the exact parametric assembly within tolerance.
+  const CARRIERS: { carrier: string; baseStl: string; board: string | null; boardStl: string | null }[] = [
     { carrier: "omega-d", board: "omega", baseStl: "omega-d-bottom", boardStl: "board-omega" },
     { carrier: "lpl-saunders-45xx", board: "lpl-saunders", baseStl: "lpl-saunders-45xx-bottom", boardStl: "board-lpl-saunders" },
     { carrier: "beseler-23c", board: "beseler-23c", baseStl: "beseler-23c-bottom", boardStl: "board-beseler-23c" },
+    { carrier: "beseler-45", board: null, baseStl: "beseler-45-bottom", boardStl: null },
   ];
 
   it("custom film format: custom dimensions actually drive the baked geometry", async () => {
@@ -92,12 +96,15 @@ describe.runIf(hasAll)("baked-base preview path (prototype)", () => {
   }, 180_000);
 
   for (const c of CARRIERS) {
-    it(`${c.carrier}: baked (base + board) matches parametric dims and is faster`, async () => {
-      const withBoard = [...P, '-D', 'Alignment_Board=true', '-D', `Alignment_Board_Type="${c.board}"`];
+    it(`${c.carrier}: baked (base${c.board ? " + board" : ""}) matches parametric dims and is faster`, async () => {
+      const withBoard = c.board
+        ? [...P, '-D', 'Alignment_Board=true', '-D', `Alignment_Board_Type="${c.board}"`]
+        : [...P, '-D', 'Alignment_Board=false'];
       const baked = await render("carrier-baked.scad", [
         '-D', `Carrier_Type="${c.carrier}"`,
         '-D', `Baked_Base_Stl="/base-stls/${c.baseStl}.stl"`,
-        '-D', `Baked_Board_Stl="/base-stls/${c.boardStl}.stl"`, ...withBoard,
+        ...(c.boardStl ? ['-D', `Baked_Board_Stl="/base-stls/${c.boardStl}.stl"`] : []),
+        ...withBoard,
       ]);
       const param = await render("carrier.scad", ['-D', `Carrier_Type="${c.carrier}"`, '-D', 'Render_Quality="final"', ...withBoard]);
 

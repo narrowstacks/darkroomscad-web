@@ -7,14 +7,14 @@ describe("carrier capability registry", () => {
   });
 
   it("BAKED_CARRIERS is exactly the carriers with a baked base STL", () => {
-    expect(BAKED_CARRIERS).toEqual(new Set(["omega-d", "lpl-saunders-45xx", "beseler-23c"]));
+    expect(BAKED_CARRIERS).toEqual(new Set(["omega-d", "lpl-saunders-45xx", "beseler-23c", "beseler-45"]));
   });
 
   it("BAKED_BOARD_TYPES is exactly the board types with a baked STL", () => {
     expect(BAKED_BOARD_TYPES).toEqual(new Set(["omega", "lpl-saunders", "beseler-23c"]));
   });
 
-  it("does not include the unimplemented beseler-45 carrier (regression guard)", () => {
-    expect(Object.keys(CARRIER_CAPABILITIES)).not.toContain("beseler-45");
+  it("beseler-45 is registered: baked base, no alignment board (by design)", () => {
+    expect(CARRIER_CAPABILITIES["beseler-45"]).toEqual({ hasAlignmentBoard: false, hasBakedBase: true });
   });
 });

@@ -102,16 +102,27 @@ function textSettings(carrierType: string): [number, number, number] {
   if (carrierType === "omega-d") return [-90, 69.5, 5];
   if (carrierType === "lpl-saunders-45xx") return [-65, 85, 5];
   if (carrierType === "beseler-23c") return [-65, 60, 5];
+  if (carrierType === "beseler-45") return [0, 105, 5];
   return [0, 60, 5];
 }
 
 // Port of get_text_rotation.
 function textRotation(carrierType: string): number {
-  return carrierType === "omega-d" || carrierType === "lpl-saunders-45xx" ? 270 : 0;
+  if (carrierType === "omega-d" || carrierType === "lpl-saunders-45xx") return 270;
+  if (carrierType === "beseler-45") return 90;
+  return 0;
 }
 
 const BESELER_DIAMETER = 160;
 const BESELER_HANDLE_WIDTH = 42;
+
+// Beseler 45 (carrier-configs.scad): 210mm disc, 29mm-wide top (+Y) handle, and
+// fixed corner alignment/stacking pegs on a 119.7mm center-to-center square.
+const BESELER_45_DIAMETER = 210;
+const BESELER_45_HANDLE_WIDTH = 29;
+const BESELER_45_ALIGN_PEG_SPACING = 119.7;             // pegs at ±59.85
+const BESELER_45_ALIGN_PEG_DIAMETER = 4.6;              // bottom peg (down-only)
+const BESELER_45_ALIGN_PEG_HOLE_DIAMETER = 6;           // top stacking hole
 
 // Port of calculate_text_position (pre-rotation [x, y]).
 function textPositionPre(
@@ -123,6 +134,16 @@ function textPositionPre(
     const yOffset = c.topOrBottom === "bottom" ? -yBase : yBase;
     const xPos = kind === "owner" ? handleCenterX : handleCenterX - 15; // -80 / -95
     return [xPos, yOffset];
+  }
+  if (c.carrierType === "beseler-45") {
+    // Port of calculate_text_position's beseler-45 arm: text lives on the top
+    // (+Y) handle, two columns across the 29mm handle width. This is the
+    // PRE-rotation position — the caller applies the 90° rotation like the
+    // SCAD's outer `rotate(rotation) translate(position)`, so
+    // world = R(90)·[handleMidY, -xBase] = [xBase, handleMidY].
+    const handleMidY = BESELER_45_DIAMETER / 2 + 22;                                       // 127
+    const xBase = kind === "owner" ? BESELER_45_HANDLE_WIDTH / 4 : -BESELER_45_HANDLE_WIDTH / 4; // ±7.25
+    return [handleMidY, -xBase];
   }
   const [yTranslate, carrierEdge, edgeMargin] = textSettings(c.carrierType);
   const xCenter = carrierEdge - edgeMargin - textWidth / 2;
@@ -249,6 +270,17 @@ export function buildScene(
   const { r, kind } = pegRadiusAndKind(c);
   const pegs: PegShape[] = [];
   for (const sx of [-1, 1]) for (const sy of [-1, 1]) pegs.push({ cx: sx * x, cy: sy * y, r, kind });
+  if (c.carrierType === "beseler-45") {
+    // Fixed corner alignment/stacking pegs (universal-carrier-assembly.scad):
+    // bottom carries Ø4.6 down-only pegs; top has Ø6 stacking holes.
+    const half = BESELER_45_ALIGN_PEG_SPACING / 2; // 59.85
+    const corner: { r: number; kind: "peg" | "hole" } =
+      c.topOrBottom === "bottom"
+        ? { r: BESELER_45_ALIGN_PEG_DIAMETER / 2, kind: "peg" }        // 2.3
+        : { r: BESELER_45_ALIGN_PEG_HOLE_DIAMETER / 2, kind: "hole" }; // 3
+    for (const sx of [-1, 1]) for (const sy of [-1, 1])
+      pegs.push({ cx: sx * half, cy: sy * half, ...corner });
+  }
   return {
     // film_opening cuboid([opening_height, opening_width, …]): X=height, Y=width.
     opening: { w: openingHeight, h: openingWidth, chamfer: FILM_OPENING_FILLET },

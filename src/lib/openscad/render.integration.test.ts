@@ -91,4 +91,38 @@ describe.runIf(hasWasm)("renderScad (integration)", () => {
     expect(first.stl.byteLength).toBeGreaterThan(84);
     expect(second.stl.byteLength).toBeGreaterThan(84);
   }, 180_000);
+
+  it("renders the beseler-45 carrier (4x5) to a non-empty STL", async () => {
+    const { factory, wasmBinary } = await loadEngine(process.cwd());
+    const log: string[] = [];
+    const loadModule = () =>
+      factory({
+        noInitialRun: true,
+        wasmBinary,
+        print: (t: string) => log.push(t),
+        printErr: (t: string) => log.push(t),
+      });
+
+    const fsAssets: FsAssets = { files: standardAssets(process.cwd(), { fonts: true }) };
+
+    const result = await renderScad(
+      loadModule,
+      fsAssets,
+      {
+        params: {
+          Carrier_Type: "beseler-45",
+          Film_Format: "4x5",
+          Top_or_Bottom: "bottom",
+          Render_Quality: "preview",
+          Fontface: DEFAULT_FONT_FAMILY,
+        },
+        quality: "preview",
+      },
+      log,
+    );
+
+    expect(result.stl.byteLength).toBeGreaterThan(10000);
+    const view = new DataView(result.stl.buffer, result.stl.byteOffset);
+    expect(view.getUint32(80, true)).toBeGreaterThan(0); // triangle count > 0
+  }, 180_000);
 });

@@ -18,10 +18,18 @@ export interface CarrierSpec {
   /**
    * gen-base-stls bakes a `<key>-<part>.stl` for it. The test frame is
    * intentionally excluded — its base geometry depends on film format, and it
-   * already renders fast parametrically. beseler-45 has no dedicated base
-   * shape (its outline reuses the beseler-23c geometry), so it is not baked.
+   * already renders fast parametrically.
    */
   bakesBaseStl: boolean;
+  /**
+   * Optional bake-path overrides for when the baked body differs from the
+   * outline body (extra parameter-independent geometry baked in). Default to
+   * `include` / `call`. beseler-45 uses these to bake its fixed corner
+   * alignment/stacking pegs (which live in the universal assembly, not the base
+   * shape) into the STL, while its outline stays the bare base shape.
+   */
+  bakeInclude?: string;
+  bakeCallOverride?: (part: "top" | "bottom") => string;
   /**
    * gen-carrier-outlines entry: required projected bbox minimums (catches
    * Manifold silently dropping a unioned feature). null = no outline generated.
@@ -59,13 +67,19 @@ export const CARRIER_SPECS: Record<string, CarrierSpec> = {
     bakesBaseStl: true,
     outline: { minWidth: 190, minHeight: 155 }, // 160 circle + handle (~197 wide)
   },
-  // beseler-45 has no dedicated base shape and is not implemented in carrier.scad,
-  // so its silhouette reuses the beseler-23c circular-with-handle geometry.
+  // beseler-45: 210mm disc + top (+Y) handle → bbox ~210 x 260mm. The outline is
+  // the bare base shape; the baked STL additionally fuses the fixed corner
+  // alignment pegs (bottom) / stacking holes (top) from the universal assembly.
   "beseler-45": {
-    include: "src/beseler-23c-base-shape.scad",
-    call: (part) => `beseler_23c_base_shape([], "${part}");`,
-    bakesBaseStl: false,
-    outline: { minWidth: 190, minHeight: 155 },
+    include: "src/beseler-45-base-shape.scad",
+    call: (part) => `beseler_45_base_shape([], "${part}");`,
+    bakesBaseStl: true,
+    bakeInclude: "src/common/universal-carrier-assembly.scad",
+    bakeCallOverride: (part) =>
+      part === "bottom"
+        ? `beseler_45_base_shape([], "bottom"); beseler45_corner_pegs();`
+        : `difference() { beseler_45_base_shape([], "top"); beseler45_corner_peg_holes(); }`,
+    outline: { minWidth: 200, minHeight: 250 },
   },
   frameAndPegTest: {
     include: "src/test-frame-base-shape.scad",

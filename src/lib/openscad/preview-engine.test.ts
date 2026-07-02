@@ -49,7 +49,7 @@ describe("selectRenderTarget (baked preview switch)", () => {
 
   it("falls back for the test frame (not baked) and unknown carriers", () => {
     expect(supportsBakedPreview(base({ params: { Carrier_Type: "frameAndPegTest" } }))).toBe(false);
-    expect(supportsBakedPreview(base({ params: { Carrier_Type: "beseler-45" } }))).toBe(false);
+    expect(supportsBakedPreview(base({ params: { Carrier_Type: "beseler-45" } }))).toBe(true);
   });
 
   it("falls back for multi-material part selection", () => {
