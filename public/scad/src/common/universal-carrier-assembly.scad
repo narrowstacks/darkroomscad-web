@@ -17,9 +17,41 @@ include <text-etching.scad>
 include <../omega-d-base-shape.scad>
 include <../lpl-saunders-base-shape.scad>
 include <../beseler-23c-base-shape.scad>
+include <../beseler-45-base-shape.scad>
 include <../test-frame-base-shape.scad>
 // Need access to carrier configuration functions
 include <../carrier-configs.scad>
+
+// ============================================================================
+// BESELER 45 CORNER ALIGNMENT / STACKING PEGS
+// Fixed square (BESELER_45_ALIGN_PEG_SPACING center-to-center). The BOTTOM board
+// carries pegs that protrude DOWN ONLY (seat into the enlarger); their upper end
+// stays flush inside the board (BESELER_45_ALIGN_PEG_UP = 0). The TOP board has
+// Ø BESELER_45_ALIGN_PEG_HOLE_DIAMETER stacking holes that receive the down-pegs
+// of a carrier stacked on top. Independent of film format and film-peg style.
+// ============================================================================
+module beseler45_corner_pegs() {
+    half = BESELER_45_ALIGN_PEG_SPACING / 2;
+    r = BESELER_45_ALIGN_PEG_DIAMETER / 2;
+    ch = get_carrier_height("beseler-45");
+    total_h = BESELER_45_ALIGN_PEG_DOWN + ch + BESELER_45_ALIGN_PEG_UP;
+    z_center = (BESELER_45_ALIGN_PEG_UP - BESELER_45_ALIGN_PEG_DOWN) / 2;
+    // rounding1 domes only the protruding (−Z) tip for easy insertion into the
+    // enlarger; the +Z end stays flat, flush inside the board. Total height is
+    // unchanged, so the downward seating depth is preserved.
+    for (xm = [-1, 1]) for (ym = [-1, 1])
+        translate([xm * half, ym * half, z_center])
+            cyl(h=total_h, r=r, rounding1=r, $fn=32);
+}
+
+module beseler45_corner_peg_holes() {
+    half = BESELER_45_ALIGN_PEG_SPACING / 2;
+    r = BESELER_45_ALIGN_PEG_HOLE_DIAMETER / 2;
+    ch = get_carrier_height("beseler-45");
+    for (xm = [-1, 1]) for (ym = [-1, 1])
+        translate([xm * half, ym * half, 0])
+            cylinder(h=ch + 2, r=r, center=true, $fn=32);
+}
 
 /**
  * Universal carrier assembly system
@@ -296,6 +328,8 @@ module universal_carrier_assembly(
             lpl_saunders_base_shape(config, top_or_bottom);
         } else if (carrier_type == "beseler-23c") {
             beseler_23c_base_shape(config, top_or_bottom);
+        } else if (carrier_type == "beseler-45") {
+            beseler_45_base_shape(config, top_or_bottom);
         } else if (is_test_frame_type(carrier_type)) {
             test_frame_base_shape(config, top_or_bottom, opening_width, opening_height, peg_pos_x, peg_pos_y);
         } else {
@@ -333,11 +367,24 @@ module universal_carrier_assembly(
                         generate_universal_alignment_footprint_holes(is_dent_holes=false);
                         generate_universal_text_etches();
                         generate_universal_directional_arrows();
+
+                        // Beseler 45 (heat-set): cut the bottom film-peg insert
+                        // holes fully through the 2.5mm board. The shared heat-set
+                        // hole is centered at half-height and stops ~0.4mm short of
+                        // the bottom face on this thicker board; M2 inserts are
+                        // longer than the board, so a through hole is correct.
+                        if (carrier_type == "beseler-45" && printed_or_heat_set_pegs == "heat_set")
+                            for (xm = [-1, 1]) for (ym = [-1, 1])
+                                translate([xm * peg_pos_x, ym * peg_pos_y, 0])
+                                    cylinder(h=CARRIER_HEIGHT + 2, d=M2_HEAT_SET_HOLE_DIA, center=true, $fn=32);
                     }
                 }
 
                 // Add alignment board if enabled
                 generate_universal_alignment_board();
+
+                // Beseler 45: fixed corner alignment/stacking pegs (down only)
+                if (carrier_type == "beseler-45") beseler45_corner_pegs();
             }
     }
 
@@ -368,6 +415,9 @@ module universal_carrier_assembly(
                     generate_universal_alignment_footprint_holes(is_dent_holes=true);
                     generate_universal_text_etches();
                     generate_universal_directional_arrows();
+
+                    // Beseler 45: clearance holes for the bottom board's corner pegs
+                    if (carrier_type == "beseler-45") beseler45_corner_peg_holes();
                 }
             }
     }
@@ -422,6 +472,19 @@ function calculate_text_position(carrier_type, text_type, text_config, text_metr
             x_pos = (text_type == "owner") ? handle_center_x : (handle_center_x - 15)
         ) [x_pos, y_offset, z_position]
     :
+    // Beseler 45: text lives on the protruding top (+Y) handle, running along the
+    // handle's long (Y) axis (see get_text_rotation → 90°). Owner and type sit as
+    // two columns across the 29mm handle width (X).
+    // NOTE: the caller applies `rotate(rotation) translate(position)`, i.e. the
+    // rotation is the OUTER transform, so world_position = R(rotation) * position.
+    // To land at world [x_base, handle_mid_y] under a +90 deg Z rotation, the
+    // pre-rotation position must be [handle_mid_y, -x_base] (R(90)*[a,b] = [-b,a]).
+    (carrier_type == "beseler-45") ?
+        let (
+            handle_mid_y = BESELER_45_DIAMETER / 2 + 22,   // ~127mm, on the visible handle
+            x_base = (text_type == "owner") ? (BESELER_45_HANDLE_WIDTH / 4) : (-BESELER_45_HANDLE_WIDTH / 4)
+        ) [handle_mid_y, -x_base, z_position]
+    :
     // Default handling: position text with equal edge margin from carrier boundary
     let (
         y_translate = (len(text_config) > 0) ? text_config[0] : 0,
@@ -446,6 +509,7 @@ _HORIZONTAL_TEXT_ROTATION = [0, 0, 0];
 
 function get_text_rotation(carrier_type, text_type) =
     (carrier_type == "omega-d" || carrier_type == "lpl-saunders-45xx") ? _VERTICAL_TEXT_ROTATION
+    : (carrier_type == "beseler-45") ? [0, 0, 90]
     : _HORIZONTAL_TEXT_ROTATION;
 
 /**

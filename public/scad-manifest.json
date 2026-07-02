@@ -13,6 +13,10 @@
       "path": "/src/beseler-23c-base-shape.scad"
     },
     {
+      "url": "/scad/src/beseler-45-base-shape.scad",
+      "path": "/src/beseler-45-base-shape.scad"
+    },
+    {
       "url": "/scad/src/carrier-configs.scad",
       "path": "/src/carrier-configs.scad"
     },

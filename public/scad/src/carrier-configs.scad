@@ -29,7 +29,9 @@ UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_X = 82;
 UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_Y = 113;
 
 // Getter functions maintained for backward compatibility (return universal values)
-function get_carrier_height(carrier_type) = UNIVERSAL_CARRIER_HEIGHT;
+function get_carrier_height(carrier_type) =
+    (carrier_type == "beseler-45") ? BESELER_45_THICKNESS
+    : UNIVERSAL_CARRIER_HEIGHT;
 function get_film_opening_frame_fillet(carrier_type) = UNIVERSAL_FILM_OPENING_FRAME_FILLET;
 function get_alignment_screw_diameter(carrier_type) = UNIVERSAL_ALIGNMENT_SCREW_DIAMETER;
 function get_alignment_screw_pattern_dist_x(carrier_type) = UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_X;
@@ -39,6 +41,9 @@ function get_alignment_screw_pattern_dist_y(carrier_type) = UNIVERSAL_ALIGNMENT_
 function get_top_peg_hole_z_offset(carrier_type) =
     (carrier_type == "omega-d") ? 2
     : (carrier_type == "beseler-23c") ? 1
+    // 2.5mm-thick board: offset 2 (not the 23c's 1) so the top film-peg holes
+    // punch fully through — a 1 would leave them blind at this thickness.
+    : (carrier_type == "beseler-45") ? 2
     : 2;
 
 // ----------------------------------------------------------------------------
@@ -61,6 +66,7 @@ function _get_text_settings(carrier_type) =
     (carrier_type == "omega-d") ? [-90, 69.5, 5]       // rect section is 139mm wide, edge at ~69.5
     : (carrier_type == "lpl-saunders-45xx") ? [-65, 85, 5] // 215mm diameter, text near handle side
     : (carrier_type == "beseler-23c") ? [-65, 60, 5]   // 160mm diameter, text on handle
+    : (carrier_type == "beseler-45") ? [0, 105, 5]     // 210mm diameter, text on top handle
     : [0, 60, 5];
 
 // Owner and type text use the same positioning config
@@ -74,22 +80,37 @@ function carrier_type_text_settings(carrier_type) = _get_text_settings(carrier_t
 BESELER_23C_DIAMETER = 160;
 BESELER_23C_HANDLE_WIDTH = 42;
 
-// (Beseler 45 not yet implemented)
+// Beseler 45 handle constants shared between base-shape and text positioning
+// (base geometry lives in beseler-45-base-shape.scad)
+BESELER_45_DIAMETER = 210;
+BESELER_45_HANDLE_WIDTH = 29;
+// The Beseler 45 carrier thickness is .5 mm thicker than other carriers
+BESELER_45_THICKNESS = 2.5;
+
+// Beseler 45 fixed corner alignment/stacking pegs (independent of film format).
+// The bottom board carries the pegs, which protrude DOWN ONLY to seat into the
+// enlarger. The top board's matching corner holes are stacking holes: they
+// receive the down-pegs of another carrier stacked on top.
+BESELER_45_ALIGN_PEG_SPACING = 119.7;      // center-to-center square (peg at ±59.85)
+BESELER_45_ALIGN_PEG_DIAMETER = 4.6;       // peg diameter
+BESELER_45_ALIGN_PEG_HOLE_DIAMETER = 6;    // top-board clearance-hole diameter
+BESELER_45_ALIGN_PEG_DOWN = 2;             // protrusion below the bottom face (enlarger)
+BESELER_45_ALIGN_PEG_UP = 0;               // no protrusion above the top face (down-only peg)
 
 /**
  * Test Frame Configuration
  * Generic configuration for test frames - simplified for basic film opening and peg testing
  * Uses minimal parameters needed for the generate_test_frame function
- * 
+ *
  * Array indices:
  * [0] = carrier_height (default: 2)
- * [1] = peg_diameter (default: 5.6) 
+ * [1] = peg_diameter (default: 5.6)
  * [2] = peg_height (default: 4)
  */
 function get_test_frame_config() =
     [
         2, // carrier_height - standard thickness
-        5.6, // peg_diameter - standard size 
+        5.6, // peg_diameter - standard size
         4, // peg_height - standard height
     ];
 
