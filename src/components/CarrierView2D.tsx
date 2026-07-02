@@ -143,10 +143,15 @@ export function CarrierView2D({ values, showDimensions = false }: { values: Reco
               below to avoid mirrored glyphs. */}
           {showDimensions && scene.dimensions.map((d, i) => (
             <g key={`dim-${i}`}>
+              {/* Background-colored halo underlay so the callout reads over the grey body. */}
               <line data-layer="dimension" x1={d.from[0]} y1={d.from[1]} x2={d.to[0]} y2={d.to[1]}
-                stroke="var(--text-dim)" strokeWidth={0.3} />
+                stroke={viewer.background} strokeWidth={1.1} strokeLinecap="round" />
               <path data-layer="dimension" d={dimensionTicks(d.from, d.to, d.axis)}
-                stroke="var(--text-dim)" strokeWidth={0.3} fill="none" />
+                stroke={viewer.background} strokeWidth={1.1} strokeLinecap="round" fill="none" />
+              <line data-layer="dimension" x1={d.from[0]} y1={d.from[1]} x2={d.to[0]} y2={d.to[1]}
+                stroke="var(--text)" strokeWidth={0.3} />
+              <path data-layer="dimension" d={dimensionTicks(d.from, d.to, d.axis)}
+                stroke="var(--text)" strokeWidth={0.3} fill="none" />
             </g>
           ))}
         </g>
@@ -177,7 +182,9 @@ export function CarrierView2D({ values, showDimensions = false }: { values: Reco
               <text key={`dim-label-${i}`} data-layer="dimension"
                 transform={`translate(${lx} ${-ly})${d.axis === "y" ? " rotate(-90)" : ""}`}
                 textAnchor="middle" dominantBaseline="central"
-                fontSize={4} fill="var(--text-dim)">
+                fontSize={4} fill="var(--text)"
+                stroke={viewer.background} strokeWidth={1} strokeLinejoin="round" strokeLinecap="round"
+                paintOrder="stroke">
                 {d.label}
               </text>
             );
