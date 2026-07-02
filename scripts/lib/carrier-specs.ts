@@ -67,7 +67,7 @@ export const CARRIER_SPECS: Record<string, CarrierSpec> = {
     bakesBaseStl: true,
     outline: { minWidth: 190, minHeight: 155 }, // 160 circle + handle (~197 wide)
   },
-  // beseler-45: 210mm disc + top (+Y) handle → bbox ~210 x 260mm. The outline is
+  // beseler-45: 210mm disc + left (-X) handle → bbox ~260 x 210mm. The outline is
   // the bare base shape; the baked STL additionally fuses the fixed corner
   // alignment pegs (bottom) / stacking holes (top) from the universal assembly.
   "beseler-45": {
@@ -79,7 +79,7 @@ export const CARRIER_SPECS: Record<string, CarrierSpec> = {
       part === "bottom"
         ? `beseler_45_base_shape([], "bottom"); beseler45_corner_pegs();`
         : `difference() { beseler_45_base_shape([], "top"); beseler45_corner_peg_holes(); }`,
-    outline: { minWidth: 200, minHeight: 250 },
+    outline: { minWidth: 250, minHeight: 200 },
   },
   frameAndPegTest: {
     include: "src/test-frame-base-shape.scad",

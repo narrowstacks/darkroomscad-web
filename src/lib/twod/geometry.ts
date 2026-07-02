@@ -109,14 +109,13 @@ function textSettings(carrierType: string): [number, number, number] {
 // Port of get_text_rotation.
 function textRotation(carrierType: string): number {
   if (carrierType === "omega-d" || carrierType === "lpl-saunders-45xx") return 270;
-  if (carrierType === "beseler-45") return 90;
   return 0;
 }
 
 const BESELER_DIAMETER = 160;
 const BESELER_HANDLE_WIDTH = 42;
 
-// Beseler 45 (carrier-configs.scad): 210mm disc, 29mm-wide top (+Y) handle, and
+// Beseler 45 (carrier-configs.scad): 210mm disc, 29mm-wide left (-X) handle, and
 // fixed corner alignment/stacking pegs on a 119.7mm center-to-center square.
 const BESELER_45_DIAMETER = 210;
 const BESELER_45_HANDLE_WIDTH = 29;
@@ -136,14 +135,12 @@ function textPositionPre(
     return [xPos, yOffset];
   }
   if (c.carrierType === "beseler-45") {
-    // Port of calculate_text_position's beseler-45 arm: text lives on the top
-    // (+Y) handle, two columns across the 29mm handle width. This is the
-    // PRE-rotation position — the caller applies the 90° rotation like the
-    // SCAD's outer `rotate(rotation) translate(position)`, so
-    // world = R(90)·[handleMidY, -xBase] = [xBase, handleMidY].
-    const handleMidY = BESELER_45_DIAMETER / 2 + 22;                                       // 127
-    const xBase = kind === "owner" ? BESELER_45_HANDLE_WIDTH / 4 : -BESELER_45_HANDLE_WIDTH / 4; // ±7.25
-    return [handleMidY, -xBase];
+    // Port of calculate_text_position's beseler-45 arm: text lives on the left
+    // (-X) handle, two rows across the 29mm handle width (like beseler-23c).
+    const handleCenterX = -(BESELER_45_DIAMETER / 2 + 22);                                 // -127
+    const yBase = kind === "owner" ? BESELER_45_HANDLE_WIDTH / 4 : -BESELER_45_HANDLE_WIDTH / 4; // ±7.25
+    const yOffset = c.topOrBottom === "bottom" ? -yBase : yBase;
+    return [handleCenterX, yOffset];
   }
   const [yTranslate, carrierEdge, edgeMargin] = textSettings(c.carrierType);
   const xCenter = carrierEdge - edgeMargin - textWidth / 2;

@@ -198,20 +198,25 @@ describe("textPlacements", () => {
     expect(owner.cy).toBeCloseTo(0, 6);
   });
 
-  it("beseler-45 owner+type: two columns on the top handle, rotated 90", () => {
+  it("beseler-45 owner+type: two rows on the left handle (rotation 0); bottom mirrors Y", () => {
     const ts = textPlacements(
-      { ...base, carrierType: "beseler-45", enableOwnerEtch: true, ownerName: "ADA", enableTypeEtch: true },
+      { ...base, carrierType: "beseler-45", topOrBottom: "top", enableOwnerEtch: true, ownerName: "ADA", enableTypeEtch: true },
       stub,
     );
-    // pre-rotation [handleMidY, -xBase] = [127, ∓7.25]; world = R(90)·pre = [±7.25, 127]
+    // handleCenterX = -(210/2 + 22) = -127 ; yBase = ±29/4 = ±7.25
     const owner = ts.find((t) => t.value === "ADA")!;
-    expect(owner.rotationDeg).toBe(90);
-    expect(owner.cx).toBeCloseTo(7.25, 6);
-    expect(owner.cy).toBeCloseTo(127, 6);
+    expect(owner.rotationDeg).toBe(0);
+    expect(owner.cx).toBeCloseTo(-127, 6);
+    expect(owner.cy).toBeCloseTo(7.25, 6);
     const type = ts.find((t) => t.value === "35MM")!;
-    expect(type.rotationDeg).toBe(90);
-    expect(type.cx).toBeCloseTo(-7.25, 6);
-    expect(type.cy).toBeCloseTo(127, 6);
+    expect(type.rotationDeg).toBe(0);
+    expect(type.cx).toBeCloseTo(-127, 6);
+    expect(type.cy).toBeCloseTo(-7.25, 6);
+    const bottomOwner = textPlacements(
+      { ...base, carrierType: "beseler-45", topOrBottom: "bottom", enableOwnerEtch: true, ownerName: "ADA" },
+      stub,
+    )[0];
+    expect(bottomOwner.cy).toBeCloseTo(-7.25, 6);
   });
 
   it("lpl-saunders owner: rotated 270 with its own carrier edge (85)", () => {
