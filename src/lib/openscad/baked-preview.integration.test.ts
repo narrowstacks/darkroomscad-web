@@ -2,28 +2,19 @@
 // a pre-baked base STL with native cuts) renders to a valid carrier, much faster than
 // the full parametric path, and is dimensionally equivalent to it.
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
+import {
+  loadEngine,
+  mountFiles,
+  standardAssets,
+  type FsFile,
+} from "../../../scripts/lib/scad-harness";
 
 const WASM_JS = join(process.cwd(), "public/wasm/openscad.js");
 const WASM_BIN = join(process.cwd(), "public/wasm/openscad.wasm");
 const BASE_STL = join(process.cwd(), "public/base-stls/omega-d-bottom.stl");
 const hasAll = existsSync(WASM_JS) && existsSync(WASM_BIN) && existsSync(BASE_STL);
-
-type FsFile = { path: string; data: Uint8Array };
-function readTree(absDir: string, fsPrefix: string): FsFile[] {
-  const out: FsFile[] = [];
-  for (const e of readdirSync(absDir, { withFileTypes: true })) {
-    const full = join(absDir, e.name);
-    if (e.isDirectory()) out.push(...readTree(full, `${fsPrefix}/${e.name}`));
-    else out.push({ path: `${fsPrefix}/${e.name}`, data: new Uint8Array(readFileSync(full)) });
-  }
-  return out;
-}
-function mkdirP(FS: any, dir: string) {
-  const parts = dir.split("/").filter(Boolean); let cur = "";
-  for (const p of parts) { cur += "/" + p; if (!FS.analyzePath(cur).exists) FS.mkdir(cur); }
-}
 
 // Axis-aligned bounding box of a binary STL (for dimensional equivalence checks).
 function stlBBox(stl: Uint8Array) {
@@ -46,20 +37,13 @@ function stlBBox(stl: Uint8Array) {
 }
 
 describe.runIf(hasAll)("baked-base preview path (prototype)", () => {
-  const wasmBinary = new Uint8Array(readFileSync(WASM_BIN));
-  const assets: FsFile[] = [
-    ...readTree(join(process.cwd(), "public/scad"), ""),
-    ...readTree(join(process.cwd(), "public/fonts"), "/fonts"),
-    ...readTree(join(process.cwd(), "public/libraries"), ""),
-    ...readTree(join(process.cwd(), "public/base-stls"), "/base-stls"),
-  ];
+  const assets: FsFile[] = standardAssets(process.cwd(), { fonts: true, baseStls: true });
 
   async function render(mainFile: string, params: string[]): Promise<{ stl: Uint8Array; ms: number }> {
-    const mod = await import(WASM_JS);
-    const factory = (mod.default ?? mod) as (o: object) => Promise<any>;
+    const { factory, wasmBinary } = await loadEngine(process.cwd());
     const log: string[] = [];
     const inst = await factory({ noInitialRun: true, wasmBinary, print: (t: string) => log.push(t), printErr: (t: string) => log.push(t) });
-    for (const f of assets) { const d = f.path.slice(0, f.path.lastIndexOf("/")); if (d) mkdirP(inst.FS, d); inst.FS.writeFile(f.path, f.data); }
+    mountFiles(inst.FS, assets);
     const args = ["/" + mainFile, "-o", "/out.stl", "--backend=manifold", "--enable=all", "--export-format=binstl", ...params];
     const t0 = performance.now();
     const code = inst.callMain(args);
@@ -123,7 +107,6 @@ describe.runIf(hasAll)("baked-base preview path (prototype)", () => {
       // Outer footprint matches the parametric assembly within tolerance on every axis.
       for (let a = 0; a < 3; a++) expect(Math.abs(b.size[a] - p.size[a])).toBeLessThan(0.6);
       expect(baked.ms).toBeLessThan(param.ms);
-      // eslint-disable-next-line no-console
       console.log(`[${c.carrier}] baked=${baked.ms.toFixed(0)}ms (${b.tris} tris)  parametric=${param.ms.toFixed(0)}ms (${p.tris} tris)  speedup=${(param.ms / baked.ms).toFixed(1)}x  bbox=[${b.size.map((s) => s.toFixed(1)).join(",")}]`);
     }, 180_000);
   }

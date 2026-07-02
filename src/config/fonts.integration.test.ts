@@ -1,24 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { renderScad, type FsAssets, type FsFile } from "../lib/openscad/render";
+import { renderScad, type FsAssets } from "../lib/openscad/render";
 import { BUNDLED_FONTS } from "./fonts";
+import { loadEngine, standardAssets } from "../../scripts/lib/scad-harness";
 
 const WASM_JS = join(process.cwd(), "public/wasm/openscad.js");
 const WASM_BIN = join(process.cwd(), "public/wasm/openscad.wasm");
 const hasWasm = existsSync(WASM_JS) && existsSync(WASM_BIN);
-
-// Mirrors render.integration.test.ts: read a public/ subtree into FsFiles rooted at the
-// given FS prefix so the carrier's relative includes (and /fonts/...) resolve at the FS root.
-function readTree(absDir: string, fsPrefix: string): FsFile[] {
-  const out: FsFile[] = [];
-  for (const e of readdirSync(absDir, { withFileTypes: true })) {
-    const full = join(absDir, e.name);
-    if (e.isDirectory()) out.push(...readTree(full, `${fsPrefix}/${e.name}`));
-    else out.push({ path: `${fsPrefix}/${e.name}`, data: new Uint8Array(readFileSync(full)) });
-  }
-  return out;
-}
 
 // Regression guard for the bundled carrier-text font palette: EACH font in BUNDLED_FONTS must
 // resolve via fontconfig AND render etched text — a font that doesn't resolve breaks the carrier
@@ -26,21 +15,13 @@ function readTree(absDir: string, fsPrefix: string): FsFile[] {
 // assert a valid, non-empty binary STL with >0 triangles (proving the font resolved and the text
 // geometry rendered). Gated on the wasm existing, like render.integration.test.ts.
 describe.runIf(hasWasm)("bundled fonts render (integration)", () => {
-  const wasmBinary = new Uint8Array(readFileSync(WASM_BIN));
-
-  const fsAssets: FsAssets = {
-    files: [
-      ...readTree(join(process.cwd(), "public/scad"), ""), // strips to FS root
-      ...readTree(join(process.cwd(), "public/fonts"), "/fonts"),
-      ...readTree(join(process.cwd(), "public/libraries"), ""), // -> /BOSL2/...
-    ],
-  };
+  // SCAD tree at the FS root (relative includes resolve), BOSL2, and /fonts.
+  const fsAssets: FsAssets = { files: standardAssets(process.cwd(), { fonts: true }) };
 
   it.each(BUNDLED_FONTS.map((f) => [f.family, f] as const))(
     "renders etched text in %s",
     async (_family, font) => {
-      const mod = await import(WASM_JS);
-      const factory = (mod.default ?? mod) as (opts: object) => Promise<any>;
+      const { factory, wasmBinary } = await loadEngine(process.cwd());
       const log: string[] = [];
       const loadModule = () =>
         factory({

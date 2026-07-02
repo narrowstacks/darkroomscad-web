@@ -17,109 +17,23 @@
 // minimum dimensions (validated once against the 3D geometry). If no candidate
 // qualifies we throw — the generator never emits a silent partial outline.
 
-import { readFileSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { extractOuterContour, extractAllContours } from "../src/lib/outline/outer-contour";
+import { loadEngine, mountFiles, standardAssets } from "./lib/scad-harness";
+import { CARRIER_SPECS, BOARD_SPECS } from "./lib/carrier-specs";
 
-interface FsFile { path: string; data: Uint8Array }
-
-// Minimal slice of the Emscripten module instance we actually drive.
-interface EmscriptenFS {
-  analyzePath(path: string): { exists: boolean };
-  mkdir(path: string): void;
-  writeFile(path: string, data: Uint8Array | string): void;
-  readFile(path: string): Uint8Array;
+// One projection job: an include + module invocation plus the required projected
+// bbox minimums (catches Manifold silently dropping a unioned feature).
+interface OutlineJob {
+  include: string; // base-shape file to include (relative to FS root)
+  call: string; // module invocation producing the carrier BODY only
+  minWidth: number; // required projected bbox width
+  minHeight: number; // required projected bbox height
 }
-interface OpenScadInstance {
-  FS: EmscriptenFS;
-  callMain(args: string[]): number;
-}
-type OpenScadFactory = (opts: object) => Promise<OpenScadInstance>;
-
-interface CarrierSpec {
-  include: string;       // base-shape file to include (relative to FS root)
-  call: string;          // module invocation producing the carrier BODY only
-  minWidth: number;      // required projected bbox width (catches dropped features)
-  minHeight: number;     // required projected bbox height
-}
-
-// beseler-45 has no dedicated base shape and is not implemented in carrier.scad,
-// so its silhouette reuses the beseler-23c circular-with-handle geometry.
-const CARRIERS: Record<string, CarrierSpec> = {
-  "omega-d": {
-    include: "src/omega-d-base-shape.scad",
-    call: 'omega_d_base_shape([], "bottom");',
-    minWidth: 200, minHeight: 165,            // body ~202 long, ~168 tall
-  },
-  "lpl-saunders-45xx": {
-    include: "src/lpl-saunders-base-shape.scad",
-    call: 'lpl_saunders_base_shape([], "bottom");',
-    minWidth: 220, minHeight: 175,            // ~178 clipped circle + handle (~228 wide)
-  },
-  "beseler-23c": {
-    include: "src/beseler-23c-base-shape.scad",
-    call: 'beseler_23c_base_shape([], "bottom");',
-    minWidth: 190, minHeight: 155,            // 160 circle + handle (~197 wide)
-  },
-  "beseler-45": {
-    include: "src/beseler-23c-base-shape.scad",
-    call: 'beseler_23c_base_shape([], "bottom");',
-    minWidth: 190, minHeight: 155,
-  },
-  frameAndPegTest: {
-    include: "src/test-frame-base-shape.scad",
-    call: 'test_frame_base_shape([2,5.6,4], "bottom", 36, 24, 25, 35);',
-    minWidth: 70, minHeight: 90,              // simple rounded rectangle
-  },
-};
-
-// Alignment boards: keep ALL contours so the board opening renders (evenodd).
-// Omega's opening widens for 4x5, so it gets two variants; the outer outline is
-// identical between them.
-const BOARDS: Record<string, CarrierSpec> = {
-  "omega": {
-    include: "src/common/omega-d-alignment-board.scad",
-    call: 'omega_d_alignment_board_no_screws("");',
-    minWidth: 120, minHeight: 120,
-  },
-  "omega-4x5": {
-    include: "src/common/omega-d-alignment-board.scad",
-    call: 'omega_d_alignment_board_no_screws("4x5");',
-    minWidth: 120, minHeight: 120,
-  },
-  "lpl-saunders": {
-    include: "src/common/lpl-saunders-alignment-board.scad",
-    call: 'lpl_saunders_alignment_board();',
-    minWidth: 150, minHeight: 100,
-  },
-  "beseler-23c": {
-    include: "src/common/beseler-23c-alignment-board.scad",
-    call: 'beseler_23c_alignment_board();',
-    minWidth: 110, minHeight: 110,
-  },
-};
 
 // $fn candidates, ordered by empirically observed reliability for these unions.
 const FN_CANDIDATES = [72, 90, 96, 80, 60, 48, 100];
-
-function readTree(absDir: string, fsPrefix: string): FsFile[] {
-  const out: FsFile[] = [];
-  for (const e of readdirSync(absDir, { withFileTypes: true })) {
-    const full = join(absDir, e.name);
-    if (e.isDirectory()) out.push(...readTree(full, `${fsPrefix}/${e.name}`));
-    else out.push({ path: `${fsPrefix}/${e.name}`, data: new Uint8Array(readFileSync(full)) });
-  }
-  return out;
-}
-
-function mkdirP(FS: EmscriptenFS, dir: string) {
-  const parts = dir.split("/").filter(Boolean);
-  let cur = "";
-  for (const p of parts) {
-    cur += "/" + p;
-    if (!FS.analyzePath(cur).exists) FS.mkdir(cur);
-  }
-}
 
 function vbDims(viewBox: string): { w: number; h: number } {
   const [, , w, h] = viewBox.split(/\s+/).map(Number);
@@ -131,17 +45,11 @@ async function main() {
   const outDir = join(cwd, "public/outlines");
   mkdirSync(outDir, { recursive: true });
 
-  const wasmBinary = new Uint8Array(readFileSync(join(cwd, "public/wasm/openscad.wasm")));
-  const mod = await import(join(cwd, "public/wasm/openscad.js"));
-  const factory = (mod.default ?? mod) as OpenScadFactory;
-
-  const assets = [
-    ...readTree(join(cwd, "public/scad"), ""),       // -> FS root (so relative includes resolve)
-    ...readTree(join(cwd, "public/libraries"), ""),  // -> /BOSL2/...
-  ];
+  const { factory, wasmBinary } = await loadEngine(cwd);
+  const assets = standardAssets(cwd);
 
   async function project(
-    spec: CarrierSpec,
+    job: OutlineJob,
     fn: number,
     extract: (svg: string) => { d: string; viewBox: string } = extractOuterContour,
   ): Promise<{ d: string; viewBox: string }> {
@@ -150,18 +58,14 @@ async function main() {
       noInitialRun: true, wasmBinary,
       print: (t: string) => log.push(t), printErr: (t: string) => log.push(t),
     });
-    for (const f of assets) {
-      const dir = f.path.slice(0, f.path.lastIndexOf("/"));
-      if (dir) mkdirP(inst.FS, dir);
-      inst.FS.writeFile(f.path, f.data);
-    }
+    mountFiles(inst.FS, assets);
     // BOSL2 is included here at the wrapper (entry-point) level. The base-shape
     // and alignment-board files under src/ no longer include BOSL2 themselves
     // (it lives once in carrier.scad for the render path) to avoid re-parsing the
     // ~80k-line library many times per render. This wrapper is their entry point,
-    // so it must supply BOSL2 (std + rounding) before including the spec file.
+    // so it must supply BOSL2 (std + rounding) before including the job file.
     inst.FS.writeFile("/outline.scad",
-      `include <BOSL2/std.scad>\ninclude <BOSL2/rounding.scad>\ninclude <${spec.include}>\n$fn=${fn};\nprojection(cut=false) ${spec.call}\n`);
+      `include <BOSL2/std.scad>\ninclude <BOSL2/rounding.scad>\ninclude <${job.include}>\n$fn=${fn};\nprojection(cut=false) ${job.call}\n`);
     const code = inst.callMain(["/outline.scad", "-o", "/o.svg", "--export-format=svg", "--enable=all"]);
     if (code) throw new Error(`OpenSCAD exited ${code}\n${log.join("\n")}`);
     const rawSvg = new TextDecoder().decode(inst.FS.readFile("/o.svg"));
@@ -171,23 +75,23 @@ async function main() {
   // Generate bottom and top variants for each carrier. Top is the same body minus
   // a small corner separation_hole, so bbox/min-dim thresholds are identical.
   const inline: Record<string, { viewBox: string; d: string }> = {};
-  for (const [carrier, spec] of Object.entries(CARRIERS)) {
+  for (const [carrier, spec] of Object.entries(CARRIER_SPECS)) {
+    if (!spec.outline) continue;
     for (const part of ["bottom", "top"] as const) {
-      const topCall = spec.call.replace('"bottom"', '"top"');
-      const partSpec = part === "top" ? { ...spec, call: topCall } : spec;
+      const job: OutlineJob = { include: spec.include, call: spec.call(part), ...spec.outline };
       const key = part === "top" ? `${carrier}:top` : carrier;
       const svgFile = part === "top" ? `${carrier}-top.svg` : `${carrier}.svg`;
 
       let chosen: { d: string; viewBox: string; fn: number } | undefined;
       for (const fn of FN_CANDIDATES) {
-        const { d, viewBox } = await project(partSpec, fn);
+        const { d, viewBox } = await project(job, fn);
         const { w, h } = vbDims(viewBox);
-        if (w >= spec.minWidth && h >= spec.minHeight) { chosen = { d, viewBox, fn }; break; }
+        if (w >= job.minWidth && h >= job.minHeight) { chosen = { d, viewBox, fn }; break; }
       }
       if (!chosen) {
         throw new Error(
           `${carrier} (${part}): no $fn in [${FN_CANDIDATES}] produced a projection meeting ` +
-          `min dims ${spec.minWidth}x${spec.minHeight} — Manifold likely dropped a feature.`,
+          `min dims ${job.minWidth}x${job.minHeight} — Manifold likely dropped a feature.`,
         );
       }
       const d = chosen.d.replace(/\s+/g, " ").trim();
@@ -208,24 +112,26 @@ async function main() {
   );
   console.log("wrote generated/carrier-outlines.json");
 
-  // ---- Alignment board outlines (all contours kept) ----
+  // ---- Alignment board outlines (all contours kept, evenodd) ----
   // Per-board errors are caught and logged; on any failure we leave
   // generated/board-outlines.json and the failed board's SVG untouched (the
   // beseler-23c torus projection is intermittent).
   const boardInline: Record<string, { viewBox: string; d: string }> = {};
   let boardFailed = false;
-  for (const [key, spec] of Object.entries(BOARDS)) {
+  for (const [key, spec] of Object.entries(BOARD_SPECS)) {
+    if (!spec.outline) continue;
+    const job: OutlineJob = { include: spec.include, call: spec.call, ...spec.outline };
     try {
       let chosen: { d: string; viewBox: string; fn: number } | undefined;
       for (const fn of FN_CANDIDATES) {
-        const { d, viewBox } = await project(spec, fn, extractAllContours);
+        const { d, viewBox } = await project(job, fn, extractAllContours);
         const { w, h } = vbDims(viewBox);
-        if (w >= spec.minWidth && h >= spec.minHeight) { chosen = { d, viewBox, fn }; break; }
+        if (w >= job.minWidth && h >= job.minHeight) { chosen = { d, viewBox, fn }; break; }
       }
       if (!chosen) {
         throw new Error(
           `board ${key}: no $fn in [${FN_CANDIDATES}] met min dims ` +
-          `${spec.minWidth}x${spec.minHeight} — Manifold likely dropped a feature.`,
+          `${job.minWidth}x${job.minHeight} — Manifold likely dropped a feature.`,
         );
       }
       const d = chosen.d.replace(/\s+/g, " ").trim();

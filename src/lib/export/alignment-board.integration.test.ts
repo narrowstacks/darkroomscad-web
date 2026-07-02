@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { renderScad, type FsAssets, type FsFile } from "../openscad/render";
+import { renderScad, type FsAssets } from "../openscad/render";
+import { loadEngine, standardAssets } from "../../../scripts/lib/scad-harness";
 
 // Proves the standalone alignment-board export path: with _Render_Alignment_Board_Only
 // set, the carrier renders ONLY the board (of Alignment_Board_Type) as a valid printable
@@ -11,31 +12,14 @@ const WASM_JS = join(process.cwd(), "public/wasm/openscad.js");
 const WASM_BIN = join(process.cwd(), "public/wasm/openscad.wasm");
 const hasWasm = existsSync(WASM_JS) && existsSync(WASM_BIN);
 
-function readTree(absDir: string, fsPrefix: string): FsFile[] {
-  const out: FsFile[] = [];
-  for (const e of readdirSync(absDir, { withFileTypes: true })) {
-    const full = join(absDir, e.name);
-    if (e.isDirectory()) out.push(...readTree(full, `${fsPrefix}/${e.name}`));
-    else out.push({ path: `${fsPrefix}/${e.name}`, data: new Uint8Array(readFileSync(full)) });
-  }
-  return out;
-}
-
 const BOARD_TYPES = ["omega", "lpl-saunders", "beseler-23c"];
 
 describe.runIf(hasWasm)("standalone alignment board (integration)", () => {
-  const wasmBinary = new Uint8Array(readFileSync(WASM_BIN));
-  const fsAssets: FsAssets = {
-    files: [
-      ...readTree(join(process.cwd(), "public/scad"), ""),
-      ...readTree(join(process.cwd(), "public/fonts"), "/fonts"),
-      ...readTree(join(process.cwd(), "public/libraries"), ""),
-    ],
-  };
+  // SCAD tree at the FS root (relative includes resolve), BOSL2, and /fonts.
+  const fsAssets: FsAssets = { files: standardAssets(process.cwd(), { fonts: true }) };
 
   it.each(BOARD_TYPES)("renders the %s board alone to a non-empty STL", async (boardType) => {
-    const mod = await import(WASM_JS);
-    const factory = (mod.default ?? mod) as (opts: object) => Promise<unknown>;
+    const { factory, wasmBinary } = await loadEngine(process.cwd());
     const log: string[] = [];
     const loadModule = () =>
       factory({

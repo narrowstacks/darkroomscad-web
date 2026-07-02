@@ -6,83 +6,61 @@
 //
 // The base body is format/orientation/peg/text independent, so one STL per
 // (carrier, top|bottom) covers every film format. Run: npm run gen:base-stls
-import { readFileSync, readdirSync, writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
+import { loadEngine, mountFiles, standardAssets } from "./lib/scad-harness";
+import { CARRIER_SPECS, BOARD_SPECS } from "./lib/carrier-specs";
 
-interface EmscriptenFS {
-  writeFile(path: string, data: Uint8Array | string): void;
-  readFile(path: string): Uint8Array;
-  mkdir(path: string): void;
-  analyzePath(path: string): { exists: boolean };
-}
-interface OpenScadInstance { FS: EmscriptenFS; callMain(args: string[]): number; }
-type OpenScadFactory = (opts: {
-  noInitialRun?: boolean; wasmBinary: Uint8Array;
-  print?: (s: string) => void; printErr?: (s: string) => void;
-}) => Promise<OpenScadInstance>;
+// Bake-path adapter: the committed base STLs were originally baked from call
+// strings with arg0 `0` (vs the outlines' `[]`) and the omega board with "35mm"
+// (vs the outlines' ""). Both args are semantically inert here (the config arg is
+// unused; the board arg only matters via `== "4x5"`), but Manifold's output byte
+// layout is sensitive to the source text, so the bake path keeps the historical
+// forms to leave public/base-stls byte-identical across regenerations.
+const bakeCall = (call: string) =>
+  call
+    .replace("([], ", "(0, ")
+    .replace('omega_d_alignment_board_no_screws("")', 'omega_d_alignment_board_no_screws("35mm")');
 
 // Each baked variant: a wrapper that includes BOSL2 (the entry point supplies it,
 // since the base-shape file no longer self-includes it) + the base shape, and calls
-// the module. config arg is unused by the module; top_or_bottom drives separation hole.
-const VARIANTS = [
-  // Carrier base bodies (format-independent; one per top/bottom). The test frame is
-  // intentionally excluded — its base geometry depends on film format, and it already
-  // renders fast parametrically.
-  { name: "omega-d-bottom",          include: "src/omega-d-base-shape.scad",       call: 'omega_d_base_shape(0, "bottom");' },
-  { name: "omega-d-top",             include: "src/omega-d-base-shape.scad",       call: 'omega_d_base_shape(0, "top");' },
-  { name: "lpl-saunders-45xx-bottom", include: "src/lpl-saunders-base-shape.scad", call: 'lpl_saunders_base_shape(0, "bottom");' },
-  { name: "lpl-saunders-45xx-top",    include: "src/lpl-saunders-base-shape.scad", call: 'lpl_saunders_base_shape(0, "top");' },
-  { name: "beseler-23c-bottom",       include: "src/beseler-23c-base-shape.scad",  call: 'beseler_23c_base_shape(0, "bottom");' },
-  { name: "beseler-23c-top",          include: "src/beseler-23c-base-shape.scad",  call: 'beseler_23c_base_shape(0, "top");' },
-  // Alignment boards (fused onto the carrier at a carrier/board-specific Z). The omega
-  // board's opening differs for 4x5, so it has two variants; lpl/beseler boards are
-  // format-independent (one each).
-  { name: "board-omega",       include: "src/common/omega-d-alignment-board.scad",     call: 'omega_d_alignment_board_no_screws("35mm");' },
-  { name: "board-omega-4x5",   include: "src/common/omega-d-alignment-board.scad",     call: 'omega_d_alignment_board_no_screws("4x5");' },
-  { name: "board-lpl-saunders", include: "src/common/lpl-saunders-alignment-board.scad", call: 'lpl_saunders_alignment_board();' },
-  { name: "board-beseler-23c",  include: "src/common/beseler-23c-alignment-board.scad",  call: 'beseler_23c_alignment_board();' },
+// the module. Derived from the shared spec table:
+// - Carrier base bodies (format-independent; one per top/bottom) for every carrier
+//   with bakesBaseStl (the test frame is excluded — its base geometry depends on
+//   film format, and it already renders fast parametrically).
+// - Alignment boards (fused onto the carrier at a carrier/board-specific Z) for
+//   every board with a bakeName. The omega board's opening differs for 4x5, so it
+//   has two variants; lpl/beseler boards are format-independent (one each).
+const VARIANT_LIST: { name: string; include: string; call: string }[] = [
+  ...Object.entries(CARRIER_SPECS)
+    .filter(([, spec]) => spec.bakesBaseStl)
+    .flatMap(([key, spec]) =>
+      (["bottom", "top"] as const).map((part) => ({
+        name: `${key}-${part}`,
+        include: spec.include,
+        call: bakeCall(spec.call(part)),
+      })),
+    ),
+  ...Object.values(BOARD_SPECS)
+    .filter((spec) => spec.bakeName !== null)
+    .map((spec) => ({ name: spec.bakeName as string, include: spec.include, call: bakeCall(spec.call) })),
 ];
-
-type FsFile = { path: string; data: Uint8Array };
-function readTree(absDir: string, fsPrefix: string): FsFile[] {
-  const out: FsFile[] = [];
-  for (const e of readdirSync(absDir, { withFileTypes: true })) {
-    const full = join(absDir, e.name);
-    if (e.isDirectory()) out.push(...readTree(full, `${fsPrefix}/${e.name}`));
-    else out.push({ path: `${fsPrefix}/${e.name}`, data: new Uint8Array(readFileSync(full)) });
-  }
-  return out;
-}
-function mkdirP(FS: EmscriptenFS, dir: string) {
-  const parts = dir.split("/").filter(Boolean); let cur = "";
-  for (const p of parts) { cur += "/" + p; if (!FS.analyzePath(cur).exists) FS.mkdir(cur); }
-}
 
 async function main() {
   const cwd = process.cwd();
   const outDir = join(cwd, "public/base-stls");
   mkdirSync(outDir, { recursive: true });
 
-  const wasmBinary = new Uint8Array(readFileSync(join(cwd, "public/wasm/openscad.wasm")));
-  const mod = await import(join(cwd, "public/wasm/openscad.js"));
-  const factory = (mod.default ?? mod) as OpenScadFactory;
+  const { factory, wasmBinary } = await loadEngine(cwd);
+  const assets = standardAssets(cwd);
 
-  const assets = [
-    ...readTree(join(cwd, "public/scad"), ""),      // -> FS root, relative includes resolve
-    ...readTree(join(cwd, "public/libraries"), ""), // -> /BOSL2/...
-  ];
-
-  for (const v of VARIANTS) {
+  for (const v of VARIANT_LIST) {
     const log: string[] = [];
     const inst = await factory({
       noInitialRun: true, wasmBinary,
       print: (t) => log.push(t), printErr: (t) => log.push(t),
     });
-    for (const f of assets) {
-      const dir = f.path.slice(0, f.path.lastIndexOf("/"));
-      if (dir) mkdirP(inst.FS, dir);
-      inst.FS.writeFile(f.path, f.data);
-    }
+    mountFiles(inst.FS, assets);
     // Bake at high quality once (frozen tessellation is fine for an imported base).
     inst.FS.writeFile("/bake.scad",
       `include <BOSL2/std.scad>\ninclude <BOSL2/rounding.scad>\ninclude <${v.include}>\n$fn=100;\n${v.call}\n`);
