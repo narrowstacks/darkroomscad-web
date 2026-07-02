@@ -34,8 +34,10 @@ describe("CarrierView2D", () => {
     );
     const layer = container.querySelectorAll("[data-layer='dimension']");
     expect(layer.length).toBeGreaterThanOrEqual(4);
+    // Each of the 4 callouts renders a background-halo underlay line + an ink
+    // line on top (see the dimension halo in CarrierView2D), so 4 callouts → 8.
     const lines = container.querySelectorAll("line[data-layer='dimension']");
-    expect(lines.length).toBe(4);
+    expect(lines.length).toBe(8);
     const labels = Array.from(container.querySelectorAll("text[data-layer='dimension']"));
     expect(labels.length).toBe(4);
     expect(labels.some((t) => t.textContent?.includes("mm"))).toBe(true);
