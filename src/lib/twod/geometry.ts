@@ -1,6 +1,7 @@
 import type { TwoDConfig, TextPlacement, Scene, PegShape } from "./types";
 import { FILM_FORMATS, isFiledFormat, filmTypeName } from "./film-data";
 import { measureTextWidthMm } from "./measure-text";
+import { BOARD_CARRIERS } from "@/config/carriers";
 
 // Default film dimensions used by SCAD when format is "custom" and no override
 // is passed — matches film-sizes.scad customFilmFormatWidth / customFilmFormatHeight.
@@ -84,7 +85,6 @@ export function pegRadiusAndKind(c: TwoDConfig): { r: number; kind: "peg" | "hol
 const SCREW_PATTERN_DIST_X = 82;   // UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_X
 const SCREW_PATTERN_DIST_Y = 113;  // UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_Y
 const SCREW_DIAMETER = 2;          // UNIVERSAL_ALIGNMENT_SCREW_DIAMETER
-const BOARD_CARRIERS = new Set(["omega-d", "lpl-saunders-45xx", "beseler-23c"]);
 
 export function screwFootprint(c: TwoDConfig): { cx: number; cy: number; r: number }[] {
   const usesFootprint = c.alignmentBoardType === "omega" || c.alignmentBoardType === "lpl-saunders";

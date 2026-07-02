@@ -1,4 +1,5 @@
 import type { RenderParams } from "../openscad/types";
+import { BOARD_CARRIERS } from "@/config/carriers";
 
 export interface PartJob {
   name: string;
@@ -8,9 +9,6 @@ export interface PartJob {
 function slug(s: string): string {
   return s.replace(/\s+/g, "-");
 }
-
-// Carriers that have an alignment board. Test frames (and unimplemented types) don't.
-const BOARD_CARRIERS = new Set(["omega-d", "lpl-saunders-45xx", "beseler-23c"]);
 
 export function enumerateParts(form: RenderParams): PartJob[] {
   const carrier = slug(String(form.Carrier_Type ?? "carrier"));

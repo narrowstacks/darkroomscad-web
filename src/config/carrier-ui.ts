@@ -1,10 +1,10 @@
 import type { GroupConfig, FormValue } from "../lib/form/types";
+import { BOARD_CARRIERS } from "./carriers";
 
 const isCustomFormat = (v: Record<string, FormValue>) => v.Film_Format === "custom";
 
 // Carriers that have an alignment board (test frames don't).
-const BOARD_CARRIERS = ["omega-d", "lpl-saunders-45xx", "beseler-23c"];
-const isBoardCarrier = (v: Record<string, FormValue>) => BOARD_CARRIERS.includes(String(v.Carrier_Type));
+const isBoardCarrier = (v: Record<string, FormValue>) => BOARD_CARRIERS.has(String(v.Carrier_Type));
 
 export const CARRIER_UI: GroupConfig[] = [
   {

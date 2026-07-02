@@ -9,18 +9,13 @@
 // Pure function so it is trivially unit-testable; the worker calls it to pick mainFile
 // + params before handing off to renderScad.
 import type { RenderRequest, RenderParams } from "./types";
+import { BAKED_CARRIERS, BAKED_BOARD_TYPES } from "@/config/carriers";
 
 export interface RenderTarget {
   mainFile: string;
   params: RenderParams;
   baked: boolean;
 }
-
-// Carrier types that have baked base STLs (see scripts/gen-base-stls.ts). The test
-// frame is excluded (format-dependent base; already fast parametrically).
-const BAKED_CARRIERS = new Set(["omega-d", "lpl-saunders-45xx", "beseler-23c"]);
-// Board types with baked STLs.
-const BAKED_BOARDS = new Set(["omega", "lpl-saunders", "beseler-23c"]);
 
 function str(params: RenderParams, key: string, fallback: string): string {
   const v = params[key];
@@ -40,7 +35,7 @@ export function supportsBakedPreview(req: RenderRequest): boolean {
   const carrier = str(req.params, "Carrier_Type", "omega-d");
   if (!BAKED_CARRIERS.has(carrier)) return false;
   // When a board is fused, it must be a baked board type.
-  if (bool(req.params, "Alignment_Board", false) && !BAKED_BOARDS.has(str(req.params, "Alignment_Board_Type", "omega"))) return false;
+  if (bool(req.params, "Alignment_Board", false) && !BAKED_BOARD_TYPES.has(str(req.params, "Alignment_Board_Type", "omega"))) return false;
   if (bool(req.params, "Text_As_Separate_Parts", false)) return false;
   const whichPart = str(req.params, "_WhichPart", "All");
   if (whichPart !== "All") return false;
