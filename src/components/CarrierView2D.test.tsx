@@ -20,4 +20,24 @@ describe("CarrierView2D", () => {
     );
     expect(container.querySelector("text")?.textContent).toContain("ADA");
   });
+
+  it("renders no dimension layer by default", () => {
+    const { container } = render(
+      <CarrierView2D values={{ Carrier_Type: "omega-d", Film_Format: "35mm" }} />,
+    );
+    expect(container.querySelectorAll("[data-layer='dimension']").length).toBe(0);
+  });
+
+  it("renders the dimension layer (lines + labels) when showDimensions is set", () => {
+    const { container } = render(
+      <CarrierView2D values={{ Carrier_Type: "omega-d", Film_Format: "35mm" }} showDimensions />,
+    );
+    const layer = container.querySelectorAll("[data-layer='dimension']");
+    expect(layer.length).toBeGreaterThanOrEqual(4);
+    const lines = container.querySelectorAll("line[data-layer='dimension']");
+    expect(lines.length).toBe(4);
+    const labels = Array.from(container.querySelectorAll("text[data-layer='dimension']"));
+    expect(labels.length).toBe(4);
+    expect(labels.some((t) => t.textContent?.includes("mm"))).toBe(true);
+  });
 });

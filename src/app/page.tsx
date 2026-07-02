@@ -51,6 +51,8 @@ function HomeContent() {
     setViewMode(m);
     saveViewMode(m);
   }, []);
+  // Session-local for v1 — not persisted like viewMode (follow-up if wanted).
+  const [showDims, setShowDims] = useState(false);
 
   // A manual field edit means the config no longer matches the loaded preset —
   // clear the dropdown selection. Preset loads go through applyValues (not this).
@@ -165,7 +167,16 @@ function HomeContent() {
         </div>
 
         <div className="animate-fade-in flex min-h-0 flex-col">
-          <div className="mb-2 flex items-center justify-end">
+          <div className="mb-2 flex items-center justify-end gap-2">
+            {viewMode === "2d" && (
+              <button type="button" aria-pressed={showDims} onClick={() => setShowDims((v) => !v)}
+                className="rounded-xl px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2"
+                style={showDims
+                  ? { background: "var(--primary)", color: "var(--on-primary)", border: "1px solid var(--primary)" }
+                  : { background: "var(--surface-muted)", color: "var(--text-muted)", border: "1px solid var(--border)" }}>
+                Dimensions
+              </button>
+            )}
             <Segmented label="" ariaLabel="View mode"
               options={[{ value: "2d", label: "2D" }, { value: "3d", label: "3D" }]}
               value={viewMode}
@@ -181,7 +192,7 @@ function HomeContent() {
           )}
           <div className="h-[60vh] min-h-0 md:h-auto md:flex-1">
             {viewMode === "2d"
-              ? <CarrierView2D values={values} />
+              ? <CarrierView2D values={values} showDimensions={showDims} />
               : <StlViewer stl={preview.stl} quality="preview" loading={isLoading} />}
           </div>
         </div>

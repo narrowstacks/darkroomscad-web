@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState, useEffect } from "react";
 import type { FormValue } from "@/lib/form/types";
-import { parseConfig } from "@/lib/twod/types";
+import { parseConfig, type DimensionAnnotation } from "@/lib/twod/types";
 import { buildScene } from "@/lib/twod/geometry";
 import { measureTextWidthMm, estimateTextWidthMm } from "@/lib/twod/measure-text";
 import { CARRIER_OUTLINES } from "@/lib/outline/outlines";
@@ -32,7 +32,32 @@ function chamferRectInScad(w: number, h: number, c: number): string {
   return "M " + p.map(([x, y]) => `${x},${y}`).join(" L ") + " z";
 }
 
-export function CarrierView2D({ values }: { values: Record<string, FormValue> }) {
+// Two short (2mm) perpendicular ticks at each end of a dimension line, in raw
+// SCAD coords (lives inside the scale(1 -1) group alongside the line itself).
+function dimensionTicks(from: [number, number], to: [number, number], axis: "x" | "y"): string {
+  const tick = 2; // mm, half-length of each end tick
+  const seg = (cx: number, cy: number) =>
+    axis === "x" ? `M ${cx},${cy - tick} L ${cx},${cy + tick}` : `M ${cx - tick},${cy} L ${cx + tick},${cy}`;
+  return `${seg(from[0], from[1])} ${seg(to[0], to[1])}`;
+}
+
+// Midpoint of a dimension line, nudged 2mm along the perpendicular so the
+// label doesn't sit on top of the line (same direction the callout already
+// stands off the measured extent — i.e. further from center). In raw SCAD
+// coords; the caller negates y when placing it into the unscaled text group.
+function dimensionLabelPos(d: DimensionAnnotation): [number, number] {
+  const nudge = 2; // mm
+  if (d.axis === "x") {
+    const fixedY = d.from[1]; // both ends share y
+    const sign = fixedY < 0 ? -1 : 1;
+    return [(d.from[0] + d.to[0]) / 2, fixedY + sign * nudge];
+  }
+  const fixedX = d.from[0]; // both ends share x
+  const sign = fixedX < 0 ? -1 : 1;
+  return [fixedX + sign * nudge, (d.from[1] + d.to[1]) / 2];
+}
+
+export function CarrierView2D({ values, showDimensions = false }: { values: Record<string, FormValue>; showDimensions?: boolean }) {
   const { theme, viewer } = useTheme();
   const config = useMemo(() => parseConfig(values), [values]);
 
@@ -112,6 +137,18 @@ export function CarrierView2D({ values }: { values: Record<string, FormValue> })
               points={scene.arrow.points.map(([x, y]) => `${x},${y}`).join(" ")}
               fill="var(--text-muted)" />
           )}
+          {/* Dimension callouts (opening size, peg spacing) — annotation only,
+              off by default. Lines live here (raw SCAD coords, flipped by the
+              group); labels are rendered separately in the unscaled text group
+              below to avoid mirrored glyphs. */}
+          {showDimensions && scene.dimensions.map((d, i) => (
+            <g key={`dim-${i}`}>
+              <line data-layer="dimension" x1={d.from[0]} y1={d.from[1]} x2={d.to[0]} y2={d.to[1]}
+                stroke="var(--text-dim)" strokeWidth={0.3} />
+              <path data-layer="dimension" d={dimensionTicks(d.from, d.to, d.axis)}
+                stroke="var(--text-dim)" strokeWidth={0.3} fill="none" />
+            </g>
+          ))}
         </g>
         {/* Board overlay: dashed ghost of the stacked alignment board (raw export
             coords like the body), on top of the carrier. */}
@@ -131,6 +168,20 @@ export function CarrierView2D({ values }: { values: Record<string, FormValue> })
               {t.value}
             </text>
           ))}
+          {/* Dimension labels — same unscaled-group + y-negation trick as the
+              etch texts above, so they aren't mirrored by the scale(1 -1)
+              group the lines live in. */}
+          {showDimensions && scene.dimensions.map((d, i) => {
+            const [lx, ly] = dimensionLabelPos(d);
+            return (
+              <text key={`dim-label-${i}`} data-layer="dimension"
+                transform={`translate(${lx} ${-ly})${d.axis === "y" ? " rotate(-90)" : ""}`}
+                textAnchor="middle" dominantBaseline="central"
+                fontSize={4} fill="var(--text-dim)">
+                {d.label}
+              </text>
+            );
+          })}
         </g>
       </svg>
     </div>

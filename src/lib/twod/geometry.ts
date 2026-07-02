@@ -1,4 +1,4 @@
-import type { TwoDConfig, TextPlacement, Scene, PegShape } from "./types";
+import type { TwoDConfig, TextPlacement, Scene, PegShape, DimensionAnnotation } from "./types";
 import { FILM_FORMATS, isFiledFormat, filmTypeName } from "./film-data";
 import { measureTextWidthMm } from "./measure-text";
 import { BOARD_CARRIERS } from "@/config/carriers";
@@ -185,6 +185,52 @@ export function directionalArrow(c: TwoDConfig): { points: [number, number][] } 
   return { points };
 }
 
+// Fixed callout offset (mm) placing a dimension line just outside the extent
+// it measures. v1 keeps this constant rather than a layout heuristic.
+const DIMENSION_OFFSET = 6;
+
+// The four v1 dimension callouts: opening X/Y extents and peg-center spacing
+// X/Y. Labels report the value along the drawn axis (see the opening-axis
+// convention note on buildScene below), formatted to one decimal.
+function dimensionAnnotations(
+  openingHeight: number, openingWidth: number, pegX: number, pegY: number,
+): DimensionAnnotation[] {
+  const halfH = openingHeight / 2;
+  const halfW = openingWidth / 2;
+  return [
+    {
+      // Opening X extent (scene.opening.w = openingHeight): horizontal
+      // callout just below the opening.
+      from: [-halfH, -halfW - DIMENSION_OFFSET],
+      to: [halfH, -halfW - DIMENSION_OFFSET],
+      label: `${openingHeight.toFixed(1)} mm`,
+      axis: "x",
+    },
+    {
+      // Opening Y extent (openingWidth): vertical callout just left of the opening.
+      from: [-halfH - DIMENSION_OFFSET, -halfW],
+      to: [-halfH - DIMENSION_OFFSET, halfW],
+      label: `${openingWidth.toFixed(1)} mm`,
+      axis: "y",
+    },
+    {
+      // Peg spacing X (center-to-center = 2 * pegX): horizontal callout
+      // above the top peg pair.
+      from: [-pegX, pegY + DIMENSION_OFFSET],
+      to: [pegX, pegY + DIMENSION_OFFSET],
+      label: `${(2 * pegX).toFixed(1)} mm`,
+      axis: "x",
+    },
+    {
+      // Peg spacing Y (= 2 * pegY): vertical callout beside a peg column.
+      from: [pegX + DIMENSION_OFFSET, -pegY],
+      to: [pegX + DIMENSION_OFFSET, pegY],
+      label: `${(2 * pegY).toFixed(1)} mm`,
+      axis: "y",
+    },
+  ];
+}
+
 // omega board's opening widens for 4x5 → a distinct outline variant.
 function boardOutlineKey(c: TwoDConfig): string | null {
   if (!c.alignmentBoard || !BOARD_CARRIERS.has(c.carrierType)) return null;
@@ -211,5 +257,6 @@ export function buildScene(
     arrow: directionalArrow(c),
     texts: textPlacements(c, measure),
     boardKey: boardOutlineKey(c),
+    dimensions: dimensionAnnotations(openingHeight, openingWidth, x, y),
   };
 }

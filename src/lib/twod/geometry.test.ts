@@ -231,3 +231,44 @@ describe("buildScene", () => {
       .toBe("beseler-23c");
   });
 });
+
+describe("buildScene dimensions", () => {
+  it("35mm vertical: four callouts derived from openingDimensions/pegPositions", () => {
+    // openingDimensions(base) = { openingHeight: 37, openingWidth: 24 } (see above)
+    // pegPositions(base) = { x: 14.8, y: 20.3 } (see above)
+    const { dimensions } = buildScene(base);
+    expect(dimensions).toEqual([
+      { from: [-18.5, -18], to: [18.5, -18], label: "37.0 mm", axis: "x" },
+      { from: [-24.5, -12], to: [-24.5, 12], label: "24.0 mm", axis: "y" },
+      { from: [-14.8, 26.3], to: [14.8, 26.3], label: "29.6 mm", axis: "x" },
+      { from: [20.8, -20.3], to: [20.8, 20.3], label: "40.6 mm", axis: "y" },
+    ]);
+  });
+
+  it("35mm horizontal: opening axes and peg axes swap", () => {
+    // openingDimensions horizontal = { openingHeight: 24, openingWidth: 37 }
+    // pegPositions horizontal = { x: 20.3, y: 14.8 } (see above)
+    const { dimensions } = buildScene({ ...base, orientation: "horizontal" });
+    expect(dimensions).toEqual([
+      { from: [-12, -24.5], to: [12, -24.5], label: "24.0 mm", axis: "x" },
+      { from: [-18, -18.5], to: [-18, 18.5], label: "37.0 mm", axis: "y" },
+      { from: [-20.3, 20.8], to: [20.3, 20.8], label: "40.6 mm", axis: "x" },
+      { from: [26.3, -14.8], to: [26.3, 14.8], label: "29.6 mm", axis: "y" },
+    ]);
+  });
+
+  it("custom format: uses the custom opening + film-width slider values", () => {
+    // openingDimensions custom = { openingHeight: 50, openingWidth: 40 } (given directly)
+    // pegPositions custom (customFilmWidth: 50) = { x: 21.3, y: 26.8 } (see above)
+    const { dimensions } = buildScene({
+      ...base, filmFormat: "custom",
+      customOpeningHeight: 50, customOpeningWidth: 40, customFilmWidth: 50,
+    });
+    expect(dimensions).toEqual([
+      { from: [-25, -26], to: [25, -26], label: "50.0 mm", axis: "x" },
+      { from: [-31, -20], to: [-31, 20], label: "40.0 mm", axis: "y" },
+      { from: [-21.3, 32.8], to: [21.3, 32.8], label: "42.6 mm", axis: "x" },
+      { from: [27.3, -26.8], to: [27.3, 26.8], label: "53.6 mm", axis: "y" },
+    ]);
+  });
+});

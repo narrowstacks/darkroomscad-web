@@ -38,6 +38,15 @@ export interface TextPlacement {
   fontFace: string; fontSize: number;
 }
 
+/** A linear measurement callout in SCAD mm coords: a line from `from` to `to`
+ *  with a centered label. `axis` hints label orientation for the renderer. */
+export interface DimensionAnnotation {
+  from: [number, number];
+  to: [number, number];
+  label: string;           // e.g. "36.0 mm"
+  axis: "x" | "y";
+}
+
 export interface Scene {
   opening: OpeningShape;
   pegs: PegShape[];
@@ -46,6 +55,7 @@ export interface Scene {
   texts: TextPlacement[];
   /** Board outline key into BOARD_OUTLINES, or null when no overlay. */
   boardKey: string | null;
+  dimensions: DimensionAnnotation[];
 }
 
 const str = (v: FormValue | undefined, d: string) => (v == null ? d : String(v));
