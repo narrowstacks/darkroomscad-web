@@ -3,7 +3,7 @@ import { useMemo, useState, useEffect } from "react";
 import type { FormValue } from "@/lib/form/types";
 import { parseConfig, type DimensionAnnotation } from "@/lib/twod/types";
 import { buildScene, effectiveOrientation } from "@/lib/twod/geometry";
-import { buildFilmOverlay } from "@/lib/twod/film-overlay";
+import { buildFilmOverlay, type CustomFilmSpec } from "@/lib/twod/film-overlay";
 import { measureTextWidthMm, estimateTextWidthMm } from "@/lib/twod/measure-text";
 import { CARRIER_OUTLINES } from "@/lib/outline/outlines";
 import { BOARD_OUTLINES } from "@/lib/outline/board-outlines";
@@ -58,7 +58,7 @@ function dimensionLabelPos(d: DimensionAnnotation): [number, number] {
   return [fixedX + sign * nudge, (d.from[1] + d.to[1]) / 2];
 }
 
-export function CarrierView2D({ values, showDimensions = false, showFilm = false }: { values: Record<string, FormValue>; showDimensions?: boolean; showFilm?: boolean }) {
+export function CarrierView2D({ values, showDimensions = false, showFilm = false, customFilm }: { values: Record<string, FormValue>; showDimensions?: boolean; showFilm?: boolean; customFilm?: CustomFilmSpec }) {
   const { theme, viewer } = useTheme();
   const config = useMemo(() => parseConfig(values), [values]);
 
@@ -103,8 +103,8 @@ export function CarrierView2D({ values, showDimensions = false, showFilm = false
     const travelExtent = effectiveOrientation(config) === "vertical"
       ? Math.max(Math.abs(view.minX), Math.abs(view.minX + view.w))
       : Math.max(Math.abs(view.minY), Math.abs(view.minY + view.h));
-    return buildFilmOverlay(config, travelExtent);
-  }, [showFilm, config, view]);
+    return buildFilmOverlay(config, travelExtent, customFilm);
+  }, [showFilm, config, view, customFilm]);
 
   // Cut-throughs read as the viewer background; etches as muted ink.
   const cut = viewer.background;

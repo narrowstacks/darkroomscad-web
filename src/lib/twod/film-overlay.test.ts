@@ -103,3 +103,61 @@ describe("buildFilmOverlay — orientation + families", () => {
     expect(ov.sprockets).toEqual([]);
   });
 });
+
+describe("buildFilmOverlay — custom format film-type overlay", () => {
+  const custom = { ...base, filmFormat: "custom" };
+
+  it("custom format with no overlay spec draws nothing", () => {
+    const ov = buildFilmOverlay(custom, 60);
+    expect(ov.family).toBe("none");
+    expect(ov.base).toBeNull();
+    expect(ov.frames).toEqual([]);
+    expect(ov.sprockets).toEqual([]);
+  });
+
+  it("XPan on 35mm stock: 35mm-wide film with sprockets, 65×24 image centered", () => {
+    // imageHeight (65) runs along the strip; imageWidth (24) across.
+    const ov = buildFilmOverlay(custom, 80, { type: "35mm", imageWidth: 24, imageHeight: 65 });
+    expect(ov.family).toBe("135");
+    expect(ov.base).toEqual({ w: 160, h: 35 });          // travel X: 2*80 long, 35 across
+    const centered = ov.frames.find((f) => f.cx === 0 && f.cy === 0);
+    expect(centered).toEqual({ cx: 0, cy: 0, w: 65, h: 24 });
+    expect(ov.sprockets.length).toBeGreaterThan(0);
+    expect(new Set(ov.sprockets.map((s) => s.cy))).toEqual(new Set([14.75, -14.75]));
+  });
+
+  it("6x12 on 120 stock: 61mm-wide film, 112×56 image, no sprockets", () => {
+    const ov = buildFilmOverlay(custom, 120, { type: "120", imageWidth: 56, imageHeight: 112 });
+    expect(ov.family).toBe("120");
+    expect(ov.base).toEqual({ w: 240, h: 61 });
+    expect(ov.sprockets).toEqual([]);
+    const centered = ov.frames.find((f) => f.cx === 0 && f.cy === 0);
+    expect(centered).toEqual({ cx: 0, cy: 0, w: 112, h: 56 });
+  });
+
+  it("generic custom stock: film width = image across + rebate on both edges, no sprockets", () => {
+    const ov = buildFilmOverlay(custom, 60, { type: "custom", imageWidth: 40, imageHeight: 40 });
+    expect(ov.family).toBe("custom");
+    expect(ov.base).toEqual({ w: 120, h: 46 });          // 40 across + 2*3 rebate
+    expect(ov.sprockets).toEqual([]);
+    const centered = ov.frames.find((f) => f.cx === 0 && f.cy === 0);
+    expect(centered).toEqual({ cx: 0, cy: 0, w: 40, h: 40 });
+  });
+
+  it("custom overlay respects horizontal orientation (travel axis Y)", () => {
+    const ov = buildFilmOverlay({ ...custom, orientation: "horizontal" }, 80,
+      { type: "35mm", imageWidth: 24, imageHeight: 65 });
+    expect(ov.travelAxis).toBe("y");
+    expect(ov.base).toEqual({ w: 35, h: 160 });
+    const centered = ov.frames.find((f) => f.cx === 0 && f.cy === 0);
+    expect(centered).toEqual({ cx: 0, cy: 0, w: 24, h: 65 });
+  });
+
+  it("ignores the overlay spec for standard (non-custom) formats", () => {
+    const ov = buildFilmOverlay({ ...base, filmFormat: "35mm" }, 60,
+      { type: "120", imageWidth: 56, imageHeight: 112 });
+    expect(ov.family).toBe("135");
+    const centered = ov.frames.find((f) => f.cx === 0 && f.cy === 0);
+    expect(centered).toEqual({ cx: 0, cy: 0, w: 36, h: 24 }); // still the real 35mm image
+  });
+});

@@ -1,8 +1,16 @@
 import type { TwoDConfig } from "./types";
 import { effectiveOrientation } from "./geometry";
 
-export type FilmFamily = "135" | "120" | "sheet" | "none";
+export type FilmFamily = "135" | "120" | "sheet" | "custom" | "none";
 export type TravelAxis = "x" | "y";
+
+/** Film stock chosen for a custom format's overlay (preview-only, not a SCAD
+ *  param): 35mm strip w/ sprockets, 120 roll, or a generic bordered stock. */
+export type OverlayFilmType = "35mm" | "120" | "custom";
+
+/** Preview-only spec for a custom carrier's film overlay: which stock to draw
+ *  and the recorded image size to lay on it (e.g. XPan = 35mm, 65×24). */
+export interface CustomFilmSpec { type: OverlayFilmType; imageWidth: number; imageHeight: number; }
 
 /** A rectangle in trueSCAD mm coords, centered at (cx, cy). */
 export interface FilmRect { cx: number; cy: number; w: number; h: number; }
@@ -29,6 +37,8 @@ const SHEET_45_LONG = 127;          // 4x5 sheet long edge (5")
 const SHEET_45_SHORT = 101.6;       // 4x5 sheet short edge (4")
 const GAP_135 = 2;                  // inter-frame gap (135) → 36+2 = 38mm pitch
 const GAP_120 = 3;                  // inter-frame gap (120)
+const GAP_CUSTOM = 2;               // inter-frame gap (generic custom stock)
+const CUSTOM_STOCK_REBATE = 3;      // film border around the image for custom stock (each edge)
 
 // True recorded image (along travel, across) in mm — NOT the carrier opening.
 // Filed variants share their base image (filing reveals rebate, not more image).
@@ -56,9 +66,38 @@ export function filmFamily(format: string): FilmFamily {
   return "none";
 }
 
-export function buildFilmOverlay(c: TwoDConfig, travelExtent: number): FilmOverlay {
-  const family = filmFamily(c.filmFormat);
+// Resolve the family + recorded image for a custom carrier from its overlay
+// spec (preview-only). Returns null when there's nothing sensible to draw.
+function resolveCustom(spec: CustomFilmSpec | undefined):
+  { family: FilmFamily; img: { along: number; across: number } } | null {
+  if (!spec || !(spec.imageWidth > 0) || !(spec.imageHeight > 0)) return null;
+  // imageHeight runs along the strip (matches the openingHeight axis); imageWidth across.
+  const img = { along: spec.imageHeight, across: spec.imageWidth };
+  const family: FilmFamily = spec.type === "35mm" ? "135" : spec.type === "120" ? "120" : "custom";
+  return { family, img };
+}
+
+export function buildFilmOverlay(
+  c: TwoDConfig, travelExtent: number, custom?: CustomFilmSpec,
+): FilmOverlay {
   const travelAxis: TravelAxis = effectiveOrientation(c) === "vertical" ? "x" : "y";
+
+  // Resolve which family + image to draw. Standard formats read the built-in
+  // FILM_IMAGE table; custom formats read the preview-only spec.
+  let family: FilmFamily;
+  let img: { along: number; across: number } | null = null;
+  if (c.filmFormat === "custom") {
+    const resolved = resolveCustom(custom);
+    family = resolved?.family ?? "none";
+    img = resolved?.img ?? null;
+  } else {
+    family = filmFamily(c.filmFormat);
+    // filmFamily classifies by prefix ("35mm*", "6x*") but FILM_IMAGE is keyed
+    // exactly; an unknown-but-prefix-matching format (e.g. "6x12" via a share
+    // link or localStorage) has no image entry. Degrade rather than throw.
+    if (family === "135" || family === "120") img = FILM_IMAGE[c.filmFormat] ?? null;
+  }
+
   const empty: FilmOverlay = { family, travelAxis, base: null, frames: [], sprockets: [] };
   if (family === "none") return empty;
 
@@ -74,15 +113,15 @@ export function buildFilmOverlay(c: TwoDConfig, travelExtent: number): FilmOverl
     // Single 4x5 sheet, long edge along travel.
     return { ...empty, base: baseRect(SHEET_45_LONG, SHEET_45_SHORT) };
   }
-
-  // filmFamily classifies by prefix ("35mm*", "6x*") but FILM_IMAGE is keyed
-  // exactly; an unknown-but-prefix-matching format (e.g. "6x12" arriving via a
-  // share link or localStorage) has no image entry. Degrade to an empty overlay
-  // rather than throwing and taking down the 2D view.
-  const img = FILM_IMAGE[c.filmFormat];
   if (!img) return empty;
-  const filmWidth = family === "135" ? FILM_135_WIDTH : FILM_120_WIDTH;
-  const gap = family === "135" ? GAP_135 : GAP_120;
+
+  // Film stock width across + inter-frame gap by family. The generic "custom"
+  // stock wraps the image in a small rebate border and carries no sprockets.
+  const filmWidth =
+    family === "135" ? FILM_135_WIDTH :
+    family === "120" ? FILM_120_WIDTH :
+    img.across + 2 * CUSTOM_STOCK_REBATE;
+  const gap = family === "135" ? GAP_135 : family === "120" ? GAP_120 : GAP_CUSTOM;
   const pitch = img.along + gap;
 
   const base = baseRect(2 * travelExtent, filmWidth);
