@@ -28,6 +28,13 @@ describe("CarrierView2D", () => {
     expect(container.querySelectorAll("[data-layer='dimension']").length).toBe(0);
   });
 
+  it("renders the four alignment-screw footprint holes for an omega config with no attached board", () => {
+    const { container } = render(
+      <CarrierView2D values={{ Carrier_Type: "omega-d", Film_Format: "35mm", Alignment_Board: false }} />,
+    );
+    expect(container.querySelectorAll("circle[data-layer='screw']").length).toBe(4);
+  });
+
   it("renders no film layer by default", () => {
     const { container } = render(
       <CarrierView2D values={{ Carrier_Type: "omega-d", Film_Format: "35mm" }} />,

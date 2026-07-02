@@ -139,6 +139,11 @@ export function CarrierView2D({ values, showDimensions = false, showFilm = false
               fill={p.kind === "peg" ? "var(--primary)" : cut}
               stroke="var(--border)" strokeWidth={0.4} />
           ))}
+          {/* Alignment-screw footprint holes. */}
+          {scene.screwHoles.map((s, i) => (
+            <circle key={`screw-${i}`} data-layer="screw" cx={s.cx} cy={s.cy} r={s.r}
+              fill={cut} stroke="var(--border)" strokeWidth={0.4} />
+          ))}
           {/* Film-format overlay: the real film for the selected format,
               registered so one frame is centered on the opening. Drawn ON TOP of
               the opening/pegs so the film image area is always visible at its

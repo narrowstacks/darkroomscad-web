@@ -63,9 +63,12 @@ function HomeContent() {
   const [overlayFilmType, setOverlayFilmType] = useState<OverlayFilmType>("35mm");
   const [overlayImgW, setOverlayImgW] = useState(24);
   const [overlayImgH, setOverlayImgH] = useState(36);
-  const customFilm: CustomFilmSpec | undefined = isCustomFormat
-    ? { type: overlayFilmType, imageWidth: overlayImgW, imageHeight: overlayImgH }
-    : undefined;
+  // Memoized so CarrierView2D's overlay memo (keyed on this object) only
+  // recomputes when the overlay inputs actually change, not on every render.
+  const customFilm: CustomFilmSpec | undefined = useMemo(
+    () => (isCustomFormat ? { type: overlayFilmType, imageWidth: overlayImgW, imageHeight: overlayImgH } : undefined),
+    [isCustomFormat, overlayFilmType, overlayImgW, overlayImgH],
+  );
 
   // A manual field edit means the config no longer matches the loaded preset —
   // clear the dropdown selection. Preset loads go through applyValues (not this).
