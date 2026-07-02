@@ -129,27 +129,6 @@ export function CarrierView2D({ values, showDimensions = false, showFilm = false
             maps them into the export space (model +Y → screen-up) so they align
             with the body and match the 3D layout. */}
         <g transform="scale(1 -1)">
-          {/* Film-format overlay (ghosted): the real film for the selected
-              format, registered so one frame is centered on the opening. Drawn
-              beneath the opening/pegs so the functional cut still reads on top. */}
-          {filmOverlay?.base && (
-            <g data-layer="film">
-              <rect x={-filmOverlay.base.w / 2} y={-filmOverlay.base.h / 2}
-                width={filmOverlay.base.w} height={filmOverlay.base.h}
-                fill="var(--secondary)" fillOpacity={0.14}
-                stroke="var(--secondary)" strokeOpacity={0.5} strokeWidth={0.4} />
-              {filmOverlay.sprockets.map((s, i) => (
-                <rect key={`sprocket-${i}`} data-layer="film"
-                  x={s.cx - s.w / 2} y={s.cy - s.h / 2} width={s.w} height={s.h} rx={0.4}
-                  fill={cut} stroke="var(--secondary)" strokeOpacity={0.5} strokeWidth={0.2} />
-              ))}
-              {filmOverlay.frames.map((f, i) => (
-                <rect key={`frame-${i}`} data-layer="film"
-                  x={f.cx - f.w / 2} y={f.cy - f.h / 2} width={f.w} height={f.h}
-                  fill="none" stroke="var(--secondary)" strokeOpacity={0.85} strokeWidth={0.3} />
-              ))}
-            </g>
-          )}
           {/* Film opening (cut through). */}
           <path data-layer="opening" d={chamferRectInScad(scene.opening.w, scene.opening.h, scene.opening.chamfer)}
             fill={cut} stroke="var(--border)" strokeWidth={0.4} />
@@ -160,11 +139,36 @@ export function CarrierView2D({ values, showDimensions = false, showFilm = false
               fill={p.kind === "peg" ? "var(--primary)" : cut}
               stroke="var(--border)" strokeWidth={0.4} />
           ))}
-          {/* Alignment-screw footprint holes. */}
-          {scene.screwHoles.map((s, i) => (
-            <circle key={`screw-${i}`} data-layer="screw" cx={s.cx} cy={s.cy} r={s.r}
-              fill={cut} stroke="var(--border)" strokeWidth={0.4} />
-          ))}
+          {/* Film-format overlay: the real film for the selected format,
+              registered so one frame is centered on the opening. Drawn ON TOP of
+              the opening/pegs so the film image area is always visible at its
+              exact size — the opening's cut-through fill must never obscure it
+              (which would just read as a background-colored box over the film). */}
+          {filmOverlay?.base && (
+            <g data-layer="film">
+              {/* Film body (the physical strip/roll extent) — translucent so the
+                  carrier body + opening still read through it. */}
+              <rect data-layer="film" x={-filmOverlay.base.w / 2} y={-filmOverlay.base.h / 2}
+                width={filmOverlay.base.w} height={filmOverlay.base.h}
+                fill="var(--secondary)" fillOpacity={0.12}
+                stroke="var(--secondary)" strokeOpacity={0.5} strokeWidth={0.4} />
+              {/* Sprocket perforations (punched → viewer background). */}
+              {filmOverlay.sprockets.map((s, i) => (
+                <rect key={`sprocket-${i}`} data-layer="film"
+                  x={s.cx - s.w / 2} y={s.cy - s.h / 2} width={s.w} height={s.h} rx={0.4}
+                  fill={cut} stroke="var(--secondary)" strokeOpacity={0.5} strokeWidth={0.2} />
+              ))}
+              {/* Image-area frames — the actual exposed image at exact size. A
+                  filled tint (over the opening's cut fill) plus a crisp border so
+                  the frame reads clearly even where it lies inside the opening. */}
+              {filmOverlay.frames.map((f, i) => (
+                <rect key={`frame-${i}`} data-layer="film"
+                  x={f.cx - f.w / 2} y={f.cy - f.h / 2} width={f.w} height={f.h}
+                  fill="var(--secondary)" fillOpacity={0.18}
+                  stroke="var(--secondary)" strokeOpacity={0.9} strokeWidth={0.4} />
+              ))}
+            </g>
+          )}
           {/* Directional arrow (etch). */}
           {scene.arrow && (
             <polygon data-layer="arrow"

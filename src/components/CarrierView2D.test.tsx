@@ -28,6 +28,21 @@ describe("CarrierView2D", () => {
     expect(container.querySelectorAll("[data-layer='dimension']").length).toBe(0);
   });
 
+  it("renders no film layer by default", () => {
+    const { container } = render(
+      <CarrierView2D values={{ Carrier_Type: "omega-d", Film_Format: "35mm" }} />,
+    );
+    expect(container.querySelectorAll("[data-layer='film']").length).toBe(0);
+  });
+
+  it("renders the film overlay (base + sprockets + frames) when showFilm is set", () => {
+    const { container } = render(
+      <CarrierView2D values={{ Carrier_Type: "omega-d", Film_Format: "35mm" }} showFilm />,
+    );
+    // Base rect + two sprocket rows + tiled image frames — many elements.
+    expect(container.querySelectorAll("[data-layer='film']").length).toBeGreaterThan(4);
+  });
+
   it("renders the dimension layer (lines + labels) when showDimensions is set", () => {
     const { container } = render(
       <CarrierView2D values={{ Carrier_Type: "omega-d", Film_Format: "35mm" }} showDimensions />,

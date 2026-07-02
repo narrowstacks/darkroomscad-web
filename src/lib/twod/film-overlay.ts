@@ -75,7 +75,12 @@ export function buildFilmOverlay(c: TwoDConfig, travelExtent: number): FilmOverl
     return { ...empty, base: baseRect(SHEET_45_LONG, SHEET_45_SHORT) };
   }
 
+  // filmFamily classifies by prefix ("35mm*", "6x*") but FILM_IMAGE is keyed
+  // exactly; an unknown-but-prefix-matching format (e.g. "6x12" arriving via a
+  // share link or localStorage) has no image entry. Degrade to an empty overlay
+  // rather than throwing and taking down the 2D view.
   const img = FILM_IMAGE[c.filmFormat];
+  if (!img) return empty;
   const filmWidth = family === "135" ? FILM_135_WIDTH : FILM_120_WIDTH;
   const gap = family === "135" ? GAP_135 : GAP_120;
   const pitch = img.along + gap;

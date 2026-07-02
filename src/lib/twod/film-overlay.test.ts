@@ -92,4 +92,14 @@ describe("buildFilmOverlay — orientation + families", () => {
     expect(ov.frames).toEqual([]);
     expect(ov.sprockets).toEqual([]);
   });
+
+  it("prefix-matching but unknown format (no FILM_IMAGE entry) degrades to an empty overlay, never throws", () => {
+    // "6x12" classifies as family 120 by prefix but has no exact image entry;
+    // must not throw (reachable via share link / localStorage).
+    const ov = buildFilmOverlay({ ...base, filmFormat: "6x12" }, 60);
+    expect(ov.family).toBe("120");
+    expect(ov.base).toBeNull();
+    expect(ov.frames).toEqual([]);
+    expect(ov.sprockets).toEqual([]);
+  });
 });
