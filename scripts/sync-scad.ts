@@ -76,6 +76,38 @@ export function shouldSync(localFlagPath: string | null, defaultExists: boolean)
 }
 
 /**
+ * Decide how to report a skipped sync (no local DarkroomSCAD checkout).
+ *
+ * On hosted / CI builds (e.g. Vercel) the sibling repo is never checked out and
+ * the committed `public/scad` artifacts are the *intended* build input, so this
+ * is normal — report it as an informational line, not a warning. Locally a
+ * missing checkout may be unintended (you meant to sync), so keep the louder
+ * warning with the recovery hints. Pure so it can be unit-tested.
+ */
+export function skipSyncNotice(
+  missingPath: string,
+  env: Record<string, string | undefined> = process.env,
+): { level: "warn" | "info"; text: string } {
+  const hosted = Boolean(env.VERCEL || env.CI);
+  if (hosted) {
+    return {
+      level: "info",
+      text:
+        `DarkroomSCAD checkout not present at ${missingPath} — expected on hosted/CI builds. ` +
+        "Using the committed public/scad artifacts.",
+    };
+  }
+  return {
+    level: "warn",
+    text:
+      `WARNING: DarkroomSCAD source not found at ${missingPath}.\n` +
+      "Skipping sync — using committed public/scad artifacts for the build.\n" +
+      "To refresh from GitHub: npm run sync:scad:github\n" +
+      "To sync from a local checkout: npm run sync:scad -- --local <path>",
+  };
+}
+
+/**
  * Given the flat path list from the GitHub trees API, return .scad paths
  * that live under `subdir`, relative to that subdir.
  *
@@ -280,14 +312,9 @@ async function main() {
   const defaultCarrierExists = existsSync(join(base, CARRIER_ROOT_SUBDIR, "carrier.scad"));
 
   if (!shouldSync(localFlagPath, defaultCarrierExists)) {
-    console.warn(
-      "WARNING: DarkroomSCAD source not found at " +
-        join(defaultBase(), CARRIER_ROOT_SUBDIR) +
-        ".\n" +
-        "Skipping sync — using committed public/scad artifacts for the build.\n" +
-        "To refresh from GitHub: npm run sync:scad:github\n" +
-        "To sync from a local checkout: npm run sync:scad -- --local <path>",
-    );
+    const notice = skipSyncNotice(join(defaultBase(), CARRIER_ROOT_SUBDIR));
+    if (notice.level === "warn") console.warn(notice.text);
+    else console.log(notice.text);
     process.exit(0);
   }
 
