@@ -9,7 +9,12 @@ function frameSize([w, h]: [number, number]): { width: number; height: number } 
   return { width: Math.round(w * scale), height: Math.round(h * scale) };
 }
 
-export function FilmFormatPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+export function FilmFormatPicker({ value, onChange, disabledBases }: {
+  value: string;
+  onChange: (v: string) => void;
+  /** Format bases the current carrier can't take — rendered disabled. */
+  disabledBases?: ReadonlySet<string>;
+}) {
   const isCustom = value === "custom";
   const { base, filed } = isCustom ? { base: "", filed: false } : fromFilmFormatValue(value);
   const activeChip = FORMAT_CHIPS.find((c) => c.base === base);
@@ -20,12 +25,13 @@ export function FilmFormatPicker({ value, onChange }: { value: string; onChange:
       <div className="flex flex-wrap gap-2">
         {FORMAT_CHIPS.map((chip) => {
           const selected = !isCustom && chip.base === base;
+          const disabled = disabledBases?.has(chip.base) ?? false;
           const { width, height } = frameSize(chip.ratio);
           return (
-            <button key={chip.base} type="button" aria-pressed={selected} data-selected={selected}
+            <button key={chip.base} type="button" aria-pressed={selected} data-selected={selected} disabled={disabled}
               onClick={() => onChange(toFilmFormatValue(chip.base, filed))}
-              className="select-card flex flex-col items-center justify-end gap-1 px-3 py-2 focus-visible:outline-2"
-              style={{ width: 76, height: 76 }}>
+              className="select-card flex flex-col items-center justify-end gap-1 px-3 py-2 focus-visible:outline-2 disabled:cursor-not-allowed"
+              style={{ width: 76, height: 76, opacity: disabled ? 0.35 : 1 }}>
               <span className="flex flex-1 items-center justify-center">
                 <span style={{ width, height, border: `2px solid ${selected ? "var(--primary)" : "var(--text-dim)"}`, borderRadius: 2 }} />
               </span>

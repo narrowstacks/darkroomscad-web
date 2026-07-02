@@ -5,20 +5,36 @@ import { resolveFormModel } from "@/lib/form/form-model";
 import { initialValues, toRenderParams } from "@/lib/form/form-state";
 import { loadConfig, saveConfig } from "@/lib/storage/config-store";
 import { encodeShare, decodeShare } from "@/lib/share/permalink";
+import { unsupportedFormats } from "@/config/carriers";
+import { fromFilmFormatValue } from "@/lib/film-format";
 import schema from "../../generated/param-schema.json";
 import type { ParamSchema } from "@/lib/params/types";
 import type { FormValue } from "@/lib/form/types";
 import type { RenderParams } from "@/lib/openscad/types";
 
-// The UI forbids this pair (see carrier-ui.ts guards); stored/imported state
-// can still contain it, and the SCAD asserts on it (universal-carrier-assembly
-// .scad:135) killing the render. Board wins; pegs fall back to heat_set
-// (matches the help text: an attached board requires heat-set pegs).
+// The UI forbids these combinations (see carrier-ui.ts guards and the
+// FilmFormatPicker's disabled chips); stored/imported state can still contain
+// them, and setValue can create them transiently (e.g. switching carrier while
+// 4x5 is selected), so every write funnels through here.
+// - board + printed pegs: the SCAD asserts on it (universal-carrier-assembly
+//   .scad:135) killing the render. Board wins; pegs fall back to heat_set.
+// - a format the carrier can't take (e.g. 4x5 on the beseler-23c): fall back
+//   to 35mm.
+// - 4x5 forces horizontal (get_effective_orientation): pin the stored value so
+//   the locked toggle shows what actually renders.
 function normalizeConflicts(v: Record<string, FormValue>): Record<string, FormValue> {
-  if (v.Alignment_Board === true && v.Printed_or_Heat_Set_Pegs === "printed") {
-    return { ...v, Printed_or_Heat_Set_Pegs: "heat_set" };
+  let out = v;
+  if (out.Alignment_Board === true && out.Printed_or_Heat_Set_Pegs === "printed") {
+    out = { ...out, Printed_or_Heat_Set_Pegs: "heat_set" };
   }
-  return v;
+  const { base } = fromFilmFormatValue(String(out.Film_Format));
+  if (unsupportedFormats(String(out.Carrier_Type)).has(base)) {
+    out = { ...out, Film_Format: "35mm" };
+  }
+  if (out.Film_Format === "4x5" && out.Orientation !== "horizontal") {
+    out = { ...out, Orientation: "horizontal" };
+  }
+  return out;
 }
 
 export function useCarrierForm() {
@@ -73,7 +89,7 @@ export function useCarrierForm() {
   }, [values]);
 
   const setValue = useCallback((param: string, value: FormValue) => {
-    setValues((prev) => ({ ...prev, [param]: value }));
+    setValues((prev) => normalizeConflicts({ ...prev, [param]: value }));
   }, []);
 
   // Apply a saved snapshot (preset / restore), keeping only known params.

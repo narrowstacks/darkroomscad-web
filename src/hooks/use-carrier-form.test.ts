@@ -88,6 +88,38 @@ describe("useCarrierForm", () => {
     expect(result.current.values.Printed_or_Heat_Set_Pegs).toBe("heat_set");
   });
 
+  it("normalizes 4x5 on the beseler-23c (unsupported) back to 35mm", () => {
+    localStorage.setItem(
+      CONFIG_KEY,
+      JSON.stringify({ Carrier_Type: "beseler-23c", Film_Format: "4x5" }),
+    );
+    const { result } = renderHook(() => useCarrierForm());
+    expect(result.current.values.Carrier_Type).toBe("beseler-23c");
+    expect(result.current.values.Film_Format).toBe("35mm");
+  });
+
+  it("switching to beseler-23c while 4x5 is selected falls back to 35mm", () => {
+    const { result } = renderHook(() => useCarrierForm());
+    act(() => {
+      result.current.setValue("Carrier_Type", "beseler-45");
+      result.current.setValue("Film_Format", "4x5");
+    });
+    expect(result.current.values.Film_Format).toBe("4x5");
+    act(() => {
+      result.current.setValue("Carrier_Type", "beseler-23c");
+    });
+    expect(result.current.values.Film_Format).toBe("35mm");
+  });
+
+  it("pins Orientation to horizontal while 4x5 is selected", () => {
+    const { result } = renderHook(() => useCarrierForm());
+    act(() => {
+      result.current.setValue("Orientation", "vertical");
+      result.current.setValue("Film_Format", "4x5");
+    });
+    expect(result.current.values.Orientation).toBe("horizontal");
+  });
+
   it("reset returns to the seed values", () => {
     const fresh = renderHook(() => useCarrierForm());
     const seedValues = fresh.result.current.values;

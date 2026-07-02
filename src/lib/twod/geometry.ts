@@ -16,8 +16,11 @@ const M2_HEAT_SET_HOLE_DIA = 1.6;             // bottom heat-set hole
 const M2_SOCKET_HEAD_DIA = 3.8;               // top heat-set socket clearance
 export const FILM_OPENING_FILLET = 0.5;       // UNIVERSAL_FILM_OPENING_FRAME_FILLET
 
+// 4x5 is always "horizontal" (long 120mm edge along Y, perpendicular to the
+// left handle) — the Orientation toggle has no effect for it. Port of
+// get_effective_orientation (carrier-features.scad).
 export function effectiveOrientation(c: TwoDConfig): "vertical" | "horizontal" {
-  return c.filmFormat === "4x5" ? "vertical" : c.orientation;
+  return c.filmFormat === "4x5" ? "horizontal" : c.orientation;
 }
 
 function filmDims(c: TwoDConfig): { height: number; width: number; pegDistance: number } {

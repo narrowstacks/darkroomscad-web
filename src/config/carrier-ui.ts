@@ -20,8 +20,11 @@ export const CARRIER_UI: GroupConfig[] = [
           "frameAndPegTest": "Frame Size Test Print",
         } },
       { param: "Orientation", label: "Orientation", control: "segmented",
-        help: "Ignored for 4×5.",
-        optionLabels: { "vertical": "Vertical", "horizontal": "Horizontal" } },
+        help: "Locked for 4×5 — the sheet's orientation is fixed.",
+        optionLabels: { "vertical": "Vertical", "horizontal": "Horizontal" },
+        // 4x5's orientation is forced by the SCAD (get_effective_orientation),
+        // so the toggle is locked; use-carrier-form pins the value to match.
+        optionDisabledWhen: (_opt, v) => v.Film_Format === "4x5" },
       { param: "Top_or_Bottom", label: "Part", control: "segmented",
         help: "A full carrier needs both top and bottom printed.",
         optionLabels: { "top": "Top", "bottom": "Bottom" } },

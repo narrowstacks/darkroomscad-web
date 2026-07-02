@@ -4,6 +4,7 @@ import { SlidersHorizontal } from "lucide-react";
 import { Field } from "./controls/Field";
 import { FilmFormatPicker } from "./controls/FilmFormatPicker";
 import type { ResolvedGroup, FormValue } from "@/lib/form/types";
+import { unsupportedFormats } from "@/config/carriers";
 
 const DELAY = ["", "animate-delay-50", "animate-delay-100", "animate-delay-150", "animate-delay-200", "animate-delay-300"];
 
@@ -37,7 +38,8 @@ export function CarrierForm({ groups, values, setValue }: {
             <div className="space-y-3">
               {showPicker && (
                 <FilmFormatPicker value={String(values.Film_Format)}
-                  onChange={(v) => setValue("Film_Format", v)} />
+                  onChange={(v) => setValue("Film_Format", v)}
+                  disabledBases={unsupportedFormats(String(values.Carrier_Type))} />
               )}
               {fields.map((f) => (
                 <Field key={f.param} field={f} value={values[f.param]} onChange={(v) => setValue(f.param, v)}

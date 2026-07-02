@@ -20,9 +20,9 @@ describe("openingDimensions", () => {
     expect(openingDimensions({ ...base, orientation: "horizontal" }))
       .toEqual({ openingHeight: 24, openingWidth: 37 });
   });
-  it("4x5 forces vertical regardless of orientation", () => {
-    expect(openingDimensions({ ...base, filmFormat: "4x5", orientation: "horizontal" }))
-      .toEqual({ openingHeight: 120, openingWidth: 95 });
+  it("4x5 forces horizontal (long edge along Y) regardless of orientation", () => {
+    expect(openingDimensions({ ...base, filmFormat: "4x5", orientation: "vertical" }))
+      .toEqual({ openingHeight: 95, openingWidth: 120 });
   });
   it("applies film adjustments", () => {
     expect(openingDimensions({ ...base, adjustFilmHeight: 2, adjustFilmWidth: 1 }))
