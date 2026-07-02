@@ -16,7 +16,7 @@ import { Segmented } from "@/components/controls/Segmented";
 import { loadViewMode, saveViewMode, type ViewMode } from "@/lib/twod/view-mode";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { PresetMenu } from "@/components/PresetMenu";
-import { ToastProvider } from "@/components/ui/Toast";
+import { ToastProvider, useToast } from "@/components/ui/Toast";
 import { download } from "@/lib/export/download";
 
 function newClient(): RenderClient {
@@ -25,7 +25,20 @@ function newClient(): RenderClient {
 }
 
 export default function Home() {
-  const { groups, values, setValue, applyValues, reset, toParams } = useCarrierForm();
+  return (
+    <ToastProvider>
+      <HomeContent />
+    </ToastProvider>
+  );
+}
+
+// Split from `Home` so it can call `useToast()` — hooks resolve context from
+// where they're rendered, and this component is nested inside `ToastProvider`
+// (rendering `ToastProvider` from within `Home` itself would put `Home`
+// outside its own provider's context).
+function HomeContent() {
+  const toast = useToast();
+  const { groups, values, setValue, applyValues, reset, toParams, shareLink } = useCarrierForm();
   const { presets, save: savePreset, remove: deletePreset, importAll } = usePresets();
   const [selectedPresetId, setSelectedPresetId] = useState("");
   const [preview, setPreview] = useState<PreviewState>({ status: "idle" });
@@ -92,8 +105,21 @@ export default function Home() {
   // every subsequent re-render, so the viewer never shows a bare canvas.
   const isLoading = preview.status === "rendering" || preview.status === "idle";
 
+  const copyLink = useCallback(async () => {
+    const link = shareLink();
+    if (!link) {
+      toast("Nothing to share yet — change a setting first");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(link);
+      toast("Link copied");
+    } catch {
+      toast("Couldn't copy");
+    }
+  }, [shareLink, toast]);
+
   return (
-    <ToastProvider>
     <main className="relative z-10 flex flex-col p-4 md:h-screen md:overflow-hidden md:p-8">
       <header className="animate-fade-in relative z-50 mb-6 flex shrink-0 flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -119,7 +145,8 @@ export default function Home() {
             onDelete={(id) => { deletePreset(id); if (id === selectedPresetId) setSelectedPresetId(""); }}
             onReset={() => { reset(); setSelectedPresetId(""); }}
             onExport={() => download("darkroomscad-presets.json", JSON.stringify(presets, null, 2), "application/json")}
-            onImport={(text) => importAll(text)} />
+            onImport={(text) => importAll(text)}
+            onCopyLink={copyLink} />
           <ThemeToggle />
         </div>
       </header>
@@ -160,6 +187,5 @@ export default function Home() {
         </div>
       </div>
     </main>
-    </ToastProvider>
   );
 }

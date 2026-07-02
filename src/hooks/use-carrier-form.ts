@@ -4,6 +4,7 @@ import { CARRIER_UI } from "@/config/carrier-ui";
 import { resolveFormModel } from "@/lib/form/form-model";
 import { initialValues, toRenderParams } from "@/lib/form/form-state";
 import { loadConfig, saveConfig } from "@/lib/storage/config-store";
+import { encodeShare, decodeShare } from "@/lib/share/permalink";
 import schema from "../../generated/param-schema.json";
 import type { ParamSchema } from "@/lib/params/types";
 import type { FormValue } from "@/lib/form/types";
@@ -30,7 +31,7 @@ export function useCarrierForm() {
     [groups],
   );
 
-  const seed = useMemo(() => {
+  const seed = useMemo((): Record<string, FormValue> => {
     const base = initialValues(groups);
     const ff = (schema as ParamSchema).params.find((p) => p.name === "Film_Format");
     return { ...base, Film_Format: (ff?.default as FormValue) ?? "35mm" };
@@ -41,9 +42,28 @@ export function useCarrierForm() {
   // Restore the persisted config once, after mount — done in an effect (not the
   // useState initializer) so server and first client render both use `seed`,
   // avoiding a hydration mismatch.
+  //
+  // A shared-link hash (#c=<payload>) is merged in the same effect, LAST, so it
+  // wins over localStorage — kept as one effect (not two) so the merge order is
+  // deterministic. The hash is stripped via replaceState once applied so a
+  // reload doesn't keep resurrecting the shared config over later edits; an
+  // invalid/undecodable hash is left untouched (decodeShare never throws).
   useEffect(() => {
     const stored = loadConfig(knownKeys);
-    if (Object.keys(stored).length) setValues((prev) => normalizeConflicts({ ...prev, ...stored }));
+
+    const urlValues: Record<string, FormValue> = {};
+    const match = /^#c=(.+)$/.exec(window.location.hash);
+    if (match) {
+      const decoded = decodeShare(match[1]);
+      if (decoded) {
+        for (const [k, v] of Object.entries(decoded)) if (knownKeys.has(k)) urlValues[k] = v;
+        window.history.replaceState(null, "", window.location.pathname + window.location.search);
+      }
+    }
+
+    if (Object.keys(stored).length || Object.keys(urlValues).length) {
+      setValues((prev) => normalizeConflicts({ ...prev, ...stored, ...urlValues }));
+    }
   }, [knownKeys]);
 
   // Persist the current config (debounced) on every change.
@@ -71,5 +91,13 @@ export function useCarrierForm() {
     [groups, values],
   );
 
-  return { groups, values, setValue, applyValues, reset, toParams };
+  // A copyable URL encoding only the diff vs. the seed — "" when there's
+  // nothing to share (current config equals the default).
+  const shareLink = useCallback(() => {
+    const hasDiff = Object.entries(values).some(([k, v]) => seed[k] !== v);
+    if (!hasDiff) return "";
+    return window.location.origin + window.location.pathname + "#c=" + encodeShare(values, seed);
+  }, [values, seed]);
+
+  return { groups, values, setValue, applyValues, reset, toParams, shareLink };
 }

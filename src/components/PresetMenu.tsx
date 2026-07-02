@@ -1,12 +1,12 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { BookmarkPlus, Check, ChevronDown, Download, RotateCcw, Trash2, Upload } from "lucide-react";
+import { BookmarkPlus, Check, ChevronDown, Download, Link, RotateCcw, Trash2, Upload } from "lucide-react";
 import { Modal } from "./ui/Modal";
 import { useToast } from "./ui/Toast";
 import type { Preset } from "@/lib/storage/presets-store";
 
 export function PresetMenu({
-  presets, selectedId, onSelect, onSave, onDelete, onReset, onExport, onImport,
+  presets, selectedId, onSelect, onSave, onDelete, onReset, onExport, onImport, onCopyLink,
 }: {
   presets: Preset[];
   selectedId: string;
@@ -16,6 +16,7 @@ export function PresetMenu({
   onReset: () => void;
   onExport: () => void;
   onImport: (raw: string) => { added: number; updated: number } | null;
+  onCopyLink?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -125,6 +126,14 @@ export function PresetMenu({
             <RotateCcw className="size-4 shrink-0" style={{ color: "var(--text-dim)" }} />
             Reset to defaults
           </button>
+          {onCopyLink && (
+            <button type="button" onClick={() => { onCopyLink(); setOpen(false); }}
+              className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors"
+              style={{ color: "var(--text-muted)" }}>
+              <Link className="size-4 shrink-0" style={{ color: "var(--text-dim)" }} />
+              Copy shareable link
+            </button>
+          )}
           <button type="button" onClick={() => { onExport(); setOpen(false); }}
             disabled={presets.length === 0}
             className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors disabled:opacity-40"
