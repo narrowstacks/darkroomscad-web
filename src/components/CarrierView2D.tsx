@@ -2,7 +2,8 @@
 import { useMemo, useState, useEffect } from "react";
 import type { FormValue } from "@/lib/form/types";
 import { parseConfig, type DimensionAnnotation } from "@/lib/twod/types";
-import { buildScene } from "@/lib/twod/geometry";
+import { buildScene, effectiveOrientation } from "@/lib/twod/geometry";
+import { buildFilmOverlay } from "@/lib/twod/film-overlay";
 import { measureTextWidthMm, estimateTextWidthMm } from "@/lib/twod/measure-text";
 import { CARRIER_OUTLINES } from "@/lib/outline/outlines";
 import { BOARD_OUTLINES } from "@/lib/outline/board-outlines";
@@ -57,7 +58,7 @@ function dimensionLabelPos(d: DimensionAnnotation): [number, number] {
   return [fixedX + sign * nudge, (d.from[1] + d.to[1]) / 2];
 }
 
-export function CarrierView2D({ values, showDimensions = false }: { values: Record<string, FormValue>; showDimensions?: boolean }) {
+export function CarrierView2D({ values, showDimensions = false, showFilm = false }: { values: Record<string, FormValue>; showDimensions?: boolean; showFilm?: boolean }) {
   const { theme, viewer } = useTheme();
   const config = useMemo(() => parseConfig(values), [values]);
 
@@ -93,6 +94,18 @@ export function CarrierView2D({ values, showDimensions = false }: { values: Reco
     return { minX: b.minX - pad, minY: b.minY - pad, w: b.w + pad * 2, h: b.h + pad * 2 };
   }, [body, board]);
 
+  // Film overlay in trueSCAD coords. travelExtent is the half-length the strip
+  // must cover along its travel axis to fill the viewport; derive it from the
+  // padded view box (X in export coords == SCAD x; SCAD y == -exportY, so the
+  // magnitude of the Y span is symmetric either way).
+  const filmOverlay = useMemo(() => {
+    if (!showFilm) return null;
+    const travelExtent = effectiveOrientation(config) === "vertical"
+      ? Math.max(Math.abs(view.minX), Math.abs(view.minX + view.w))
+      : Math.max(Math.abs(view.minY), Math.abs(view.minY + view.h));
+    return buildFilmOverlay(config, travelExtent);
+  }, [showFilm, config, view]);
+
   // Cut-throughs read as the viewer background; etches as muted ink.
   const cut = viewer.background;
   // High contrast draws the carrier as line art: an unfilled silhouette with a
@@ -116,6 +129,27 @@ export function CarrierView2D({ values, showDimensions = false }: { values: Reco
             maps them into the export space (model +Y → screen-up) so they align
             with the body and match the 3D layout. */}
         <g transform="scale(1 -1)">
+          {/* Film-format overlay (ghosted): the real film for the selected
+              format, registered so one frame is centered on the opening. Drawn
+              beneath the opening/pegs so the functional cut still reads on top. */}
+          {filmOverlay?.base && (
+            <g data-layer="film">
+              <rect x={-filmOverlay.base.w / 2} y={-filmOverlay.base.h / 2}
+                width={filmOverlay.base.w} height={filmOverlay.base.h}
+                fill="var(--secondary)" fillOpacity={0.14}
+                stroke="var(--secondary)" strokeOpacity={0.5} strokeWidth={0.4} />
+              {filmOverlay.sprockets.map((s, i) => (
+                <rect key={`sprocket-${i}`} data-layer="film"
+                  x={s.cx - s.w / 2} y={s.cy - s.h / 2} width={s.w} height={s.h} rx={0.4}
+                  fill={cut} stroke="var(--secondary)" strokeOpacity={0.5} strokeWidth={0.2} />
+              ))}
+              {filmOverlay.frames.map((f, i) => (
+                <rect key={`frame-${i}`} data-layer="film"
+                  x={f.cx - f.w / 2} y={f.cy - f.h / 2} width={f.w} height={f.h}
+                  fill="none" stroke="var(--secondary)" strokeOpacity={0.85} strokeWidth={0.3} />
+              ))}
+            </g>
+          )}
           {/* Film opening (cut through). */}
           <path data-layer="opening" d={chamferRectInScad(scene.opening.w, scene.opening.h, scene.opening.chamfer)}
             fill={cut} stroke="var(--border)" strokeWidth={0.4} />
