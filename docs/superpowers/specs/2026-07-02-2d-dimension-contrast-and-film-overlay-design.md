@@ -114,10 +114,32 @@ pegs/opening).
   - horizontal orientation → **Y**
 - **Across axis** = the other axis (carries the physical film width + sprocket
   rows).
-- Image frame dimensions: **along travel = `format.height`**, **across =
-  `format.width`** (regardless of orientation — the orientation swap is captured
-  by which screen axis is "travel"). This is consistent with how
-  `openingDimensions` assigns `calcHeight`/`calcWidth`.
+- Image frame dimensions come from a **real recorded-image table** owned by this
+  module (`FILM_IMAGE`, see below), **not** from `FILM_FORMATS`. `FILM_FORMATS`
+  carries *opening* sizes with baked-in film wiggle (e.g. 35mm opening height is
+  37mm = 36mm image + 1mm clearance between the pegs), so using it would draw the
+  frame 1mm too tall. The overlay must show the true image so the opening
+  visibly reveals that wiggle margin (and, for filed formats, the rebate).
+- `image.along` maps to the travel axis, `image.across` to the across axis
+  (regardless of orientation — the orientation swap is captured by which screen
+  axis is "travel").
+
+**Real recorded-image table (`FILM_IMAGE`, owned by this module):**
+`{ along, across }` in mm — the true image on the film, distinct from the
+carrier opening. Filed variants keep the same recorded image as their base
+(filing reveals the rebate/sprockets in the opening; it does not enlarge the
+image):
+
+| Format | along | across |
+|--------|-------|--------|
+| `35mm`, `35mm filed`, `35mm full` | 36 | 24 |
+| `half frame` | 18 | 24 |
+| `6x4.5`, `6x4.5 filed` | 41.5 | 56 |
+| `6x6`, `6x6 filed` | 56 | 56 |
+| `6x7`, `6x7 filed` | 70 | 56 |
+| `6x8`, `6x8 filed` | 77 | 56 |
+| `6x9`, `6x9 filed` | 84 | 56 |
+| `4x5` | (sheet, see below) | |
 
 **Physical constants (135):**
 - Film width (across): `35.0 mm`.
@@ -126,10 +148,13 @@ pegs/opening).
 - Two perf rows, centered in the margins between the image edge and film edge
   (image across = 24 mm → margin ≈ 5.5 mm each side → row center ≈ ±14.75 mm from
   film center). Rounded corners on holes optional (cosmetic).
+- Note the pleasant consistency: 36 mm image + 2 mm inter-frame gap = 38 mm frame
+  pitch = exactly 8 perforations (8 × 4.7625 ≈ 38.1), so frames and sprockets
+  register.
 
 **Physical constants (120):**
 - Film width (across): `61.0 mm` (drawn as the film base); image band width =
-  `format.width` (e.g. 56 mm) centered.
+  `image.across` (e.g. 56 mm) centered.
 - No perforations.
 
 **Sheet (4x5):**
@@ -138,8 +163,8 @@ pegs/opening).
   of height 120 / width 95). No tiling, no sprockets, no notch code (v1).
 
 **Frame tiling:**
-- Frame pitch along travel = image-along (`format.height`) + a small inter-frame
-  gap constant (135: ~2 mm; 120: ~3 mm — cosmetic, tuned in implementation).
+- Frame pitch along travel = `image.along` + a small inter-frame gap constant
+  (135: `2 mm` → 38 mm pitch; 120: ~`3 mm` — cosmetic, tuned in implementation).
 - One frame centered on origin; additional frames stepped by ± pitch until they
   exceed the caller-provided travel extent.
 
@@ -210,9 +235,11 @@ Notes:
 ### Acceptance
 
 - Selecting a 35mm-family format and toggling Film on shows a 35 mm-wide strip
-  with two sprocket rows and multiple 24×36-ish frames tiling along the travel
-  axis; one frame is centered on the opening; the opening cut still reads on top;
-  sprockets fall outside the opening (over the body region) as expected.
+  with two sprocket rows and multiple true **24×36 mm** frames at a 38 mm pitch
+  tiling along the travel axis; one frame is centered on the opening; the opening
+  cut (37 mm) still reads on top and visibly extends ~0.5 mm past the 36 mm image
+  on each end (the peg wiggle); sprockets fall outside the opening (over the body
+  region) for non-filed formats.
 - 120 formats show a 61 mm film band with the image band and tiled frames, no
   sprockets.
 - 4x5 shows a single centered sheet, no tiling, no sprockets.
