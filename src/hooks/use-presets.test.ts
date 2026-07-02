@@ -56,4 +56,51 @@ describe("usePresets", () => {
     const { result } = renderHook(() => usePresets());
     expect(result.current.presets).toHaveLength(1);
   });
+
+  it("importAll adds both presets from a valid two-preset JSON", () => {
+    const { result } = renderHook(() => usePresets());
+    const raw = JSON.stringify([
+      { id: "orig-1", name: "Imported A", values: { Owner_Name: "A" } },
+      { id: "orig-2", name: "Imported B", values: { Owner_Name: "B" } },
+    ]);
+    let outcome: { added: number; updated: number } | null = null;
+    act(() => {
+      outcome = result.current.importAll(raw);
+    });
+    expect(outcome).toEqual({ added: 2, updated: 0 });
+    expect(result.current.presets).toHaveLength(2);
+    expect(result.current.presets.map((p) => p.name).sort()).toEqual(["Imported A", "Imported B"]);
+    expect(JSON.parse(localStorage.getItem(PRESETS_KEY)!)).toHaveLength(2);
+  });
+
+  it("importAll returns null and leaves state unchanged for garbage input", () => {
+    const { result } = renderHook(() => usePresets());
+    act(() => {
+      result.current.save("Keep Me", { Owner_Name: "X" });
+    });
+    let outcome: { added: number; updated: number } | null = { added: 99, updated: 99 };
+    act(() => {
+      outcome = result.current.importAll("not json");
+    });
+    expect(outcome).toBeNull();
+    expect(result.current.presets).toHaveLength(1);
+    expect(result.current.presets[0].name).toBe("Keep Me");
+  });
+
+  it("importAll updates an existing preset by case-insensitive name instead of duplicating", () => {
+    const { result } = renderHook(() => usePresets());
+    act(() => {
+      result.current.save("My Preset", { Owner_Name: "first" });
+    });
+    const raw = JSON.stringify([
+      { id: "orig-1", name: "my preset", values: { Owner_Name: "second" } },
+    ]);
+    let outcome: { added: number; updated: number } | null = null;
+    act(() => {
+      outcome = result.current.importAll(raw);
+    });
+    expect(outcome).toEqual({ added: 0, updated: 1 });
+    expect(result.current.presets).toHaveLength(1);
+    expect(result.current.presets[0].values.Owner_Name).toBe("second");
+  });
 });

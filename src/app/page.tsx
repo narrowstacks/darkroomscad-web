@@ -17,6 +17,7 @@ import { loadViewMode, saveViewMode, type ViewMode } from "@/lib/twod/view-mode"
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { PresetMenu } from "@/components/PresetMenu";
 import { ToastProvider } from "@/components/ui/Toast";
+import { download } from "@/lib/export/download";
 
 function newClient(): RenderClient {
   const worker = new Worker(new URL("../lib/openscad/worker.ts", import.meta.url), { type: "module" });
@@ -25,7 +26,7 @@ function newClient(): RenderClient {
 
 export default function Home() {
   const { groups, values, setValue, applyValues, reset, toParams } = useCarrierForm();
-  const { presets, save: savePreset, remove: deletePreset } = usePresets();
+  const { presets, save: savePreset, remove: deletePreset, importAll } = usePresets();
   const [selectedPresetId, setSelectedPresetId] = useState("");
   const [preview, setPreview] = useState<PreviewState>({ status: "idle" });
 
@@ -116,7 +117,9 @@ export default function Home() {
             }}
             onSave={(name) => setSelectedPresetId(savePreset(name, values).id)}
             onDelete={(id) => { deletePreset(id); if (id === selectedPresetId) setSelectedPresetId(""); }}
-            onReset={() => { reset(); setSelectedPresetId(""); }} />
+            onReset={() => { reset(); setSelectedPresetId(""); }}
+            onExport={() => download("darkroomscad-presets.json", JSON.stringify(presets, null, 2), "application/json")}
+            onImport={(text) => importAll(text)} />
           <ThemeToggle />
         </div>
       </header>

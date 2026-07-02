@@ -1,22 +1,27 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { BookmarkPlus, Check, ChevronDown, RotateCcw, Trash2 } from "lucide-react";
+import { BookmarkPlus, Check, ChevronDown, Download, RotateCcw, Trash2, Upload } from "lucide-react";
 import { Modal } from "./ui/Modal";
 import { useToast } from "./ui/Toast";
 import type { Preset } from "@/lib/storage/presets-store";
 
-export function PresetMenu({ presets, selectedId, onSelect, onSave, onDelete, onReset }: {
+export function PresetMenu({
+  presets, selectedId, onSelect, onSave, onDelete, onReset, onExport, onImport,
+}: {
   presets: Preset[];
   selectedId: string;
   onSelect: (id: string) => void;
   onSave: (name: string) => void;
   onDelete: (id: string) => void;
   onReset: () => void;
+  onExport: () => void;
+  onImport: (raw: string) => { added: number; updated: number } | null;
 }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
   const ref = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
 
   const selected = presets.find((p) => p.id === selectedId);
@@ -45,6 +50,20 @@ export function PresetMenu({ presets, selectedId, onSelect, onSave, onDelete, on
     setSaving(false);
     setName("");
     toast(existed ? `Updated "${trimmed}"` : `Saved "${trimmed}"`);
+  }
+
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const input = e.target;
+    const file = input.files?.[0];
+    if (!file) return;
+    const text = await file.text();
+    input.value = "";
+    const outcome = onImport(text);
+    if (!outcome) {
+      toast("Couldn't read that presets file");
+      return;
+    }
+    toast(`Imported ${outcome.added + outcome.updated} presets (${outcome.updated} updated)`);
   }
 
   return (
@@ -106,8 +125,24 @@ export function PresetMenu({ presets, selectedId, onSelect, onSave, onDelete, on
             <RotateCcw className="size-4 shrink-0" style={{ color: "var(--text-dim)" }} />
             Reset to defaults
           </button>
+          <button type="button" onClick={() => { onExport(); setOpen(false); }}
+            disabled={presets.length === 0}
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors disabled:opacity-40"
+            style={{ color: "var(--text-muted)" }}>
+            <Download className="size-4 shrink-0" style={{ color: "var(--text-dim)" }} />
+            Export presets…
+          </button>
+          <button type="button" onClick={() => { fileInputRef.current?.click(); setOpen(false); }}
+            className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors"
+            style={{ color: "var(--text-muted)" }}>
+            <Upload className="size-4 shrink-0" style={{ color: "var(--text-dim)" }} />
+            Import presets…
+          </button>
         </div>
       )}
+
+      <input ref={fileInputRef} type="file" accept="application/json,.json" className="hidden"
+        onChange={handleImportFile} />
 
       <Modal isOpen={saving} onClose={() => setSaving(false)} title="Save preset"
         footer={

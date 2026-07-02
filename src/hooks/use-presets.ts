@@ -2,7 +2,8 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormValue } from "@/lib/form/types";
 import {
-  loadPresets, savePresets, upsertPreset, deletePreset, type Preset,
+  loadPresets, savePresets, upsertPreset, deletePreset, parsePresets,
+  sanitizePresetValues, mergePresets, type Preset,
 } from "@/lib/storage/presets-store";
 
 function newId(): string {
@@ -35,5 +36,14 @@ export function usePresets() {
     persist(deletePreset(presets, id));
   }, [presets, persist]);
 
-  return { presets, save, remove };
+  const importAll = useCallback((raw: string): { added: number; updated: number } | null => {
+    const incoming = parsePresets(raw);
+    if (incoming.length === 0) return null; // unparseable or empty — caller shows the error toast
+    const cleaned = incoming.map((p) => ({ ...p, values: sanitizePresetValues(p.values) }));
+    const { list, added, updated } = mergePresets(presets, cleaned, newId);
+    persist(list);
+    return { added, updated };
+  }, [presets, persist]);
+
+  return { presets, save, remove, importAll };
 }
