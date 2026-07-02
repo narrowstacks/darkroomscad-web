@@ -25,6 +25,7 @@ function carrierAndFormat(form: RenderParams): string {
   if (form.Film_Format === "custom") {
     const w = Number(form.Custom_Film_Width);
     const h = Number(form.Custom_Film_Height);
+    if (!Number.isFinite(w) || !Number.isFinite(h)) return `${carrier}_custom`;
     return `${carrier}_${w}mmX${h}mm`;
   }
   return `${carrier}_${slug(String(form.Film_Format ?? "format"))}`;

@@ -55,6 +55,26 @@ describe("zipFileName", () => {
     expect(zipFileName(form)).toBe("omega-d_35mm-filed.zip");
   });
 
+  it("custom size with missing dimensions falls back to a NaN-free name", () => {
+    const form: RenderParams = {
+      Carrier_Type: "omega-d",
+      Film_Format: "custom",
+    };
+    const name = zipFileName(form);
+    expect(name).toContain("_custom.zip");
+    expect(name).not.toContain("NaN");
+  });
+
+  it("custom size with numeric dimensions is unchanged", () => {
+    const form: RenderParams = {
+      Carrier_Type: "omega-d",
+      Film_Format: "custom",
+      Custom_Film_Width: 60,
+      Custom_Film_Height: 45,
+    };
+    expect(zipFileName(form)).toContain("60mmX45mm");
+  });
+
   it("sanitizes free text in preset and owner names", () => {
     const form = { ...baseForm, Owner_Name: "John / Jane" };
     expect(zipFileName(form, "Beach Trip!")).toBe("Beach-Trip_John-Jane_omega-d_35mm-filed.zip");

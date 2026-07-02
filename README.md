@@ -8,7 +8,7 @@ A browser-based configurator for **DarkroomSCAD** film negative carriers. Pick y
 
 Negative carriers hold film flat in an enlarger so you can print sharp, edge-to-edge enlargements. Different enlargers (Omega D, Beseler, LPL/Saunders) take differently shaped carriers, and different film formats (35mm, 6×4.5, 6×6, 6×7, 6×9, 4×5, custom) need different openings and registration. DarkroomSCAD generates the right carrier for any combination from parameters, and this app puts that behind a UI.
 
-Supported enlargers include **Omega D**, **LPL/Saunders 45xx**, **Beseler 23C**, and **Beseler 45**, plus matching alignment boards.
+Supported enlargers include **Omega D**, **LPL/Saunders 45xx**, and **Beseler 23C**, plus matching alignment boards. Beseler 45 support is planned but not implemented yet.
 
 ### Two rendering paths
 

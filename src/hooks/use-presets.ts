@@ -5,6 +5,11 @@ import {
   loadPresets, savePresets, upsertPreset, deletePreset, type Preset,
 } from "@/lib/storage/presets-store";
 
+function newId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
+  return `p-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export function usePresets() {
   const [presets, setPresets] = useState<Preset[]>([]);
 
@@ -19,7 +24,7 @@ export function usePresets() {
   }, []);
 
   const save = useCallback((name: string, values: Record<string, FormValue>): Preset => {
-    const list = upsertPreset(presets, name, values, crypto.randomUUID());
+    const list = upsertPreset(presets, name, values, newId());
     persist(list);
     // Return the resulting preset (the existing one if overwritten by name, else new).
     const trimmed = name.trim().toLowerCase();

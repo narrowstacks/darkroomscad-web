@@ -10,8 +10,13 @@ function download(name: string, data: Uint8Array, type: string) {
   const blob = new Blob([new Uint8Array(data)], { type });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url; a.download = name; a.click();
-  URL.revokeObjectURL(url);
+  a.href = url; a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  // Defer the revoke so the browser has started reading the blob; a late
+  // revoke only briefly retains memory, an early one can kill the download.
+  setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
 function fileSize(bytes: number): string {

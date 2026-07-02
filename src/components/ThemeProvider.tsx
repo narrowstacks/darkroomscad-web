@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { THEMES, type ThemeName, type ThemeTokens } from "@/lib/theme/themes";
 import { resolveInitialTheme } from "@/lib/theme/resolve";
+import { safeGet, safeSet } from "@/lib/storage/local-storage";
 
 const STORAGE_KEY = "darkroomscad-theme";
 
@@ -20,7 +21,7 @@ function applyVars(theme: ThemeName) {
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<ThemeName>("dark");
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = safeGet(STORAGE_KEY);
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     const initial = resolveInitialTheme(stored, prefersDark);
     setThemeState(initial);
@@ -29,7 +30,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const setTheme = (t: ThemeName) => {
     setThemeState(t);
     applyVars(t);
-    localStorage.setItem(STORAGE_KEY, t);
+    safeSet(STORAGE_KEY, t);
   };
   return (
     <ThemeContext.Provider value={{ theme, setTheme, viewer: THEMES[theme].viewer }}>
