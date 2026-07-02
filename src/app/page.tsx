@@ -53,6 +53,9 @@ function HomeContent() {
   }, []);
   // Session-local for v1 — not persisted like viewMode (follow-up if wanted).
   const [showDims, setShowDims] = useState(false);
+  const [showFilm, setShowFilm] = useState(false);
+  // Custom format has no defined real film — disable the overlay toggle for it.
+  const filmDisabled = String(values.Film_Format ?? "") === "custom";
 
   // A manual field edit means the config no longer matches the loaded preset —
   // clear the dropdown selection. Preset loads go through applyValues (not this).
@@ -177,6 +180,17 @@ function HomeContent() {
                 Dimensions
               </button>
             )}
+            {viewMode === "2d" && (
+              <button type="button" aria-pressed={showFilm && !filmDisabled} disabled={filmDisabled}
+                onClick={() => setShowFilm((v) => !v)}
+                title={filmDisabled ? "Custom format has no defined film to preview" : "Overlay the selected film format"}
+                className="rounded-xl px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2 disabled:cursor-not-allowed disabled:opacity-40"
+                style={showFilm && !filmDisabled
+                  ? { background: "var(--secondary)", color: "var(--on-primary)", border: "1px solid var(--secondary)" }
+                  : { background: "var(--surface-muted)", color: "var(--text-muted)", border: "1px solid var(--border)" }}>
+                Film
+              </button>
+            )}
             <Segmented label="" ariaLabel="View mode"
               options={[{ value: "2d", label: "2D" }, { value: "3d", label: "3D" }]}
               value={viewMode}
@@ -192,7 +206,7 @@ function HomeContent() {
           )}
           <div className="h-[60vh] min-h-0 md:h-auto md:flex-1">
             {viewMode === "2d"
-              ? <CarrierView2D values={values} showDimensions={showDims} />
+              ? <CarrierView2D values={values} showDimensions={showDims} showFilm={showFilm && !filmDisabled} />
               : <StlViewer stl={preview.stl} quality="preview" loading={isLoading} />}
           </div>
         </div>
