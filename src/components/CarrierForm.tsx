@@ -8,10 +8,14 @@ import { unsupportedFormats } from "@/config/carriers";
 
 const DELAY = ["", "animate-delay-50", "animate-delay-100", "animate-delay-150", "animate-delay-200", "animate-delay-300"];
 
-export function CarrierForm({ groups, values, setValue }: {
+export function CarrierForm({ groups, values, setValue, renderGroupExtras }: {
   groups: ResolvedGroup[];
   values: Record<string, FormValue>;
   setValue: (param: string, v: FormValue) => void;
+  /** Optional UI-only extras appended inside a group's section (keyed by title).
+   *  Used for preview-only controls that are NOT SCAD params (e.g. the custom
+   *  film-overlay picker), so they render with the group but never reach the STL. */
+  renderGroupExtras?: (title: string) => React.ReactNode;
 }) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   let visibleIndex = 0;
@@ -48,6 +52,7 @@ export function CarrierForm({ groups, values, setValue }: {
                     ? (f.options ?? []).filter((o) => f.optionDisabledWhen!(o.value, values)).map((o) => o.value)
                     : undefined} />
               ))}
+              {renderGroupExtras?.(group.title)}
             </div>
           </section>
         );

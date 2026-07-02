@@ -2,7 +2,8 @@
 import { useMemo, useState, useEffect } from "react";
 import type { FormValue } from "@/lib/form/types";
 import { parseConfig, type DimensionAnnotation } from "@/lib/twod/types";
-import { buildScene } from "@/lib/twod/geometry";
+import { buildScene, effectiveOrientation } from "@/lib/twod/geometry";
+import { buildFilmOverlay, type CustomFilmSpec } from "@/lib/twod/film-overlay";
 import { measureTextWidthMm, estimateTextWidthMm } from "@/lib/twod/measure-text";
 import { CARRIER_OUTLINES } from "@/lib/outline/outlines";
 import { BOARD_OUTLINES } from "@/lib/outline/board-outlines";
@@ -57,7 +58,7 @@ function dimensionLabelPos(d: DimensionAnnotation): [number, number] {
   return [fixedX + sign * nudge, (d.from[1] + d.to[1]) / 2];
 }
 
-export function CarrierView2D({ values, showDimensions = false }: { values: Record<string, FormValue>; showDimensions?: boolean }) {
+export function CarrierView2D({ values, showDimensions = false, showFilm = false, customFilm }: { values: Record<string, FormValue>; showDimensions?: boolean; showFilm?: boolean; customFilm?: CustomFilmSpec }) {
   const { theme, viewer } = useTheme();
   const config = useMemo(() => parseConfig(values), [values]);
 
@@ -92,6 +93,18 @@ export function CarrierView2D({ values, showDimensions = false }: { values: Reco
     const pad = 8;
     return { minX: b.minX - pad, minY: b.minY - pad, w: b.w + pad * 2, h: b.h + pad * 2 };
   }, [body, board]);
+
+  // Film overlay in trueSCAD coords. travelExtent is the half-length the strip
+  // must cover along its travel axis to fill the viewport; derive it from the
+  // padded view box (X in export coords == SCAD x; SCAD y == -exportY, so the
+  // magnitude of the Y span is symmetric either way).
+  const filmOverlay = useMemo(() => {
+    if (!showFilm) return null;
+    const travelExtent = effectiveOrientation(config) === "vertical"
+      ? Math.max(Math.abs(view.minX), Math.abs(view.minX + view.w))
+      : Math.max(Math.abs(view.minY), Math.abs(view.minY + view.h));
+    return buildFilmOverlay(config, travelExtent, customFilm);
+  }, [showFilm, config, view, customFilm]);
 
   // Cut-throughs read as the viewer background; etches as muted ink.
   const cut = viewer.background;
@@ -131,6 +144,36 @@ export function CarrierView2D({ values, showDimensions = false }: { values: Reco
             <circle key={`screw-${i}`} data-layer="screw" cx={s.cx} cy={s.cy} r={s.r}
               fill={cut} stroke="var(--border)" strokeWidth={0.4} />
           ))}
+          {/* Film-format overlay: the real film for the selected format,
+              registered so one frame is centered on the opening. Drawn ON TOP of
+              the opening/pegs so the film image area is always visible at its
+              exact size — the opening's cut-through fill must never obscure it
+              (which would just read as a background-colored box over the film). */}
+          {filmOverlay?.base && (
+            <g data-layer="film">
+              {/* Film body (the physical strip/roll extent) — translucent so the
+                  carrier body + opening still read through it. */}
+              <rect data-layer="film" x={-filmOverlay.base.w / 2} y={-filmOverlay.base.h / 2}
+                width={filmOverlay.base.w} height={filmOverlay.base.h}
+                fill="var(--secondary)" fillOpacity={0.12}
+                stroke="var(--secondary)" strokeOpacity={0.5} strokeWidth={0.4} />
+              {/* Sprocket perforations (punched → viewer background). */}
+              {filmOverlay.sprockets.map((s, i) => (
+                <rect key={`sprocket-${i}`} data-layer="film"
+                  x={s.cx - s.w / 2} y={s.cy - s.h / 2} width={s.w} height={s.h} rx={0.4}
+                  fill={cut} stroke="var(--secondary)" strokeOpacity={0.5} strokeWidth={0.2} />
+              ))}
+              {/* Image-area frames — the actual exposed image at exact size. A
+                  filled tint (over the opening's cut fill) plus a crisp border so
+                  the frame reads clearly even where it lies inside the opening. */}
+              {filmOverlay.frames.map((f, i) => (
+                <rect key={`frame-${i}`} data-layer="film"
+                  x={f.cx - f.w / 2} y={f.cy - f.h / 2} width={f.w} height={f.h}
+                  fill="var(--secondary)" fillOpacity={0.18}
+                  stroke="var(--secondary)" strokeOpacity={0.9} strokeWidth={0.4} />
+              ))}
+            </g>
+          )}
           {/* Directional arrow (etch). */}
           {scene.arrow && (
             <polygon data-layer="arrow"
@@ -143,10 +186,15 @@ export function CarrierView2D({ values, showDimensions = false }: { values: Reco
               below to avoid mirrored glyphs. */}
           {showDimensions && scene.dimensions.map((d, i) => (
             <g key={`dim-${i}`}>
+              {/* Background-colored halo underlay so the callout reads over the grey body. */}
               <line data-layer="dimension" x1={d.from[0]} y1={d.from[1]} x2={d.to[0]} y2={d.to[1]}
-                stroke="var(--text-dim)" strokeWidth={0.3} />
+                stroke={viewer.background} strokeWidth={1.1} strokeLinecap="round" />
               <path data-layer="dimension" d={dimensionTicks(d.from, d.to, d.axis)}
-                stroke="var(--text-dim)" strokeWidth={0.3} fill="none" />
+                stroke={viewer.background} strokeWidth={1.1} strokeLinecap="round" fill="none" />
+              <line data-layer="dimension" x1={d.from[0]} y1={d.from[1]} x2={d.to[0]} y2={d.to[1]}
+                stroke="var(--text)" strokeWidth={0.3} />
+              <path data-layer="dimension" d={dimensionTicks(d.from, d.to, d.axis)}
+                stroke="var(--text)" strokeWidth={0.3} fill="none" />
             </g>
           ))}
         </g>
@@ -177,7 +225,9 @@ export function CarrierView2D({ values, showDimensions = false }: { values: Reco
               <text key={`dim-label-${i}`} data-layer="dimension"
                 transform={`translate(${lx} ${-ly})${d.axis === "y" ? " rotate(-90)" : ""}`}
                 textAnchor="middle" dominantBaseline="central"
-                fontSize={4} fill="var(--text-dim)">
+                fontSize={4} fill="var(--text)"
+                stroke={viewer.background} strokeWidth={1} strokeLinejoin="round" strokeLinecap="round"
+                paintOrder="stroke">
                 {d.label}
               </text>
             );

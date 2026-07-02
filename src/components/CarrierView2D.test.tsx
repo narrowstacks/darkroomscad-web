@@ -28,14 +28,38 @@ describe("CarrierView2D", () => {
     expect(container.querySelectorAll("[data-layer='dimension']").length).toBe(0);
   });
 
+  it("renders the four alignment-screw footprint holes for an omega config with no attached board", () => {
+    const { container } = render(
+      <CarrierView2D values={{ Carrier_Type: "omega-d", Film_Format: "35mm", Alignment_Board: false }} />,
+    );
+    expect(container.querySelectorAll("circle[data-layer='screw']").length).toBe(4);
+  });
+
+  it("renders no film layer by default", () => {
+    const { container } = render(
+      <CarrierView2D values={{ Carrier_Type: "omega-d", Film_Format: "35mm" }} />,
+    );
+    expect(container.querySelectorAll("[data-layer='film']").length).toBe(0);
+  });
+
+  it("renders the film overlay (base + sprockets + frames) when showFilm is set", () => {
+    const { container } = render(
+      <CarrierView2D values={{ Carrier_Type: "omega-d", Film_Format: "35mm" }} showFilm />,
+    );
+    // Base rect + two sprocket rows + tiled image frames — many elements.
+    expect(container.querySelectorAll("[data-layer='film']").length).toBeGreaterThan(4);
+  });
+
   it("renders the dimension layer (lines + labels) when showDimensions is set", () => {
     const { container } = render(
       <CarrierView2D values={{ Carrier_Type: "omega-d", Film_Format: "35mm" }} showDimensions />,
     );
     const layer = container.querySelectorAll("[data-layer='dimension']");
     expect(layer.length).toBeGreaterThanOrEqual(4);
+    // Each of the 4 callouts renders a background-halo underlay line + an ink
+    // line on top (see the dimension halo in CarrierView2D), so 4 callouts → 8.
     const lines = container.querySelectorAll("line[data-layer='dimension']");
-    expect(lines.length).toBe(4);
+    expect(lines.length).toBe(8);
     const labels = Array.from(container.querySelectorAll("text[data-layer='dimension']"));
     expect(labels.length).toBe(4);
     expect(labels.some((t) => t.textContent?.includes("mm"))).toBe(true);

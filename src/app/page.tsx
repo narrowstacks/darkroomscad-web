@@ -13,6 +13,8 @@ import { CarrierView2D } from "@/components/CarrierView2D";
 import { ExportPanel } from "@/components/ExportPanel";
 import { StlViewer } from "@/components/StlViewer";
 import { Segmented } from "@/components/controls/Segmented";
+import { Slider } from "@/components/controls/Slider";
+import type { CustomFilmSpec, OverlayFilmType } from "@/lib/twod/film-overlay";
 import { loadViewMode, saveViewMode, type ViewMode } from "@/lib/twod/view-mode";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { PresetMenu } from "@/components/PresetMenu";
@@ -53,6 +55,20 @@ function HomeContent() {
   }, []);
   // Session-local for v1 — not persisted like viewMode (follow-up if wanted).
   const [showDims, setShowDims] = useState(false);
+  const [showFilm, setShowFilm] = useState(false);
+  // Custom formats have no built-in film; the user picks a stock + image size to
+  // preview (XPan, 6x12, …). These are preview-only — NOT SCAD params, so they
+  // live here as UI state and never reach the form values / STL.
+  const isCustomFormat = String(values.Film_Format ?? "") === "custom";
+  const [overlayFilmType, setOverlayFilmType] = useState<OverlayFilmType>("35mm");
+  const [overlayImgW, setOverlayImgW] = useState(24);
+  const [overlayImgH, setOverlayImgH] = useState(36);
+  // Memoized so CarrierView2D's overlay memo (keyed on this object) only
+  // recomputes when the overlay inputs actually change, not on every render.
+  const customFilm: CustomFilmSpec | undefined = useMemo(
+    () => (isCustomFormat ? { type: overlayFilmType, imageWidth: overlayImgW, imageHeight: overlayImgH } : undefined),
+    [isCustomFormat, overlayFilmType, overlayImgW, overlayImgH],
+  );
 
   // A manual field edit means the config no longer matches the loaded preset —
   // clear the dropdown selection. Preset loads go through applyValues (not this).
@@ -162,7 +178,22 @@ function HomeContent() {
               presetName={presets.find((p) => p.id === selectedPresetId)?.name} />
           </section>
           <div className="md:min-h-0 md:flex-1 md:overflow-y-auto md:pr-1">
-            <CarrierForm groups={groups} values={values} setValue={editValue} />
+            <CarrierForm groups={groups} values={values} setValue={editValue}
+              renderGroupExtras={(title) => (title === "Custom size" ? (
+                <div className="mt-1 border-t pt-3" style={{ borderColor: "var(--border)" }}>
+                  <Segmented label="Film preview stock" ariaLabel="Film preview stock"
+                    options={[{ value: "35mm", label: "35mm" }, { value: "120", label: "120" }, { value: "custom", label: "Custom" }]}
+                    value={overlayFilmType}
+                    onChange={(v) => setOverlayFilmType(String(v) as OverlayFilmType)} />
+                  <p className="mb-1 mt-2 text-xs" style={{ color: "var(--text-dim)" }}>
+                    Preview only — the exposed image size laid on the film (not sent to the STL).
+                  </p>
+                  <Slider label="Film image width" unit="mm" min={5} max={130} step={1}
+                    value={overlayImgW} onChange={setOverlayImgW} />
+                  <Slider label="Film image height" unit="mm" min={5} max={130} step={1}
+                    value={overlayImgH} onChange={setOverlayImgH} />
+                </div>
+              ) : null)} />
           </div>
         </div>
 
@@ -175,6 +206,16 @@ function HomeContent() {
                   ? { background: "var(--primary)", color: "var(--on-primary)", border: "1px solid var(--primary)" }
                   : { background: "var(--surface-muted)", color: "var(--text-muted)", border: "1px solid var(--border)" }}>
                 Dimensions
+              </button>
+            )}
+            {viewMode === "2d" && (
+              <button type="button" aria-pressed={showFilm} onClick={() => setShowFilm((v) => !v)}
+                title={isCustomFormat ? "Overlay a film stock at your custom frame size" : "Overlay the selected film format"}
+                className="rounded-xl px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-2"
+                style={showFilm
+                  ? { background: "var(--secondary)", color: "var(--on-primary)", border: "1px solid var(--secondary)" }
+                  : { background: "var(--surface-muted)", color: "var(--text-muted)", border: "1px solid var(--border)" }}>
+                Film
               </button>
             )}
             <Segmented label="" ariaLabel="View mode"
@@ -192,7 +233,7 @@ function HomeContent() {
           )}
           <div className="h-[60vh] min-h-0 md:h-auto md:flex-1">
             {viewMode === "2d"
-              ? <CarrierView2D values={values} showDimensions={showDims} />
+              ? <CarrierView2D values={values} showDimensions={showDims} showFilm={showFilm} customFilm={customFilm} />
               : <StlViewer stl={preview.stl} quality="preview" loading={isLoading} />}
           </div>
         </div>
