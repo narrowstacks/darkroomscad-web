@@ -4,7 +4,7 @@ import type { FormValue } from "@/lib/form/types";
 import { parseConfig, type DimensionAnnotation } from "@/lib/twod/types";
 import { buildScene, effectiveOrientation } from "@/lib/twod/geometry";
 import { buildFilmOverlay, type CustomFilmSpec } from "@/lib/twod/film-overlay";
-import { measureTextWidthMm, estimateTextWidthMm } from "@/lib/twod/measure-text";
+import { measureTextWidthMm, estimateTextWidthMm, measureBaselineShiftMm, estimateBaselineShiftMm } from "@/lib/twod/measure-text";
 import { CARRIER_OUTLINES } from "@/lib/outline/outlines";
 import { BOARD_OUTLINES } from "@/lib/outline/board-outlines";
 import { useTheme } from "./ThemeProvider";
@@ -206,12 +206,15 @@ export function CarrierView2D({ values, showDimensions = false, showFilm = false
               stroke="var(--accent)" strokeWidth={1.2} strokeDasharray="4 3" />
           </g>
         )}
-        {/* Text in an unscaled group so glyphs are not mirrored. */}
+        {/* Text in an unscaled group so glyphs are not mirrored. The explicit
+            baseline y replicates OpenSCAD valign="center" (ink-bbox centering);
+            dominantBaseline="central" would center the em box ~1mm higher. */}
         <g>
           {scene.texts.map((t, i) => (
             <text key={`text-${i}`}
               transform={`translate(${t.cx} ${-t.cy}) rotate(${-t.rotationDeg})`}
-              textAnchor="middle" dominantBaseline="central"
+              y={(measureReady ? measureBaselineShiftMm : estimateBaselineShiftMm)(t.value, t.fontFace, t.fontSize)}
+              textAnchor="middle"
               fontFamily={`"${t.fontFace}"`} fontSize={t.fontSize} fill="var(--text)">
               {t.value}
             </text>
