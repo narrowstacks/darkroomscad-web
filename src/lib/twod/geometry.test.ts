@@ -219,6 +219,20 @@ describe("textPlacements", () => {
     expect(bottomOwner.cy).toBeCloseTo(-7.25, 6);
   });
 
+  it("measures and emits font size at the OpenSCAD em scale (size × 100/72)", () => {
+    // OpenSCAD renders text(size=s) with an em of s × 100/72 (point size at
+    // 100 dpi), so the SVG font-size — and the width measurement that feeds
+    // the edge-margin position — must use the scaled size, not config.fontSize.
+    const seen: number[] = [];
+    const rec = (t: string, _f: string, s: number) => { seen.push(s); return t.length; };
+    const [owner] = textPlacements(
+      { ...base, enableOwnerEtch: true, ownerName: "ADA" },
+      rec,
+    );
+    expect(owner.fontSize).toBeCloseTo(10 * (100 / 72), 6);
+    expect(seen).toEqual([10 * (100 / 72)]);
+  });
+
   it("lpl-saunders owner: rotated 270 with its own carrier edge (85)", () => {
     const [owner] = textPlacements(
       { ...base, carrierType: "lpl-saunders-45xx", alignmentBoardType: "lpl-saunders", enableOwnerEtch: true, ownerName: "ADA" },

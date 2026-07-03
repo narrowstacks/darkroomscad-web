@@ -1,6 +1,6 @@
 import type { TwoDConfig, TextPlacement, Scene, PegShape, DimensionAnnotation } from "./types";
 import { FILM_FORMATS, isFiledFormat, filmTypeName } from "./film-data";
-import { measureTextWidthMm } from "./measure-text";
+import { measureTextWidthMm, SCAD_TEXT_EM_SCALE } from "./measure-text";
 import { BOARD_CARRIERS } from "@/config/carriers";
 
 // Default film dimensions used by SCAD when format is "custom" and no override
@@ -157,13 +157,17 @@ export function textPlacements(
 ): TextPlacement[] {
   const out: TextPlacement[] = [];
   const rotationDeg = textRotation(c.carrierType);
+  // OpenSCAD renders text(size=s) at an em of s × 100/72, so both the width
+  // used for the edge-margin placement and the emitted SVG font-size must use
+  // the scaled em (see SCAD_TEXT_EM_SCALE).
+  const svgFontSize = c.fontSize * SCAD_TEXT_EM_SCALE;
   const add = (kind: "owner" | "type", value: string, offset: [number, number]) => {
     if (!value) return;
-    const width = measure(value, c.fontFace, c.fontSize);
+    const width = measure(value, c.fontFace, svgFontSize);
     const pre = textPositionPre(c, kind, width);
     const adj: [number, number] = [pre[0] + offset[0], pre[1] + offset[1]];
     const [cx, cy] = rotate2d(adj, rotationDeg);
-    out.push({ value, cx, cy, rotationDeg, fontFace: c.fontFace, fontSize: c.fontSize });
+    out.push({ value, cx, cy, rotationDeg, fontFace: c.fontFace, fontSize: svgFontSize });
   };
   if (c.enableOwnerEtch) add("owner", c.ownerName, c.ownerTextOffset);
   if (c.enableTypeEtch) {

@@ -25,6 +25,7 @@ Pure TS ports of the OpenSCAD geometry math — no WASM. The 3D STL is the groun
   - All holes add `PEG_HOLE_TOLERANCE` (0.25) — incl. heat-set holes (radii 1.05 / 2.15, not 0.8 / 1.9).
   - Custom format: the **dominant** peg axis uses the default 37mm width (SCAD calls `get_film_format_width("custom")` without the override); only the peg-distance axis uses `Custom_Film_Width`.
   - Film opening axes: X-extent = `opening_height`, Y-extent = `opening_width` (matches `cuboid([opening_height, opening_width, …])`).
+  - Text: OpenSCAD renders `text(size=s)` at an em of **s × 100/72** (point size at 100 dpi), positions via textmetrics **ink** width, and `valign="center"` centers the string's ink bbox (baseline (ascent+descent)/2 below the anchor). The 2D path mirrors all three (`SCAD_TEXT_EM_SCALE`, ink-width measurement, explicit baseline `y` — NOT `dominantBaseline="central"`, which sits ~1mm high).
 - **Coordinate convention (caused a 2D/3D mismatch bug — keep it straight):** the body/board outline paths come from OpenSCAD's SVG export, which already maps model **+Y → screen-up**. So in `CarrierView2D` they render **raw** (no transform). Features are computed in trueSCAD coords and mapped into that space via `<g transform="scale(1 -1)">`; text uses `translate(cx, -cy) rotate(-deg)`. Don't wrap the body/board in `scale(1,-1)` — that double-flips them.
 
 ## Outline generation (`scripts/gen-carrier-outlines.ts` → `npm run gen:outlines`)
