@@ -62,12 +62,12 @@
           "label": "35mm filed"
         },
         {
-          "value": "35mm full",
-          "label": "35mm full"
-        },
-        {
           "value": "half frame",
           "label": "half frame"
+        },
+        {
+          "value": "half frame filed",
+          "label": "half frame filed"
         },
         {
           "value": "6x4.5",

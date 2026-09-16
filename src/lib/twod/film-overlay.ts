@@ -45,8 +45,8 @@ const CUSTOM_STOCK_REBATE = 3;      // film border around the image for custom s
 const FILM_IMAGE: Record<string, { along: number; across: number }> = {
   "35mm": { along: 36, across: 24 },
   "35mm filed": { along: 36, across: 24 },
-  "35mm full": { along: 36, across: 24 },
   "half frame": { along: 18, across: 24 },
+  "half frame filed": { along: 18, across: 24 },
   "6x4.5": { along: 41.5, across: 56 },
   "6x4.5 filed": { along: 41.5, across: 56 },
   "6x6": { along: 56, across: 56 },
@@ -60,7 +60,7 @@ const FILM_IMAGE: Record<string, { along: number; across: number }> = {
 };
 
 export function filmFamily(format: string): FilmFamily {
-  if (format === "half frame" || format.startsWith("35mm")) return "135";
+  if (format.startsWith("half frame") || format.startsWith("35mm")) return "135";
   if (format.startsWith("6x")) return "120";
   if (format === "4x5") return "sheet";
   return "none";

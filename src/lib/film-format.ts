@@ -9,8 +9,7 @@ export interface FormatChip {
 // `filed` toggle; "custom" is handled separately by the picker).
 export const FORMAT_CHIPS: FormatChip[] = [
   { base: "35mm", label: "35mm", ratio: [3, 2], hasFiled: true },
-  { base: "35mm full", label: "35mm full", ratio: [3, 2], hasFiled: false },
-  { base: "half frame", label: "Half", ratio: [4, 3], hasFiled: false },
+  { base: "half frame", label: "Half", ratio: [4, 3], hasFiled: true },
   { base: "6x4.5", label: "6×4.5", ratio: [4, 3], hasFiled: true },
   { base: "6x6", label: "6×6", ratio: [1, 1], hasFiled: true },
   { base: "6x7", label: "6×7", ratio: [5, 4], hasFiled: true },

@@ -2,10 +2,10 @@ export interface FilmFormat { height: number; width: number; pegDistance: number
 
 // Port of FILM_FORMATS in film-sizes.scad: [height, width, pegDistance, typeName].
 export const FILM_FORMATS: Record<string, FilmFormat> = {
-  "35mm":        { height: 37,   width: 24, pegDistance: 37,  typeName: "35MM" },
+  "35mm":        { height: 36,   width: 24, pegDistance: 37,  typeName: "35MM" },
   "35mm filed":  { height: 40,   width: 28, pegDistance: 37,  typeName: "FILED35" },
-  "35mm full":   { height: 36,   width: 24, pegDistance: 37,  typeName: "FULL35" },
   "half frame":  { height: 18,   width: 24, pegDistance: 37,  typeName: "HALF" },
+  "half frame filed": { height: 21, width: 28, pegDistance: 37, typeName: "FILEDHALF" },
   "6x4.5":       { height: 41.5, width: 56, pegDistance: 62,  typeName: "6x4.5" },
   "6x4.5 filed": { height: 43.5, width: 58, pegDistance: 62,  typeName: "F6x4.5" },
   "6x6":         { height: 56,   width: 56, pegDistance: 62,  typeName: "6x6" },
@@ -20,7 +20,7 @@ export const FILM_FORMATS: Record<string, FilmFormat> = {
 };
 
 const FILED = new Set([
-  "35mm filed", "6x4.5 filed", "6x6 filed", "6x7 filed", "6x8 filed", "6x9 filed",
+  "35mm filed", "half frame filed", "6x4.5 filed", "6x6 filed", "6x7 filed", "6x8 filed", "6x9 filed",
 ]);
 
 export function isFiledFormat(format: string): boolean {

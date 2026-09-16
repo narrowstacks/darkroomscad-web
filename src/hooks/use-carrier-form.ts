@@ -22,8 +22,14 @@ import type { RenderParams } from "@/lib/openscad/types";
 //   to 35mm.
 // - 4x5 forces horizontal (get_effective_orientation): pin the stored value so
 //   the locked toggle shows what actually renders.
+// - "35mm full" was folded into "35mm" (the schema no longer has it); stored
+//   configs, share links and presets from before then still carry it.
+const LEGACY_FILM_FORMATS: Record<string, string> = { "35mm full": "35mm" };
+
 function normalizeConflicts(v: Record<string, FormValue>): Record<string, FormValue> {
   let out = v;
+  const legacy = LEGACY_FILM_FORMATS[String(out.Film_Format)];
+  if (legacy) out = { ...out, Film_Format: legacy };
   if (out.Alignment_Board === true && out.Printed_or_Heat_Set_Pegs === "printed") {
     out = { ...out, Printed_or_Heat_Set_Pegs: "heat_set" };
   }

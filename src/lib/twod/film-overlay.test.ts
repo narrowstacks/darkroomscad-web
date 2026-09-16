@@ -14,7 +14,7 @@ const base: TwoDConfig = {
 
 describe("filmFamily", () => {
   it("maps 35mm variants + half frame to 135", () => {
-    for (const f of ["35mm", "35mm filed", "35mm full", "half frame"]) {
+    for (const f of ["35mm", "35mm filed", "half frame", "half frame filed"]) {
       expect(filmFamily(f)).toBe("135");
     }
   });

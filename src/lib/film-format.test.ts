@@ -9,6 +9,8 @@ describe("film-format mapping", () => {
     expect(toFilmFormatValue("6x6", true)).toBe("6x6 filed");
     expect(fromFilmFormatValue("6x6 filed")).toEqual({ base: "6x6", filed: true });
     expect(fromFilmFormatValue("6x6")).toEqual({ base: "6x6", filed: false });
+    expect(toFilmFormatValue("half frame", true)).toBe("half frame filed");
+    expect(fromFilmFormatValue("half frame filed")).toEqual({ base: "half frame", filed: true });
   });
 
   it("never marks a non-filed base as filed", () => {

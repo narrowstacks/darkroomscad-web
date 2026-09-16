@@ -13,12 +13,12 @@ const base: TwoDConfig = {
 };
 
 describe("openingDimensions", () => {
-  it("35mm vertical → [37 x 24]", () => {
-    expect(openingDimensions(base)).toEqual({ openingHeight: 37, openingWidth: 24 });
+  it("35mm vertical → [36 x 24]", () => {
+    expect(openingDimensions(base)).toEqual({ openingHeight: 36, openingWidth: 24 });
   });
-  it("35mm horizontal swaps to [24 x 37]", () => {
+  it("35mm horizontal swaps to [24 x 36]", () => {
     expect(openingDimensions({ ...base, orientation: "horizontal" }))
-      .toEqual({ openingHeight: 24, openingWidth: 37 });
+      .toEqual({ openingHeight: 24, openingWidth: 36 });
   });
   it("4x5 forces horizontal (long edge along Y) regardless of orientation", () => {
     expect(openingDimensions({ ...base, filmFormat: "4x5", orientation: "vertical" }))
@@ -26,7 +26,7 @@ describe("openingDimensions", () => {
   });
   it("applies film adjustments", () => {
     expect(openingDimensions({ ...base, adjustFilmHeight: 2, adjustFilmWidth: 1 }))
-      .toEqual({ openingHeight: 39, openingWidth: 25 });
+      .toEqual({ openingHeight: 38, openingWidth: 25 });
   });
   it("custom uses the custom opening dims directly (no orientation/adjust)", () => {
     expect(openingDimensions({ ...base, filmFormat: "custom", customOpeningHeight: 50, customOpeningWidth: 40, adjustFilmHeight: 9 }))
@@ -34,7 +34,7 @@ describe("openingDimensions", () => {
   });
   it("unknown format falls back to 35mm dimensions", () => {
     expect(openingDimensions({ ...base, filmFormat: "bogus" }))
-      .toEqual({ openingHeight: 37, openingWidth: 24 });
+      .toEqual({ openingHeight: 36, openingWidth: 24 });
   });
 });
 
@@ -51,6 +51,10 @@ describe("pegPositions", () => {
   it("filed format uses the reduced internal gap (0.5mm extra per side)", () => {
     // dominant = 28/2+2.8 = 16.8 ; peg-distance axis = 37/2+2.8-0.5 = 20.8
     expect(pegPositions({ ...base, filmFormat: "35mm filed" })).toEqual({ x: 16.8, y: 20.8 });
+  });
+  it("half frame filed gets the same reduced gap as 35mm filed", () => {
+    // Same 28mm-wide opening and 37mm peg distance as 35mm filed, so identical pegs.
+    expect(pegPositions({ ...base, filmFormat: "half frame filed" })).toEqual({ x: 16.8, y: 20.8 });
   });
   it("peg gap shifts only the peg-distance axis", () => {
     expect(pegPositions({ ...base, pegGap: 0.5 })).toEqual({ x: 14.8, y: 20.8 });
@@ -249,7 +253,7 @@ describe("textPlacements", () => {
 describe("buildScene", () => {
   it("assembles opening, 4 pegs, and no board overlay when board is off", () => {
     const s = buildScene({ ...base, alignmentBoard: false });
-    expect(s.opening).toEqual({ w: 37, h: 24, chamfer: 0.5 });
+    expect(s.opening).toEqual({ w: 36, h: 24, chamfer: 0.5 });
     expect(s.pegs).toHaveLength(4);
     expect(s.pegs.every((p) => p.kind === "hole")).toBe(true); // bottom heat-set
     expect(s.boardKey).toBeNull();
@@ -307,24 +311,24 @@ describe("buildScene", () => {
 
 describe("buildScene dimensions", () => {
   it("35mm vertical: four callouts derived from openingDimensions/pegPositions", () => {
-    // openingDimensions(base) = { openingHeight: 37, openingWidth: 24 } (see above)
+    // openingDimensions(base) = { openingHeight: 36, openingWidth: 24 } (see above)
     // pegPositions(base) = { x: 14.8, y: 20.3 } (see above)
     const { dimensions } = buildScene(base);
     expect(dimensions).toEqual([
-      { from: [-18.5, -18], to: [18.5, -18], label: "37.0 mm", axis: "x" },
-      { from: [-24.5, -12], to: [-24.5, 12], label: "24.0 mm", axis: "y" },
+      { from: [-18, -18], to: [18, -18], label: "36.0 mm", axis: "x" },
+      { from: [-24, -12], to: [-24, 12], label: "24.0 mm", axis: "y" },
       { from: [-14.8, 26.3], to: [14.8, 26.3], label: "29.6 mm", axis: "x" },
       { from: [20.8, -20.3], to: [20.8, 20.3], label: "40.6 mm", axis: "y" },
     ]);
   });
 
   it("35mm horizontal: opening axes and peg axes swap", () => {
-    // openingDimensions horizontal = { openingHeight: 24, openingWidth: 37 }
+    // openingDimensions horizontal = { openingHeight: 24, openingWidth: 36 }
     // pegPositions horizontal = { x: 20.3, y: 14.8 } (see above)
     const { dimensions } = buildScene({ ...base, orientation: "horizontal" });
     expect(dimensions).toEqual([
-      { from: [-12, -24.5], to: [12, -24.5], label: "24.0 mm", axis: "x" },
-      { from: [-18, -18.5], to: [-18, 18.5], label: "37.0 mm", axis: "y" },
+      { from: [-12, -24], to: [12, -24], label: "24.0 mm", axis: "x" },
+      { from: [-18, -18], to: [-18, 18], label: "36.0 mm", axis: "y" },
       { from: [-20.3, 20.8], to: [20.3, 20.8], label: "40.6 mm", axis: "x" },
       { from: [26.3, -14.8], to: [26.3, 14.8], label: "29.6 mm", axis: "y" },
     ]);
