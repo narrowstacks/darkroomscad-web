@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { renderParts, zipParts, isEmptyStlError } from "./export-controller";
-import { unzipSync } from "fflate";
+import { strFromU8, unzipSync } from "fflate";
 import type { RenderResult } from "../openscad/types";
 
 const form = {
@@ -47,5 +47,12 @@ describe("zipParts", () => {
     const zip = zipParts([{ name: "a.stl", stl: new Uint8Array([1, 2]) }]);
     const back = unzipSync(zip);
     expect(Array.from(back["a.stl"])).toEqual([1, 2]);
+  });
+
+  it("bundles extra text files (e.g. the preset JSON) alongside the STLs", () => {
+    const zip = zipParts([{ name: "a.stl", stl: new Uint8Array([1]) }], { "a.json": "[{\"x\":1}]" });
+    const back = unzipSync(zip);
+    expect(Object.keys(back).sort()).toEqual(["a.json", "a.stl"]);
+    expect(JSON.parse(strFromU8(back["a.json"]))).toEqual([{ x: 1 }]);
   });
 });

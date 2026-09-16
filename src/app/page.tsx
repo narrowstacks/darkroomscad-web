@@ -174,7 +174,7 @@ function HomeContent() {
         <div className="flex flex-col gap-4 md:min-h-0">
           <section className="panel shadow-subtle animate-slide-fade-bottom shrink-0 p-4">
             <h2 className="eyebrow mb-3">Export</h2>
-            <ExportPanel client={getClient} getParams={() => toParams({})}
+            <ExportPanel client={getClient} getParams={() => toParams({})} getValues={() => values}
               presetName={presets.find((p) => p.id === selectedPresetId)?.name} />
           </section>
           <div className="md:min-h-0 md:flex-1 md:overflow-y-auto md:pr-1">

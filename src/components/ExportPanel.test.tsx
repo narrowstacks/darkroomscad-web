@@ -14,6 +14,7 @@ function fakeClient(render: RenderFn): () => RenderClient {
 
 const params: RenderParams = { Carrier_Type: "omega-d", Film_Format: "35mm", Orientation: "vertical" };
 const getParams = () => params;
+const getValues = () => params;
 
 function okResult(): RenderResult {
   return { stl: new Uint8Array(100), log: "", durationMs: 1 };
@@ -39,7 +40,7 @@ describe("ExportPanel", () => {
       calls++;
       return okResult();
     });
-    render(<ExportPanel client={client} getParams={getParams} />);
+    render(<ExportPanel client={client} getParams={getParams} getValues={getValues} />);
 
     const zipButton = screen.getByRole("button", { name: /Download set \(ZIP\)/i }) as HTMLButtonElement;
     fireEvent.click(zipButton);
@@ -54,7 +55,7 @@ describe("ExportPanel", () => {
     const client = fakeClient(async () => {
       throw new Error("boom");
     });
-    render(<ExportPanel client={client} getParams={getParams} />);
+    render(<ExportPanel client={client} getParams={getParams} getValues={getValues} />);
 
     const zipButton = screen.getByRole("button", { name: /Download set \(ZIP\)/i }) as HTMLButtonElement;
     fireEvent.click(zipButton);
@@ -70,7 +71,7 @@ describe("ExportPanel", () => {
       if (shouldFail) throw new Error("boom");
       return okResult();
     });
-    render(<ExportPanel client={client} getParams={getParams} />);
+    render(<ExportPanel client={client} getParams={getParams} getValues={getValues} />);
 
     const zipButton = screen.getByRole("button", { name: /Download set \(ZIP\)/i });
     fireEvent.click(zipButton);
@@ -84,7 +85,7 @@ describe("ExportPanel", () => {
 
   it("individual parts list shows a row per enumerated part", async () => {
     const client = fakeClient(async () => okResult());
-    render(<ExportPanel client={client} getParams={getParams} />);
+    render(<ExportPanel client={client} getParams={getParams} getValues={getValues} />);
 
     fireEvent.click(screen.getByRole("button", { name: /Download individual parts/i }));
     fireEvent.click(screen.getByRole("button", { name: /Render all parts/i }));

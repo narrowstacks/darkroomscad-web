@@ -3,8 +3,10 @@ import { useState } from "react";
 import { ChevronDown, Download, Loader2, Package, TriangleAlert } from "lucide-react";
 import { renderParts, zipParts, type ExportProgress, type ExportedPart } from "@/lib/export/export-controller";
 import { zipFileName } from "@/lib/export/zip-name";
+import { presetFileJson } from "@/lib/export/preset-json";
 import { download } from "@/lib/export/download";
 import type { RenderParams } from "@/lib/openscad/types";
+import type { FormValue } from "@/lib/form/types";
 import type { RenderClient } from "@/lib/openscad/client";
 
 function fileSize(bytes: number): string {
@@ -13,10 +15,13 @@ function fileSize(bytes: number): string {
   return kb < 1024 ? `${kb.toFixed(0)} KB` : `${(kb / 1024).toFixed(1)} MB`;
 }
 
-export function ExportPanel({ client, getParams, presetName }: {
+export function ExportPanel({ client, getParams, getValues, presetName }: {
   client: () => RenderClient;
   getParams: () => RenderParams;
-  // Name of the loaded, unchanged preset (if any) — used in the ZIP filename.
+  // Raw form values — written into the ZIP as an importable preset JSON.
+  getValues: () => Record<string, FormValue>;
+  // Name of the loaded, unchanged preset (if any) — used in the ZIP filename
+  // and as the bundled preset's name.
   presetName?: string;
 }) {
   const [busy, setBusy] = useState(false);
@@ -44,7 +49,12 @@ export function ExportPanel({ client, getParams, presetName }: {
     const p = await run();
     if (!p || p.length === 0) return;
     const form = getParams();
-    download(zipFileName(form, presetName), zipParts(p), "application/zip");
+    const zipName = zipFileName(form, presetName);
+    // Bundle the config as a preset file (re-importable via "Import presets…"),
+    // named after the loaded preset or, failing that, the ZIP itself.
+    const baseName = zipName.replace(/\.zip$/, "");
+    const json = presetFileJson(presetName ?? baseName, getValues());
+    download(zipName, zipParts(p, { [`${baseName}.json`]: json }), "application/zip");
   }
 
   return (

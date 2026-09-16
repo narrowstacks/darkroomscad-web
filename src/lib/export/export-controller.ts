@@ -1,4 +1,4 @@
-import { zipSync } from "fflate";
+import { strToU8, zipSync } from "fflate";
 import { enumerateParts } from "./part-enumeration";
 import type { RenderParams, RenderResult } from "../openscad/types";
 
@@ -37,8 +37,11 @@ export async function renderParts(
   return { parts, skipped };
 }
 
-export function zipParts(parts: ExportedPart[]): Uint8Array {
+// `extras` are additional text files (e.g. the importable preset JSON) bundled
+// alongside the STLs, keyed by filename.
+export function zipParts(parts: ExportedPart[], extras: Record<string, string> = {}): Uint8Array {
   const entries: Record<string, Uint8Array> = {};
   for (const p of parts) entries[p.name] = p.stl;
+  for (const [name, text] of Object.entries(extras)) entries[name] = strToU8(text);
   return zipSync(entries);
 }
