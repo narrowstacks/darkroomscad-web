@@ -212,9 +212,13 @@ export function directionalArrow(c: TwoDConfig): { points: [number, number][] } 
   return { points };
 }
 
-// Fixed callout offset (mm) placing a dimension line just outside the extent
-// it measures. v1 keeps this constant rather than a layout heuristic.
-const DIMENSION_OFFSET = 6;
+// Fixed callout offsets (mm) placing a dimension line just outside the extent
+// it measures. v1 keeps these constant rather than a layout heuristic. The
+// opening callouts hug the opening tightly so they aren't read as peg
+// measurements (with the same 6mm standoff the opening line fell right on the
+// peg column for some formats); peg callouts stand further out.
+const OPENING_DIMENSION_OFFSET = 3;
+const PEG_DIMENSION_OFFSET = 6;
 
 // The four v1 dimension callouts: opening X/Y extents and peg-center spacing
 // X/Y. Labels report the value along the drawn axis (see the opening-axis
@@ -228,30 +232,30 @@ function dimensionAnnotations(
     {
       // Opening X extent (scene.opening.w = openingHeight): horizontal
       // callout just below the opening.
-      from: [-halfH, -halfW - DIMENSION_OFFSET],
-      to: [halfH, -halfW - DIMENSION_OFFSET],
+      from: [-halfH, -halfW - OPENING_DIMENSION_OFFSET],
+      to: [halfH, -halfW - OPENING_DIMENSION_OFFSET],
       label: `${openingHeight.toFixed(1)} mm`,
       axis: "x",
     },
     {
       // Opening Y extent (openingWidth): vertical callout just left of the opening.
-      from: [-halfH - DIMENSION_OFFSET, -halfW],
-      to: [-halfH - DIMENSION_OFFSET, halfW],
+      from: [-halfH - OPENING_DIMENSION_OFFSET, -halfW],
+      to: [-halfH - OPENING_DIMENSION_OFFSET, halfW],
       label: `${openingWidth.toFixed(1)} mm`,
       axis: "y",
     },
     {
       // Peg spacing X (center-to-center = 2 * pegX): horizontal callout
       // above the top peg pair.
-      from: [-pegX, pegY + DIMENSION_OFFSET],
-      to: [pegX, pegY + DIMENSION_OFFSET],
+      from: [-pegX, pegY + PEG_DIMENSION_OFFSET],
+      to: [pegX, pegY + PEG_DIMENSION_OFFSET],
       label: `${(2 * pegX).toFixed(1)} mm`,
       axis: "x",
     },
     {
       // Peg spacing Y (= 2 * pegY): vertical callout beside a peg column.
-      from: [pegX + DIMENSION_OFFSET, -pegY],
-      to: [pegX + DIMENSION_OFFSET, pegY],
+      from: [pegX + PEG_DIMENSION_OFFSET, -pegY],
+      to: [pegX + PEG_DIMENSION_OFFSET, pegY],
       label: `${(2 * pegY).toFixed(1)} mm`,
       axis: "y",
     },

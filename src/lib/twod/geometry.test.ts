@@ -315,8 +315,8 @@ describe("buildScene dimensions", () => {
     // pegPositions(base) = { x: 14.8, y: 20.3 } (see above)
     const { dimensions } = buildScene(base);
     expect(dimensions).toEqual([
-      { from: [-18, -18], to: [18, -18], label: "36.0 mm", axis: "x" },
-      { from: [-24, -12], to: [-24, 12], label: "24.0 mm", axis: "y" },
+      { from: [-18, -15], to: [18, -15], label: "36.0 mm", axis: "x" },
+      { from: [-21, -12], to: [-21, 12], label: "24.0 mm", axis: "y" },
       { from: [-14.8, 26.3], to: [14.8, 26.3], label: "29.6 mm", axis: "x" },
       { from: [20.8, -20.3], to: [20.8, 20.3], label: "40.6 mm", axis: "y" },
     ]);
@@ -327,8 +327,8 @@ describe("buildScene dimensions", () => {
     // pegPositions horizontal = { x: 20.3, y: 14.8 } (see above)
     const { dimensions } = buildScene({ ...base, orientation: "horizontal" });
     expect(dimensions).toEqual([
-      { from: [-12, -24], to: [12, -24], label: "24.0 mm", axis: "x" },
-      { from: [-18, -18], to: [-18, 18], label: "36.0 mm", axis: "y" },
+      { from: [-12, -21], to: [12, -21], label: "24.0 mm", axis: "x" },
+      { from: [-15, -18], to: [-15, 18], label: "36.0 mm", axis: "y" },
       { from: [-20.3, 20.8], to: [20.3, 20.8], label: "40.6 mm", axis: "x" },
       { from: [26.3, -14.8], to: [26.3, 14.8], label: "29.6 mm", axis: "y" },
     ]);
@@ -342,8 +342,8 @@ describe("buildScene dimensions", () => {
       customOpeningHeight: 50, customOpeningWidth: 40, customFilmWidth: 50,
     });
     expect(dimensions).toEqual([
-      { from: [-25, -26], to: [25, -26], label: "50.0 mm", axis: "x" },
-      { from: [-31, -20], to: [-31, 20], label: "40.0 mm", axis: "y" },
+      { from: [-25, -23], to: [25, -23], label: "50.0 mm", axis: "x" },
+      { from: [-28, -20], to: [-28, 20], label: "40.0 mm", axis: "y" },
       { from: [-21.3, 32.8], to: [21.3, 32.8], label: "42.6 mm", axis: "x" },
       { from: [27.3, -26.8], to: [27.3, 26.8], label: "53.6 mm", axis: "y" },
     ]);
