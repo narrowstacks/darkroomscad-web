@@ -51,9 +51,11 @@ export function openingDimensions(c: TwoDConfig): { openingHeight: number; openi
   };
 }
 
-// Port of calculate_internal_peg_gap.
+// Port of calculate_internal_peg_gap. Filed formats get FILED_PEG_EXTRA_GAP
+// more clearance per side on the peg-distance axis.
+const FILED_PEG_EXTRA_GAP = 0.5;
 function internalPegGap(c: TwoDConfig): number {
-  return isFiledFormat(c.filmFormat) ? (1 - c.pegGap) - 1 : (1 - c.pegGap);
+  return isFiledFormat(c.filmFormat) ? (1 - c.pegGap) - FILED_PEG_EXTRA_GAP : (1 - c.pegGap);
 }
 
 // Port of calculate_unified_peg_positions (omega style; used for all carriers).

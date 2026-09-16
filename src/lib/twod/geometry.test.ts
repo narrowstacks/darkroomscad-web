@@ -48,8 +48,9 @@ describe("pegPositions", () => {
   it("6x6 vertical", () => {
     expect(pegPositions({ ...base, filmFormat: "6x6" })).toEqual({ x: 30.8, y: 32.8 });
   });
-  it("filed format uses the reduced internal gap", () => {
-    expect(pegPositions({ ...base, filmFormat: "35mm filed" })).toEqual({ x: 16.8, y: 21.3 });
+  it("filed format uses the reduced internal gap (0.5mm extra per side)", () => {
+    // dominant = 28/2+2.8 = 16.8 ; peg-distance axis = 37/2+2.8-0.5 = 20.8
+    expect(pegPositions({ ...base, filmFormat: "35mm filed" })).toEqual({ x: 16.8, y: 20.8 });
   });
   it("peg gap shifts only the peg-distance axis", () => {
     expect(pegPositions({ ...base, pegGap: 0.5 })).toEqual({ x: 14.8, y: 20.8 });
