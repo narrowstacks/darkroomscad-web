@@ -40,24 +40,31 @@ describe("openingDimensions", () => {
 
 describe("pegPositions", () => {
   it("35mm vertical", () => {
-    expect(pegPositions(base)).toEqual({ x: 14.8, y: 20.3 });
+    expect(pegPositions(base)).toEqual({ x: 14.8, y: 20.55 });
   });
   it("35mm horizontal swaps axes", () => {
-    expect(pegPositions({ ...base, orientation: "horizontal" })).toEqual({ x: 20.3, y: 14.8 });
+    expect(pegPositions({ ...base, orientation: "horizontal" })).toEqual({ x: 20.55, y: 14.8 });
   });
-  it("6x6 vertical", () => {
-    expect(pegPositions({ ...base, filmFormat: "6x6" })).toEqual({ x: 30.8, y: 32.8 });
+  it("6x6 vertical: pegs clear the 61.5mm 120 stock", () => {
+    // dominant = 56/2+2.8 = 30.8 ; peg-distance axis = 64/2+2.8-1 = 33.8 (inner face at 31 = 61.5/2 + 0.25)
+    expect(pegPositions({ ...base, filmFormat: "6x6" })).toEqual({ x: 30.8, y: 33.8 });
+  });
+  it("4x5: pegs clear the 101.6mm sheet on X (always horizontal)", () => {
+    // peg-distance axis = 104.1/2+2.8-1 = 53.85 (inner face at 51.05 = 101.6/2 + 0.25) ; dominant = 95/2+2.8 = 50.3
+    const p = pegPositions({ ...base, filmFormat: "4x5" });
+    expect(p.x).toBeCloseTo(53.85, 10);
+    expect(p.y).toBeCloseTo(50.3, 10);
   });
   it("filed format uses the reduced internal gap (0.5mm extra per side)", () => {
-    // dominant = 28/2+2.8 = 16.8 ; peg-distance axis = 37/2+2.8-0.5 = 20.8
-    expect(pegPositions({ ...base, filmFormat: "35mm filed" })).toEqual({ x: 16.8, y: 20.8 });
+    // dominant = 28/2+2.8 = 16.8 ; peg-distance axis = 37.5/2+2.8-0.5 = 21.05
+    expect(pegPositions({ ...base, filmFormat: "35mm filed" })).toEqual({ x: 16.8, y: 21.05 });
   });
   it("half frame filed gets the same reduced gap as 35mm filed", () => {
     // Same 28mm-wide opening and 37mm peg distance as 35mm filed, so identical pegs.
-    expect(pegPositions({ ...base, filmFormat: "half frame filed" })).toEqual({ x: 16.8, y: 20.8 });
+    expect(pegPositions({ ...base, filmFormat: "half frame filed" })).toEqual({ x: 16.8, y: 21.05 });
   });
   it("peg gap shifts only the peg-distance axis", () => {
-    expect(pegPositions({ ...base, pegGap: 0.5 })).toEqual({ x: 14.8, y: 20.8 });
+    expect(pegPositions({ ...base, pegGap: 0.5 })).toEqual({ x: 14.8, y: 21.05 });
   });
   it("custom format: dominant axis uses default 37, peg distance uses custom width", () => {
     // SCAD parity: dominant = 37/2+2.8 = 21.3 ; non-dominant = 50/2+2.8-1 = 26.8
@@ -312,25 +319,25 @@ describe("buildScene", () => {
 describe("buildScene dimensions", () => {
   it("35mm vertical: four callouts derived from openingDimensions/pegPositions", () => {
     // openingDimensions(base) = { openingHeight: 36, openingWidth: 24 } (see above)
-    // pegPositions(base) = { x: 14.8, y: 20.3 } (see above)
+    // pegPositions(base) = { x: 14.8, y: 20.55 } (see above)
     const { dimensions } = buildScene(base);
     expect(dimensions).toEqual([
       { from: [-18, -15], to: [18, -15], label: "36.0 mm", axis: "x" },
       { from: [-21, -12], to: [-21, 12], label: "24.0 mm", axis: "y" },
-      { from: [-14.8, 26.3], to: [14.8, 26.3], label: "29.6 mm", axis: "x" },
-      { from: [20.8, -20.3], to: [20.8, 20.3], label: "40.6 mm", axis: "y" },
+      { from: [-14.8, 26.55], to: [14.8, 26.55], label: "29.6 mm", axis: "x" },
+      { from: [20.8, -20.55], to: [20.8, 20.55], label: "41.1 mm", axis: "y" },
     ]);
   });
 
   it("35mm horizontal: opening axes and peg axes swap", () => {
     // openingDimensions horizontal = { openingHeight: 24, openingWidth: 36 }
-    // pegPositions horizontal = { x: 20.3, y: 14.8 } (see above)
+    // pegPositions horizontal = { x: 20.55, y: 14.8 } (see above)
     const { dimensions } = buildScene({ ...base, orientation: "horizontal" });
     expect(dimensions).toEqual([
       { from: [-12, -21], to: [12, -21], label: "24.0 mm", axis: "x" },
       { from: [-15, -18], to: [-15, 18], label: "36.0 mm", axis: "y" },
-      { from: [-20.3, 20.8], to: [20.3, 20.8], label: "40.6 mm", axis: "x" },
-      { from: [26.3, -14.8], to: [26.3, 14.8], label: "29.6 mm", axis: "y" },
+      { from: [-20.55, 20.8], to: [20.55, 20.8], label: "41.1 mm", axis: "x" },
+      { from: [26.55, -14.8], to: [26.55, 14.8], label: "29.6 mm", axis: "y" },
     ]);
   });
 
