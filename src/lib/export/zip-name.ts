@@ -1,4 +1,5 @@
 import type { RenderParams } from "../openscad/types";
+import { formatSlug } from "./format-slug";
 
 // Controlled enum values (carrier type, film format) only need whitespace
 // collapsed — e.g. "35mm filed" -> "35mm-filed".
@@ -19,7 +20,8 @@ function sanitize(s: string): string {
 }
 
 // The descriptive tail: "<carrier>_<format>", where format is the film-format
-// name, or for custom sizes the actual film dimensions (e.g. "60mmX45mm").
+// name (plus "-x<n>" for a multi-frame opening), or for custom sizes the actual
+// film dimensions (e.g. "60mmX45mm").
 function carrierAndFormat(form: RenderParams): string {
   const carrier = slug(String(form.Carrier_Type ?? "carrier"));
   if (form.Film_Format === "custom") {
@@ -28,7 +30,7 @@ function carrierAndFormat(form: RenderParams): string {
     if (!Number.isFinite(w) || !Number.isFinite(h)) return `${carrier}_custom`;
     return `${carrier}_${w}mmX${h}mm`;
   }
-  return `${carrier}_${slug(String(form.Film_Format ?? "format"))}`;
+  return `${carrier}_${formatSlug(form)}`;
 }
 
 /**
@@ -43,6 +45,7 @@ function carrierAndFormat(form: RenderParams): string {
  *  - "MyPreset_AARON_omega-d_35mm-filed.zip" (preset + name)
  *  - "AARON_omega-d_35mm-filed.zip"          (name only)
  *  - "omega-d_60mmX45mm.zip"                  (custom size, no preset/name)
+ *  - "omega-d_35mm-x2.zip"                    (two-frame opening)
  */
 export function zipFileName(form: RenderParams, presetName?: string): string {
   const parts: string[] = [];

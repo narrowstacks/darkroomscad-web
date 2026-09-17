@@ -48,6 +48,7 @@ export function resolveFormModel(schema: ParamSchema, ui: GroupConfig[]): Resolv
         unit: fc.unit,
         default: override !== undefined ? override : p.default,
         optionVisual: fc.optionVisual,
+        optionSections: fc.optionSections,
         visibleWhen: fc.visibleWhen,
         disabledWhen: fc.disabledWhen,
         optionDisabledWhen: fc.optionDisabledWhen,

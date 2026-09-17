@@ -57,6 +57,10 @@
       "path": "/src/omega-d-base-shape.scad"
     },
     {
+      "url": "/scad/src/omega-d-glass-base-shape.scad",
+      "path": "/src/omega-d-glass-base-shape.scad"
+    },
+    {
       "url": "/scad/src/test-frame-base-shape.scad",
       "path": "/src/test-frame-base-shape.scad"
     },

@@ -29,6 +29,21 @@ describe("parseConfig", () => {
     expect(c.ownerName).toBe("ADA");
     expect(c.ownerTextOffset).toEqual([2, 3]);
     expect(c.fontSize).toBe(10);
+    expect(c.frameCount).toBe(1);
+  });
+
+  it("reads the glass-plate params with carrier.scad defaults", () => {
+    expect(parseConfig({}).glass).toEqual({
+      plateWidth: 101, plateLength: 126, plateThickness: 2, sidePlay: 0.5, depthPlay: 0.2,
+      notchDiameter: 16, notchCorner: "handle-lower", notchFloor: 0.6, notchReach: 2.5,
+    });
+    expect(parseConfig({ Glass_Notch_Corner: "far-upper", Glass_Plate_Width: 100 }).glass)
+      .toMatchObject({ notchCorner: "far-upper", plateWidth: 100 });
+  });
+
+  it("reads Frame_Count (the schema enum carries numbers; strings from a share link coerce)", () => {
+    expect(parseConfig({ Frame_Count: 2 }).frameCount).toBe(2);
+    expect(parseConfig({ Frame_Count: "3" }).frameCount).toBe(3);
   });
 
   it("falls back to defaults for missing keys", () => {

@@ -3,10 +3,13 @@ export type ControlKind =
   | "segmented" | "switch" | "slider" | "cards";
 export type FormValue = string | number | boolean;
 
+/** Help text, or a function of the current values (for "locked because…" hints). */
+export type FieldHelp = string | ((values: Record<string, FormValue>) => string | undefined);
+
 export interface FieldConfig {
   param: string;
   label: string;
-  help?: string;
+  help?: FieldHelp;
   advanced?: boolean;
   control?: ControlKind;
   optionsFrom?: "fonts";
@@ -15,6 +18,9 @@ export interface FieldConfig {
   optionLabels?: Record<string, string>;
   /** Option values to hide from the control entirely (e.g. not-yet-implemented choices). */
   hideOptions?: string[];
+  /** Cards control: split these options out under their own sub-heading below
+   *  the main grid (e.g. special-purpose carriers). Order of sections is kept. */
+  optionSections?: { title: string; values: string[] }[];
   min?: number;
   max?: number;
   step?: number;
@@ -34,7 +40,7 @@ export interface GroupConfig {
 export interface ResolvedField {
   param: string;
   label: string;
-  help?: string;
+  help?: FieldHelp;
   advanced: boolean;
   control: ControlKind;
   options?: { value: string | number; label: string }[];
@@ -44,6 +50,7 @@ export interface ResolvedField {
   unit?: string;
   default: FormValue;
   optionVisual?: "carrier-outline";
+  optionSections?: { title: string; values: string[] }[];
   visibleWhen?: (values: Record<string, FormValue>) => boolean;
   disabledWhen?: (values: Record<string, FormValue>) => boolean;
   optionDisabledWhen?: (optionValue: string | number, values: Record<string, FormValue>) => boolean;

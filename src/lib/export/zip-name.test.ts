@@ -28,6 +28,11 @@ describe("zipFileName", () => {
     expect(zipFileName(form)).toBe("omega-d_35mm-filed.zip");
   });
 
+  it("names a multi-frame carrier with the frame count", () => {
+    const form = { ...baseForm, Enable_Owner_Name_Etch: false, Frame_Count: 2 };
+    expect(zipFileName(form)).toBe("omega-d_35mm-filed-x2.zip");
+  });
+
   it("custom size: uses the film dimensions instead of a format name", () => {
     const form: RenderParams = {
       Carrier_Type: "omega-d",

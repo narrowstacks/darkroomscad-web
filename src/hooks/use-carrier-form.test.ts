@@ -120,6 +120,28 @@ describe("useCarrierForm", () => {
     expect(result.current.values.Orientation).toBe("horizontal");
   });
 
+  it("omega-d-glass pins everything carrier.scad forces: 4x5 (horizontal), bottom, no flip, board off + omega", () => {
+    const { result } = renderHook(() => useCarrierForm());
+    act(() => {
+      result.current.setValue("Top_or_Bottom", "top");
+      result.current.setValue("Alignment_Board", true);
+      result.current.setValue("Alignment_Board_Type", "lpl-saunders");
+      result.current.setValue("Film_Format", "6x6 filed");
+    });
+    act(() => {
+      result.current.setValue("Carrier_Type", "omega-d-glass");
+    });
+    expect(result.current.values).toMatchObject({
+      Film_Format: "4x5", Orientation: "horizontal", Top_or_Bottom: "bottom",
+      Flip_Bottom_For_Printing: false, Alignment_Board: false, Alignment_Board_Type: "omega",
+    });
+    // A stray edit of a locked field is pinned straight back.
+    act(() => {
+      result.current.setValue("Film_Format", "35mm");
+    });
+    expect(result.current.values.Film_Format).toBe("4x5");
+  });
+
   it("reset returns to the seed values", () => {
     const fresh = renderHook(() => useCarrierForm());
     const seedValues = fresh.result.current.values;

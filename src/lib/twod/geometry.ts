@@ -1,7 +1,7 @@
-import type { TwoDConfig, TextPlacement, Scene, PegShape, DimensionAnnotation } from "./types";
-import { FILM_FORMATS, isFiledFormat, filmTypeName } from "./film-data";
+import type { TwoDConfig, TextPlacement, Scene, PegShape, DimensionAnnotation, RecessShape } from "./types";
+import { FILM_FORMATS, isFiledFormat, filmTypeName, filmFramePitch, effectiveFrameCount } from "./film-data";
 import { measureTextWidthMm, SCAD_TEXT_EM_SCALE } from "./measure-text";
-import { BOARD_CARRIERS } from "@/config/carriers";
+import { BOARD_CARRIERS, SCREW_ON_BOARD_CARRIERS, SINGLE_PIECE_CARRIERS, FILM_PEG_CARRIERS, screwOnBoardType } from "@/config/carriers";
 
 // Default film dimensions used by SCAD when format is "custom" and no override
 // is passed — matches film-sizes.scad customFilmFormatWidth / customFilmFormatHeight.
@@ -35,13 +35,27 @@ function filmDims(c: TwoDConfig): { height: number; width: number; pegDistance: 
   return { height: f.height, width: f.width, pegDistance: f.pegDistance };
 }
 
+/** Frames the opening actually spans (1 for 4x5 / custom, whatever Frame_Count says). */
+export function frameCount(c: TwoDConfig): number {
+  return effectiveFrameCount(c.filmFormat, c.frameCount);
+}
+
+// Port of get_multi_frame_height: the film "height" (frame length along the
+// strip) grows by one frame pitch per extra frame. A filed height keeps its
+// rebate reveal at the two ends only; between frames the opening shows exactly
+// the true inter-frame gap.
+function multiFrameHeight(c: TwoDConfig, height: number): number {
+  return height + (frameCount(c) - 1) * filmFramePitch(c.filmFormat);
+}
+
 // Port of get_custom_aware_opening_* (carrier-features.scad). Returned as the
 // film_opening cuboid axes: X-extent = openingHeight, Y-extent = openingWidth.
 export function openingDimensions(c: TwoDConfig): { openingHeight: number; openingWidth: number } {
   if (c.filmFormat === "custom") {
     return { openingHeight: c.customOpeningHeight, openingWidth: c.customOpeningWidth };
   }
-  const { height, width } = filmDims(c);
+  const { height: singleHeight, width } = filmDims(c);
+  const height = multiFrameHeight(c, singleHeight);
   const eff = effectiveOrientation(c);
   const calcHeight = eff === "vertical" ? height : width;
   const calcWidth = eff === "vertical" ? width : height;
@@ -84,27 +98,82 @@ export function pegRadiusAndKind(c: TwoDConfig): { r: number; kind: "peg" | "hol
     : { r: M2_SOCKET_HEAD_DIA / 2 + PEG_HOLE_TOLERANCE, kind: "hole" };           // 2.15
 }
 
+// The single-piece glass carrier is always the bottom-style piece (carrier.scad
+// forces top_or_bottom="bottom"); everything else honours the toggle.
+export function effectiveTopOrBottom(c: TwoDConfig): "top" | "bottom" {
+  return SINGLE_PIECE_CARRIERS.has(c.carrierType) ? "bottom" : c.topOrBottom;
+}
+
+// Board type the carrier is actually used with: screw-on carriers pin their
+// own (carrier.scad forces "omega" for omega-d-glass).
+export function effectiveBoardType(c: TwoDConfig): string {
+  return screwOnBoardType(c.carrierType) ?? c.alignmentBoardType;
+}
+
+// Is the board fused into this carrier? Never for screw-on carriers.
+function boardFused(c: TwoDConfig): boolean {
+  return c.alignmentBoard && !SCREW_ON_BOARD_CARRIERS.has(c.carrierType);
+}
+
 // Port of generate_universal_alignment_footprint_holes + alignment_footprint_holes.
-// Holes appear only when the board is NOT attached and the board type is
+// Holes appear only when the board is NOT fused and the board type is
 // omega/lpl (so the carrier can screw onto a separately-printed board).
 const SCREW_PATTERN_DIST_X = 82;   // UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_X
 const SCREW_PATTERN_DIST_Y = 113;  // UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_Y
 const SCREW_DIAMETER = 2;          // UNIVERSAL_ALIGNMENT_SCREW_DIAMETER
+// omega-d-glass: the universal pattern lands inside the 4x5 opening, so it has
+// its own (carrier-configs.scad OMEGA_D_GLASS_SCREW_PATTERN_DIST_*).
+const GLASS_SCREW_PATTERN_DIST_X = 112;
+const GLASS_SCREW_PATTERN_DIST_Y = 80;
 
 export function screwFootprint(c: TwoDConfig): { cx: number; cy: number; r: number }[] {
-  const usesFootprint = c.alignmentBoardType === "omega" || c.alignmentBoardType === "lpl-saunders";
-  if (c.alignmentBoard || !usesFootprint || !BOARD_CARRIERS.has(c.carrierType)) return [];
-  const ex = SCREW_PATTERN_DIST_X / 2;  // 41
-  const ey = SCREW_PATTERN_DIST_Y / 2;  // 56.5
+  const boardType = effectiveBoardType(c);
+  const usesFootprint = boardType === "omega" || boardType === "lpl-saunders";
+  if (boardFused(c) || !usesFootprint || !BOARD_CARRIERS.has(c.carrierType)) return [];
+  const glass = c.carrierType === "omega-d-glass";
+  const ex = (glass ? GLASS_SCREW_PATTERN_DIST_X : SCREW_PATTERN_DIST_X) / 2;  // 56 / 41
+  const ey = (glass ? GLASS_SCREW_PATTERN_DIST_Y : SCREW_PATTERN_DIST_Y) / 2;  // 40 / 56.5
   const r = SCREW_DIAMETER / 2;         // 1
   const out: { cx: number; cy: number; r: number }[] = [];
   for (const sx of [-1, 1]) for (const sy of [-1, 1]) out.push({ cx: sx * ex, cy: sy * ey, r });
   return out;
 }
 
+// Port of omega-d-glass-base-shape.scad: the plate pocket (plate + side play,
+// 1mm inside-corner radius) and the finger notch — a circle just outside the
+// pocket's short (X) edge, tangent to the long edge, reaching `notchReach`
+// under the plate. The Omega-D handle is on -X, so "handle" corners are -X.
+const GLASS_THICKNESS = 4;                // OMEGA_D_GLASS_THICKNESS = 2 × 2
+const GLASS_POCKET_CORNER_RADIUS = 1;     // OMEGA_D_GLASS_POCKET_CORNER_RADIUS
+const NOTCH_SIGNS: Record<string, [number, number]> = {
+  "handle-lower": [-1, -1], "handle-upper": [-1, 1], "far-lower": [1, -1], "far-upper": [1, 1],
+};
+
+export function glassRecesses(c: TwoDConfig): RecessShape[] {
+  if (c.carrierType !== "omega-d-glass") return [];
+  const g = c.glass;
+  const pocketW = g.plateWidth + 2 * g.sidePlay;
+  const pocketL = g.plateLength + 2 * g.sidePlay;
+  const out: RecessShape[] = [
+    { kind: "rect", cx: 0, cy: 0, w: pocketW, h: pocketL, r: GLASS_POCKET_CORNER_RADIUS, through: false },
+  ];
+  const signs = NOTCH_SIGNS[g.notchCorner];
+  if (g.notchDiameter > 0 && signs) {
+    const r = g.notchDiameter / 2;
+    out.push({
+      kind: "circle",
+      cx: signs[0] * (pocketW / 2 + r - g.notchReach),
+      cy: signs[1] * (pocketL / 2 - r),
+      r,
+      through: g.notchFloor <= 0 && GLASS_THICKNESS > 0,
+    });
+  }
+  return out;
+}
+
 // Port of _get_text_settings (carrier-configs.scad): [yTranslate, carrierEdge, edgeMargin].
 function textSettings(carrierType: string): [number, number, number] {
-  if (carrierType === "omega-d") return [-90, 69.5, 5];
+  if (carrierType === "omega-d" || carrierType === "omega-d-glass") return [-90, 69.5, 5];
   if (carrierType === "lpl-saunders-45xx") return [-65, 85, 5];
   if (carrierType === "beseler-23c") return [-65, 60, 5];
   if (carrierType === "beseler-45") return [0, 105, 5];
@@ -113,7 +182,7 @@ function textSettings(carrierType: string): [number, number, number] {
 
 // Port of get_text_rotation.
 function textRotation(carrierType: string): number {
-  if (carrierType === "omega-d" || carrierType === "lpl-saunders-45xx") return 270;
+  if (carrierType === "omega-d" || carrierType === "omega-d-glass" || carrierType === "lpl-saunders-45xx") return 270;
   return 0;
 }
 
@@ -173,7 +242,11 @@ export function textPlacements(
   };
   if (c.enableOwnerEtch) add("owner", c.ownerName, c.ownerTextOffset);
   if (c.enableTypeEtch) {
-    const typeValue = c.typeNameSource === "Custom" ? c.customTypeName : filmTypeName(c.filmFormat);
+    // carrier.scad SELECTED_TYPE_NAME: the glass carrier says so ("4X5 GLASS"),
+    // unless the label is the user's own.
+    const typeValue = c.typeNameSource === "Custom"
+      ? c.customTypeName
+      : filmTypeName(c.filmFormat, c.frameCount) + (c.carrierType === "omega-d-glass" ? " GLASS" : "");
     add("type", typeValue, c.typeTextOffset);
   }
   return out;
@@ -224,11 +297,11 @@ const PEG_DIMENSION_OFFSET = 6;
 // X/Y. Labels report the value along the drawn axis (see the opening-axis
 // convention note on buildScene below), formatted to one decimal.
 function dimensionAnnotations(
-  openingHeight: number, openingWidth: number, pegX: number, pegY: number,
+  openingHeight: number, openingWidth: number, pegs: { x: number; y: number } | null,
 ): DimensionAnnotation[] {
   const halfH = openingHeight / 2;
   const halfW = openingWidth / 2;
-  return [
+  const opening: DimensionAnnotation[] = [
     {
       // Opening X extent (scene.opening.w = openingHeight): horizontal
       // callout just below the opening.
@@ -244,6 +317,11 @@ function dimensionAnnotations(
       label: `${openingWidth.toFixed(1)} mm`,
       axis: "y",
     },
+  ];
+  if (!pegs) return opening;
+  const { x: pegX, y: pegY } = pegs;
+  return [
+    ...opening,
     {
       // Peg spacing X (center-to-center = 2 * pegX): horizontal callout
       // above the top peg pair.
@@ -262,13 +340,22 @@ function dimensionAnnotations(
   ];
 }
 
+// Outline key of the board this carrier is used with, whether it's fused in
+// or printed separately (the film opening must clear its cutout either way).
 // omega board's opening widens for 4x5 → a distinct outline variant.
-function boardOutlineKey(c: TwoDConfig): string | null {
-  if (!c.alignmentBoard || !BOARD_CARRIERS.has(c.carrierType)) return null;
-  if (c.alignmentBoardType === "omega") return c.filmFormat === "4x5" ? "omega-4x5" : "omega";
-  if (c.alignmentBoardType === "lpl-saunders") return "lpl-saunders";
-  if (c.alignmentBoardType === "beseler-23c") return "beseler-23c";
+export function boardTypeOutlineKey(c: TwoDConfig): string | null {
+  if (!BOARD_CARRIERS.has(c.carrierType)) return null;
+  const boardType = effectiveBoardType(c);
+  if (boardType === "omega") return c.filmFormat === "4x5" ? "omega-4x5" : "omega";
+  if (boardType === "lpl-saunders") return "lpl-saunders";
+  if (boardType === "beseler-23c") return "beseler-23c";
   return null;
+}
+
+// The board ghost is drawn when it's fused in, or when it's a screw-on board
+// (always part of the assembly).
+function boardOutlineKey(c: TwoDConfig): string | null {
+  return boardFused(c) || SCREW_ON_BOARD_CARRIERS.has(c.carrierType) ? boardTypeOutlineKey(c) : null;
 }
 
 export function buildScene(
@@ -276,10 +363,14 @@ export function buildScene(
   measure: (t: string, f: string, s: number) => number = measureTextWidthMm,
 ): Scene {
   const { openingHeight, openingWidth } = openingDimensions(c);
-  const { x, y } = pegPositions(c);
+  // Film pegs: none on the glass carrier (its pocket locates the plate).
+  const filmPegs = FILM_PEG_CARRIERS.has(c.carrierType) ? pegPositions(c) : null;
   const { r, kind } = pegRadiusAndKind(c);
   const pegs: PegShape[] = [];
-  for (const sx of [-1, 1]) for (const sy of [-1, 1]) pegs.push({ cx: sx * x, cy: sy * y, r, kind });
+  if (filmPegs) {
+    const { x, y } = filmPegs;
+    for (const sx of [-1, 1]) for (const sy of [-1, 1]) pegs.push({ cx: sx * x, cy: sy * y, r, kind });
+  }
   if (c.carrierType === "beseler-45") {
     // Fixed corner alignment/stacking pegs (universal-carrier-assembly.scad):
     // bottom carries Ø4.6 down-only pegs; top has Ø6 stacking holes.
@@ -296,9 +387,10 @@ export function buildScene(
     opening: { w: openingHeight, h: openingWidth, chamfer: FILM_OPENING_FILLET },
     pegs,
     screwHoles: screwFootprint(c),
+    recesses: glassRecesses(c),
     arrow: directionalArrow(c),
     texts: textPlacements(c, measure),
     boardKey: boardOutlineKey(c),
-    dimensions: dimensionAnnotations(openingHeight, openingWidth, x, y),
+    dimensions: dimensionAnnotations(openingHeight, openingWidth, filmPegs),
   };
 }

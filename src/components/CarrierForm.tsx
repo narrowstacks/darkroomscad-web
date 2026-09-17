@@ -3,10 +3,14 @@ import { useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
 import { Field } from "./controls/Field";
 import { FilmFormatPicker } from "./controls/FilmFormatPicker";
-import type { ResolvedGroup, FormValue } from "@/lib/form/types";
-import { unsupportedFormats } from "@/config/carriers";
+import type { ResolvedGroup, ResolvedField, FormValue } from "@/lib/form/types";
+import { unsupportedFormats, lockedFormat } from "@/config/carriers";
 
 const DELAY = ["", "animate-delay-50", "animate-delay-100", "animate-delay-150", "animate-delay-200", "animate-delay-300"];
+
+// Fields that belong visually to the film-format picker and render right under
+// it, ahead of the group's other fields.
+const PICKER_FIELDS = new Set(["Frame_Count"]);
 
 export function CarrierForm({ groups, values, setValue, renderGroupExtras }: {
   groups: ResolvedGroup[];
@@ -36,6 +40,16 @@ export function CarrierForm({ groups, values, setValue, renderGroupExtras }: {
           );
         }
         const delay = DELAY[Math.min(visibleIndex++, DELAY.length - 1)];
+        const renderField = (f: ResolvedField) => (
+          <Field key={f.param} value={values[f.param]} onChange={(v) => setValue(f.param, v)}
+            field={typeof f.help === "function" ? { ...f, help: f.help(values) } : f}
+            disabled={f.disabledWhen?.(values) ?? false}
+            disabledOptions={f.optionDisabledWhen
+              ? (f.options ?? []).filter((o) => f.optionDisabledWhen!(o.value, values)).map((o) => o.value)
+              : undefined} />
+        );
+        const pickerFields = showPicker ? fields.filter((f) => PICKER_FIELDS.has(f.param)) : [];
+        const otherFields = showPicker ? fields.filter((f) => !PICKER_FIELDS.has(f.param)) : fields;
         return (
           <section key={group.title} className={`panel animate-slide-fade-bottom p-4 ${delay}`}>
             <h2 className="eyebrow mb-3">{group.title}</h2>
@@ -43,15 +57,11 @@ export function CarrierForm({ groups, values, setValue, renderGroupExtras }: {
               {showPicker && (
                 <FilmFormatPicker value={String(values.Film_Format)}
                   onChange={(v) => setValue("Film_Format", v)}
-                  disabledBases={unsupportedFormats(String(values.Carrier_Type))} />
+                  disabledBases={unsupportedFormats(String(values.Carrier_Type))}
+                  lockedBase={lockedFormat(String(values.Carrier_Type))} />
               )}
-              {fields.map((f) => (
-                <Field key={f.param} field={f} value={values[f.param]} onChange={(v) => setValue(f.param, v)}
-                  disabled={f.disabledWhen?.(values) ?? false}
-                  disabledOptions={f.optionDisabledWhen
-                    ? (f.options ?? []).filter((o) => f.optionDisabledWhen!(o.value, values)).map((o) => o.value)
-                    : undefined} />
-              ))}
+              {pickerFields.map(renderField)}
+              {otherFields.map(renderField)}
               {renderGroupExtras?.(group.title)}
             </div>
           </section>

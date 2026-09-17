@@ -20,6 +20,23 @@ describe("enumerateParts", () => {
     expect(jobs[0].name).toBe("omega-d_35mm_vertical_top.stl");
   });
 
+  it("omega-d-glass: one carrier piece plus its screw-on omega board, even if a stale Alignment_Board=true is set", () => {
+    const jobs = enumerateParts({ ...baseForm, Carrier_Type: "omega-d-glass", Film_Format: "4x5", Alignment_Board: true, Alignment_Board_Type: "lpl-saunders" });
+    expect(jobs.map((j) => j.name)).toEqual([
+      "omega-d-glass_4x5_vertical_bottom.stl",
+      "omega-d-glass_omega-alignment-board.stl",
+    ]);
+    expect(jobs[0].params.Top_or_Bottom).toBe("bottom");
+    expect(jobs[1].params._Render_Alignment_Board_Only).toBe(true);
+    // The board job keeps Film_Format so the SCAD picks the 4x5-widened opening.
+    expect(jobs[1].params.Film_Format).toBe("4x5");
+  });
+
+  it("names multi-frame parts with the frame count", () => {
+    const jobs = enumerateParts({ ...baseForm, Frame_Count: 2 });
+    expect(jobs[0].name).toBe("omega-d_35mm-x2_vertical_top.stl");
+  });
+
   it("multi-material with both etches: Base + OwnerText + TypeText per half (6 jobs)", () => {
     const jobs = enumerateParts({ ...baseForm, Text_As_Separate_Parts: true });
     expect(jobs).toHaveLength(6);

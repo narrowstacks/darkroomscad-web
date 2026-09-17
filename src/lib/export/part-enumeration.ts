@@ -1,5 +1,6 @@
 import type { RenderParams } from "../openscad/types";
-import { BOARD_CARRIERS } from "@/config/carriers";
+import { BOARD_CARRIERS, SCREW_ON_BOARD_CARRIERS, SINGLE_PIECE_CARRIERS } from "@/config/carriers";
+import { formatSlug } from "./format-slug";
 
 export interface PartJob {
   name: string;
@@ -12,7 +13,7 @@ function slug(s: string): string {
 
 export function enumerateParts(form: RenderParams): PartJob[] {
   const carrier = slug(String(form.Carrier_Type ?? "carrier"));
-  const format = slug(String(form.Film_Format ?? "format"));
+  const format = formatSlug(form);
   const orient = slug(String(form.Orientation ?? "vertical"));
   const multimat = form.Text_As_Separate_Parts === true;
 
@@ -27,8 +28,13 @@ export function enumerateParts(form: RenderParams): PartJob[] {
     },
   });
 
+  const carrierType = String(form.Carrier_Type);
+  // A single-piece carrier (omega-d-glass) is just the bottom-style piece; the
+  // SCAD ignores Top_or_Bottom for it, so don't render a "top" twin.
+  const halves = SINGLE_PIECE_CARRIERS.has(carrierType) ? ["bottom"] : ["top", "bottom"];
+
   const jobs: PartJob[] = [];
-  for (const half of ["top", "bottom"]) {
+  for (const half of halves) {
     if (!multimat) {
       jobs.push(job(half, "All", ""));
     } else {
@@ -41,9 +47,12 @@ export function enumerateParts(form: RenderParams): PartJob[] {
   // Standalone alignment board: when it isn't fused into the carrier (detached —
   // e.g. printed pegs), export the board as its own printable STL so the set is
   // still complete. When attached (Alignment_Board === true) it's already in the
-  // bottom half, so don't duplicate it.
-  if (BOARD_CARRIERS.has(String(form.Carrier_Type)) && form.Alignment_Board !== true) {
-    const boardType = slug(String(form.Alignment_Board_Type ?? "omega"));
+  // bottom half, so don't duplicate it. A screw-on board (omega-d-glass) is never
+  // fused and always its own type, so it's always exported — carrier.scad picks
+  // the matching board (with screw clearance holes) from Carrier_Type.
+  const screwOn = SCREW_ON_BOARD_CARRIERS.has(carrierType);
+  if (BOARD_CARRIERS.has(carrierType) && (screwOn || form.Alignment_Board !== true)) {
+    const boardType = screwOn ? "omega" : slug(String(form.Alignment_Board_Type ?? "omega"));
     jobs.push({
       name: `${carrier}_${boardType}-alignment-board.stl`,
       params: {

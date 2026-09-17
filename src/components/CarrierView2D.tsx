@@ -2,8 +2,10 @@
 import { useMemo, useState, useEffect } from "react";
 import type { FormValue } from "@/lib/form/types";
 import { parseConfig, type DimensionAnnotation } from "@/lib/twod/types";
-import { buildScene, effectiveOrientation } from "@/lib/twod/geometry";
+import { buildScene, effectiveOrientation, effectiveTopOrBottom, boardTypeOutlineKey } from "@/lib/twod/geometry";
 import { buildFilmOverlay, type CustomFilmSpec } from "@/lib/twod/film-overlay";
+import { openingFitIssues, type FitIssue } from "@/lib/twod/opening-fit";
+import { TriangleAlert } from "lucide-react";
 import { measureTextWidthMm, estimateTextWidthMm, measureBaselineShiftMm, estimateBaselineShiftMm } from "@/lib/twod/measure-text";
 import { CARRIER_OUTLINES } from "@/lib/outline/outlines";
 import { BOARD_OUTLINES } from "@/lib/outline/board-outlines";
@@ -58,6 +60,15 @@ function dimensionLabelPos(d: DimensionAnnotation): [number, number] {
   return [fixedX + sign * nudge, (d.from[1] + d.to[1]) / 2];
 }
 
+const BOARD_LABELS: Record<string, string> = {
+  omega: "Omega D", "lpl-saunders": "LPL-Saunders", "beseler-23c": "Beseler 23C",
+};
+
+function fitMessage(issue: FitIssue, boardType: string): string {
+  if (issue === "body") return "The film opening runs past the carrier body — try fewer frames or the other orientation.";
+  return `The ${BOARD_LABELS[boardType] ?? boardType} alignment board's cutout will mask part of this opening.`;
+}
+
 export function CarrierView2D({ values, showDimensions = false, showFilm = false, customFilm }: { values: Record<string, FormValue>; showDimensions?: boolean; showFilm?: boolean; customFilm?: CustomFilmSpec }) {
   const { theme, viewer } = useTheme();
   const config = useMemo(() => parseConfig(values), [values]);
@@ -80,9 +91,18 @@ export function CarrierView2D({ values, showDimensions = false, showFilm = false
     [config, measureReady],
   );
 
-  const body = (config.topOrBottom === "top" ? CARRIER_OUTLINES[`${config.carrierType}:top`] : undefined)
+  const body = (effectiveTopOrBottom(config) === "top" ? CARRIER_OUTLINES[`${config.carrierType}:top`] : undefined)
     ?? CARRIER_OUTLINES[config.carrierType];
   const board = scene.boardKey ? BOARD_OUTLINES[scene.boardKey] : undefined;
+
+  // Fit warnings: the opening vs. the body, and vs. the cutout of the board this
+  // carrier is used with — checked even when the board ghost isn't drawn, since
+  // a detached board is still printed and stacked under the carrier.
+  const fitBoardKey = boardTypeOutlineKey(config);
+  const fitIssues = useMemo(
+    () => openingFitIssues(scene.opening, body, fitBoardKey ? BOARD_OUTLINES[fitBoardKey] : undefined),
+    [scene.opening, body, fitBoardKey],
+  );
 
   // Padded union viewBox in the outline's native export coordinates (the body and
   // board paths are rendered raw in that space; features/text are mapped into it).
@@ -114,6 +134,17 @@ export function CarrierView2D({ values, showDimensions = false, showFilm = false
   return (
     <div className="shadow-subtle relative h-full w-full overflow-hidden rounded-2xl"
       style={{ background: viewer.background, border: "1px solid var(--border)" }}>
+      {fitIssues.length > 0 && (
+        <div role="alert" data-testid="fit-warning"
+          className="absolute inset-x-3 top-3 z-10 flex items-start gap-2 rounded-xl px-3 py-2 text-sm"
+          style={{ background: "var(--surface)", color: "var(--error)",
+            border: "1px solid color-mix(in srgb, var(--error) 35%, transparent)" }}>
+          <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+          <div>
+            {fitIssues.map((issue) => <p key={issue}>{fitMessage(issue, config.alignmentBoardType)}</p>)}
+          </div>
+        </div>
+      )}
       <svg viewBox={`${view.minX} ${view.minY} ${view.w} ${view.h}`}
         className="h-full w-full" preserveAspectRatio="xMidYMid meet">
         {/* Body: raw outline from the OpenSCAD SVG export, which already maps the
@@ -129,6 +160,17 @@ export function CarrierView2D({ values, showDimensions = false, showFilm = false
             maps them into the export space (model +Y → screen-up) so they align
             with the body and match the 3D layout. */}
         <g transform="scale(1 -1)">
+          {/* Blind recesses in the top face (glass-plate pocket, finger notch):
+              a half-tone of the cut colour so the floor still reads as material;
+              a through-cut notch reads as a hole. Drawn under the opening. */}
+          {scene.recesses.map((rc, i) => rc.kind === "rect" ? (
+            <rect key={`recess-${i}`} data-layer="recess" x={rc.cx - rc.w / 2} y={rc.cy - rc.h / 2}
+              width={rc.w} height={rc.h} rx={rc.r} ry={rc.r}
+              fill={cut} fillOpacity={rc.through ? 1 : 0.45} stroke="var(--border)" strokeWidth={0.4} />
+          ) : (
+            <circle key={`recess-${i}`} data-layer="recess" cx={rc.cx} cy={rc.cy} r={rc.r}
+              fill={cut} fillOpacity={rc.through ? 1 : 0.45} stroke="var(--border)" strokeWidth={0.4} />
+          ))}
           {/* Film opening (cut through). */}
           <path data-layer="opening" d={chamferRectInScad(scene.opening.w, scene.opening.h, scene.opening.chamfer)}
             fill={cut} stroke="var(--border)" strokeWidth={0.4} />

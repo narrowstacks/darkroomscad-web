@@ -55,6 +55,19 @@ export const CARRIER_SPECS: Record<string, CarrierSpec> = {
     bakesBaseStl: true,
     outline: { minWidth: 200, minHeight: 165 }, // body ~202 long, ~168 tall
   },
+  // Single-piece glass-plate carrier: the Omega-D outline at double thickness
+  // (pocket + finger notch are blind, so the silhouette is the plain body). The
+  // base shape reads its pocket/notch config from an omega_d_glass_config()
+  // array; defaults match carrier.scad. Its file doesn't include
+  // omega-d-base-shape.scad itself (the entry point does), so include the
+  // assembly, which pulls in every base shape. Not baked: the 4mm slab with
+  // its pocket renders fast enough parametrically and has no top variant.
+  "omega-d-glass": {
+    include: "src/common/universal-carrier-assembly.scad",
+    call: (part) => `omega_d_glass_base_shape(omega_d_glass_config(101, 126, 2, 0.5, 0.2, 16, "handle-lower", 0.6, 2.5), "${part}");`,
+    bakesBaseStl: false,
+    outline: { minWidth: 200, minHeight: 165 },
+  },
   "lpl-saunders-45xx": {
     include: "src/lpl-saunders-base-shape.scad",
     call: (part) => `lpl_saunders_base_shape([], "${part}");`,

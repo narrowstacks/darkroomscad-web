@@ -20,6 +20,62 @@ describe("carrier-ui overlay vs generated schema", () => {
     expect(byParam.Font_Size.control).toBe("slider");
   });
 
+  it("Frame_Count is a 1–4 segmented control shown only for formats with a frame pitch", () => {
+    const groups = resolveFormModel(s, CARRIER_UI);
+    const f = groups.flatMap((g) => g.fields).find((x) => x.param === "Frame_Count")!;
+    expect(f.control).toBe("segmented");
+    expect((f.options ?? []).map((o) => o.value)).toEqual([1, 2, 3, 4]);
+    expect(f.default).toBe(1);
+    expect(f.visibleWhen!({ Film_Format: "35mm" })).toBe(true);
+    expect(f.visibleWhen!({ Film_Format: "6x6 filed" })).toBe(true);
+    expect(f.visibleWhen!({ Film_Format: "4x5" })).toBe(false);
+    expect(f.visibleWhen!({ Film_Format: "custom" })).toBe(false);
+  });
+
+  it("omega-d-glass: locks part/flip/board (the SCAD forces them) with a 'Locked' hint, hides pegs, shows the glass group", () => {
+    const groups = resolveFormModel(s, CARRIER_UI);
+    const byParam = Object.fromEntries(groups.flatMap((g) => g.fields).map((f) => [f.param, f]));
+    const glass = { Carrier_Type: "omega-d-glass", Glass_Notch_Corner: "handle-lower" };
+    const omega = { Carrier_Type: "omega-d" };
+    const help = (p: string, v: Record<string, string>) => {
+      const h = byParam[p].help;
+      return typeof h === "function" ? h(v) : h;
+    };
+    // Segmented controls lock by disabling every option; switches by disabledWhen.
+    for (const p of ["Top_or_Bottom", "Alignment_Board_Type"]) {
+      expect(byParam[p].optionDisabledWhen!("x", glass), p).toBe(true);
+      expect(byParam[p].optionDisabledWhen!("x", omega), p).toBe(false);
+      expect(help(p, glass)).toMatch(/^Locked/);
+      expect(help(p, omega)).not.toMatch(/^Locked/);
+    }
+    for (const p of ["Alignment_Board", "Flip_Bottom_For_Printing"]) {
+      expect(byParam[p].disabledWhen!(glass), p).toBe(true);
+      expect(byParam[p].disabledWhen!(omega), p).toBe(false);
+      expect(help(p, glass)).toMatch(/^Locked/);
+      expect(help(p, omega) ?? "").not.toMatch(/^Locked/);
+    }
+    expect(byParam.Printed_or_Heat_Set_Pegs.visibleWhen!(glass)).toBe(false);
+    expect(byParam.Printed_or_Heat_Set_Pegs.visibleWhen!(omega)).toBe(true);
+    for (const p of ["Glass_Plate_Width", "Glass_Plate_Length", "Glass_Plate_Thickness", "Glass_Notch_Corner", "Glass_Notch_Diameter"]) {
+      expect(byParam[p].visibleWhen!(glass), p).toBe(true);
+      expect(byParam[p].visibleWhen!(omega), p).toBe(false);
+    }
+    // Notch sizing disappears when there is no notch.
+    expect(byParam.Glass_Notch_Diameter.visibleWhen!({ ...glass, Glass_Notch_Corner: "none" })).toBe(false);
+    expect((byParam.Glass_Notch_Corner.options ?? []).map((o) => o.value))
+      .toEqual(["handle-lower", "handle-upper", "far-lower", "far-upper", "none"]);
+    // Glass-plate group collapses entirely for other carriers (nothing visible).
+    const glassGroup = groups.find((g) => g.title === "Glass plate")!;
+    expect(glassGroup.fields.every((f) => f.visibleWhen!(omega) === false)).toBe(true);
+  });
+
+  it("offers the glass carrier in the picker, under its own 'Special' section", () => {
+    const groups = resolveFormModel(s, CARRIER_UI);
+    const carrier = groups.flatMap((g) => g.fields).find((f) => f.param === "Carrier_Type")!;
+    expect((carrier.options ?? []).map((o) => String(o.value))).toContain("omega-d-glass");
+    expect(carrier.optionSections).toEqual([{ title: "Special", values: ["omega-d-glass"] }]);
+  });
+
   it("does not include Film_Format (handled by the bespoke picker)", () => {
     const params = CARRIER_UI.flatMap((g) => g.fields).map((f) => f.param);
     expect(params).not.toContain("Film_Format");

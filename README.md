@@ -10,6 +10,10 @@ Negative carriers hold film flat in an enlarger so you can print sharp, edge-to-
 
 Supported enlargers include **Omega D**, **LPL/Saunders 45xx**, and **Beseler 23C**, plus matching alignment boards. Beseler 45 support is planned but not implemented yet.
 
+There's also an **Omega D 4×5 glass-plate carrier**: a single 4mm piece with a pocket that locates a 4×5 glass plate (dry plates, or a negative sandwiched on glass) over the 4×5 opening, a finger notch to lift the plate out, and a screw-on Omega alignment board exported alongside it. Picking it locks the format to 4×5 and the part/peg/board options the design fixes.
+
+Roll-film formats can also span **2–4 consecutive frames** in one opening (e.g. two 35mm frames printed side by side); the 2D film overlay lays the frames out at the real frame pitch, and the preview warns if the opening runs past the carrier body or the alignment board's cutout.
+
 ### Two rendering paths
 
 | View | How it works | When it's used |

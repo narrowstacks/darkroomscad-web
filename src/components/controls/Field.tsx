@@ -16,12 +16,15 @@ export function Field({ field, value, onChange, disabled, disabledOptions }: {
   disabledOptions?: (string | number)[];
 }) {
   const id = `field-${field.param}`;
+  // Dynamic help is resolved by the form (CarrierForm) before it reaches here.
+  const help = typeof field.help === "function" ? undefined : field.help;
   switch (field.control) {
     case "segmented":
       return <Segmented options={field.options ?? []} value={value} onChange={onChange} label={field.label}
-        disabledOptions={disabledOptions} />;
+        help={help} disabledOptions={disabledOptions} />;
     case "cards":
       return <CardSelect options={field.options ?? []} value={value} onChange={onChange} label={field.label}
+        sections={field.optionSections}
         renderVisual={field.optionVisual === "carrier-outline"
           ? (v) => {
               const o = CARRIER_OUTLINES[String(v)];
@@ -37,7 +40,7 @@ export function Field({ field, value, onChange, disabled, disabledOptions }: {
           : undefined} />;
     case "switch":
     case "toggle":
-      return <Switch checked={value === true} onChange={onChange} label={field.label} help={field.help} disabled={disabled} />;
+      return <Switch checked={value === true} onChange={onChange} label={field.label} help={help} disabled={disabled} />;
     case "slider":
       return <Slider value={Number(value)} min={field.min} max={field.max} step={field.step}
         onChange={onChange} label={field.label} unit={field.unit} />;

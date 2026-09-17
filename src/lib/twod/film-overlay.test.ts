@@ -4,12 +4,16 @@ import type { TwoDConfig } from "./types";
 
 const base: TwoDConfig = {
   carrierType: "omega-d", orientation: "vertical", topOrBottom: "bottom",
-  filmFormat: "35mm", customFilmWidth: 37, customFilmHeight: 37,
+  filmFormat: "35mm", frameCount: 1, customFilmWidth: 37, customFilmHeight: 37,
   customOpeningWidth: 24, customOpeningHeight: 36, pegStyle: "heat_set",
   pegGap: 0, adjustFilmWidth: 0, adjustFilmHeight: 0, alignmentBoard: false,
   alignmentBoardType: "omega", enableOwnerEtch: false, ownerName: "",
   enableTypeEtch: false, typeNameSource: "Carrier Type", customTypeName: "",
   fontFace: "Lucida Console", fontSize: 10, ownerTextOffset: [0, 0], typeTextOffset: [0, 0],
+  glass: {
+    plateWidth: 101, plateLength: 126, plateThickness: 2, sidePlay: 0.5, depthPlay: 0.2,
+    notchDiameter: 16, notchCorner: "handle-lower", notchFloor: 0.6, notchReach: 2.5,
+  },
 };
 
 describe("filmFamily", () => {
@@ -101,6 +105,67 @@ describe("buildFilmOverlay — orientation + families", () => {
     expect(ov.base).toBeNull();
     expect(ov.frames).toEqual([]);
     expect(ov.sprockets).toEqual([]);
+  });
+});
+
+describe("buildFilmOverlay — multi-frame openings", () => {
+  const near = (a: number, b: number) => Math.abs(a - b) < 1e-9;
+
+  it("2 × 35mm: the two frames straddle the origin at ±19 (half a 38mm pitch)", () => {
+    const ov = buildFilmOverlay({ ...base, frameCount: 2 }, 60);
+    const xs = ov.frames.map((f) => f.cx).sort((a, b) => a - b);
+    expect(xs.some((x) => near(x, -19))).toBe(true);
+    expect(xs.some((x) => near(x, 19))).toBe(true);
+    expect(xs.some((x) => near(x, 0))).toBe(false);
+    // The pair spans exactly the 74mm opening: outer edges at ±37.
+    expect(near(-19 - 18, -37) && near(19 + 18, 37)).toBe(true);
+  });
+
+  it("3 × 35mm keeps a frame on the origin and one pitch either side", () => {
+    const ov = buildFilmOverlay({ ...base, frameCount: 3 }, 80);
+    const xs = ov.frames.map((f) => f.cx);
+    for (const want of [-38, 0, 38]) expect(xs.some((x) => near(x, want))).toBe(true);
+  });
+
+  it("2 × 6x6: frames at ±29.5 (59mm pitch), filling the 115mm opening", () => {
+    const ov = buildFilmOverlay({ ...base, filmFormat: "6x6", frameCount: 2 }, 80);
+    const xs = ov.frames.map((f) => f.cx);
+    expect(xs.some((x) => near(x, -29.5))).toBe(true);
+    expect(xs.some((x) => near(x, 29.5))).toBe(true);
+  });
+
+  it("half frame tiles at the true 19mm pitch (4 perforations)", () => {
+    const ov = buildFilmOverlay({ ...base, filmFormat: "half frame" }, 60);
+    const xs = ov.frames.map((f) => f.cx);
+    expect(xs.some((x) => near(x, 19))).toBe(true);
+    expect(xs.some((x) => near(x, 20))).toBe(false);
+  });
+
+  it("sprockets shift with the frames (same perf phase relative to a frame as single-frame)", () => {
+    const ov = buildFilmOverlay({ ...base, frameCount: 2 }, 60);
+    const row = ov.sprockets.filter((s) => s.cy === 14.75).map((s) => s.cx);
+    // Single-frame has a perf on the frame center (x=0); shifted by -19 with the frames.
+    expect(row.some((x) => near(x, -19))).toBe(true);
+    expect(row.some((x) => near(x, 0))).toBe(false);
+    // Strip still covers the whole travel extent on both sides.
+    expect(Math.min(...row)).toBeLessThan(-60);
+    expect(Math.max(...row)).toBeGreaterThan(60);
+  });
+
+  it("follows horizontal orientation (frames stack along Y)", () => {
+    const ov = buildFilmOverlay({ ...base, frameCount: 2, orientation: "horizontal" }, 60);
+    const ys = ov.frames.map((f) => f.cy);
+    expect(ys.some((y) => near(y, -19))).toBe(true);
+    expect(ys.some((y) => near(y, 19))).toBe(true);
+    expect(ov.frames.every((f) => f.cx === 0)).toBe(true);
+  });
+
+  it("is a no-op for 4x5 and custom (single frame, unchanged geometry)", () => {
+    expect(buildFilmOverlay({ ...base, filmFormat: "4x5", frameCount: 2 }, 80))
+      .toEqual(buildFilmOverlay({ ...base, filmFormat: "4x5" }, 80));
+    const spec = { type: "35mm" as const, imageWidth: 24, imageHeight: 65 };
+    expect(buildFilmOverlay({ ...base, filmFormat: "custom", frameCount: 2 }, 80, spec))
+      .toEqual(buildFilmOverlay({ ...base, filmFormat: "custom" }, 80, spec));
   });
 });
 

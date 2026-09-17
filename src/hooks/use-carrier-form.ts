@@ -5,7 +5,7 @@ import { resolveFormModel } from "@/lib/form/form-model";
 import { initialValues, toRenderParams } from "@/lib/form/form-state";
 import { loadConfig, saveConfig } from "@/lib/storage/config-store";
 import { encodeShare, decodeShare } from "@/lib/share/permalink";
-import { unsupportedFormats } from "@/config/carriers";
+import { unsupportedFormats, lockedFormat, screwOnBoardType, SINGLE_PIECE_CARRIERS } from "@/config/carriers";
 import { fromFilmFormatValue } from "@/lib/film-format";
 import schema from "../../generated/param-schema.json";
 import type { ParamSchema } from "@/lib/params/types";
@@ -24,6 +24,10 @@ import type { RenderParams } from "@/lib/openscad/types";
 //   the locked toggle shows what actually renders.
 // - "35mm full" was folded into "35mm" (the schema no longer has it); stored
 //   configs, share links and presets from before then still carry it.
+// - a carrier locked to one format (omega-d-glass → 4x5), single-piece
+//   (Top/Bottom, flip) or with a screw-on board (board off, own type): pin the
+//   stored values to what carrier.scad forces, so the locked controls show
+//   what actually renders and the 2D view agrees with the STL.
 const LEGACY_FILM_FORMATS: Record<string, string> = { "35mm full": "35mm" };
 
 function normalizeConflicts(v: Record<string, FormValue>): Record<string, FormValue> {
@@ -33,9 +37,21 @@ function normalizeConflicts(v: Record<string, FormValue>): Record<string, FormVa
   if (out.Alignment_Board === true && out.Printed_or_Heat_Set_Pegs === "printed") {
     out = { ...out, Printed_or_Heat_Set_Pegs: "heat_set" };
   }
+  const carrier = String(out.Carrier_Type);
   const { base } = fromFilmFormatValue(String(out.Film_Format));
-  if (unsupportedFormats(String(out.Carrier_Type)).has(base)) {
+  if (unsupportedFormats(carrier).has(base)) {
     out = { ...out, Film_Format: "35mm" };
+  }
+  const locked = lockedFormat(carrier);
+  if (locked && out.Film_Format !== locked) {
+    out = { ...out, Film_Format: locked };
+  }
+  if (SINGLE_PIECE_CARRIERS.has(carrier) && (out.Top_or_Bottom !== "bottom" || out.Flip_Bottom_For_Printing !== false)) {
+    out = { ...out, Top_or_Bottom: "bottom", Flip_Bottom_For_Printing: false };
+  }
+  const screwOn = screwOnBoardType(carrier);
+  if (screwOn && (out.Alignment_Board !== false || out.Alignment_Board_Type !== screwOn)) {
+    out = { ...out, Alignment_Board: false, Alignment_Board_Type: screwOn };
   }
   if (out.Film_Format === "4x5" && out.Orientation !== "horizontal") {
     out = { ...out, Orientation: "horizontal" };

@@ -1,7 +1,20 @@
 import type { GroupConfig, FormValue } from "../lib/form/types";
-import { BOARD_CARRIERS } from "./carriers";
+import { BOARD_CARRIERS, SINGLE_PIECE_CARRIERS, FILM_PEG_CARRIERS, screwOnBoardType } from "./carriers";
+import { filmFramePitch } from "../lib/twod/film-data";
 
 const isCustomFormat = (v: Record<string, FormValue>) => v.Film_Format === "custom";
+const isGlassCarrier = (v: Record<string, FormValue>) => v.Carrier_Type === "omega-d-glass";
+// Single-piece carriers have no top half: Top/Bottom and flip are locked
+// (carrier.scad forces bottom / no flip; use-carrier-form pins the values).
+const isSinglePiece = (v: Record<string, FormValue>) => SINGLE_PIECE_CARRIERS.has(String(v.Carrier_Type));
+const hasFilmPegs = (v: Record<string, FormValue>) => FILM_PEG_CARRIERS.has(String(v.Carrier_Type));
+// A screw-on board is never fused and always the carrier's own type: both
+// board controls are locked (pinned to off / that type).
+const hasScrewOnBoard = (v: Record<string, FormValue>) => screwOnBoardType(String(v.Carrier_Type)) != null;
+
+// Frame count only means something for formats with a frame pitch (not 4x5
+// sheets or custom openings — the SCAD ignores it there too).
+const hasFramePitch = (v: Record<string, FormValue>) => filmFramePitch(String(v.Film_Format)) > 0;
 
 // Carriers that have an alignment board (test frames don't).
 const isBoardCarrier = (v: Record<string, FormValue>) => BOARD_CARRIERS.has(String(v.Carrier_Type));
@@ -14,11 +27,19 @@ export const CARRIER_UI: GroupConfig[] = [
         help: "Which enlarger this carrier fits.",
         optionLabels: {
           "omega-d": "Omega D Series",
+          "omega-d-glass": "Omega D — 4×5 Glass Plate",
           "lpl-saunders-45xx": "LPL-Saunders 45XX Series",
           "beseler-23c": "Beseler 23C Series",
           "beseler-45": "Beseler 45 Series",
           "frameAndPegTest": "Frame Size Test Print",
-        } },
+        },
+        // Special-purpose carriers get their own grid under the enlargers.
+        optionSections: [{ title: "Special", values: ["omega-d-glass"] }] },
+      // Rendered directly under the film-format picker (see CarrierForm), not
+      // in field order.
+      { param: "Frame_Count", label: "Frames", control: "segmented",
+        help: "Consecutive frames the opening spans, printed side by side in one exposure. Check the preview for fit.",
+        visibleWhen: hasFramePitch },
       { param: "Orientation", label: "Orientation", control: "segmented",
         help: "Locked for 4×5 — the sheet's orientation is fixed.",
         optionLabels: { "vertical": "Vertical", "horizontal": "Horizontal" },
@@ -26,8 +47,35 @@ export const CARRIER_UI: GroupConfig[] = [
         // so the toggle is locked; use-carrier-form pins the value to match.
         optionDisabledWhen: (_opt, v) => v.Film_Format === "4x5" },
       { param: "Top_or_Bottom", label: "Part", control: "segmented",
-        help: "A full carrier needs both top and bottom printed.",
-        optionLabels: { "top": "Top", "bottom": "Bottom" } },
+        help: (v) => isSinglePiece(v)
+          ? "Locked — the glass-plate carrier is a single piece; the pocket does the clamping."
+          : "A full carrier needs both top and bottom printed.",
+        optionLabels: { "top": "Top", "bottom": "Bottom" },
+        optionDisabledWhen: (_opt, v) => isSinglePiece(v) },
+    ],
+  },
+  {
+    // omega-d-glass only: one 4mm piece with a pocket on top that locates a 4x5
+    // glass plate (no film pegs); the Omega board is screwed on underneath and
+    // exported separately.
+    title: "Glass plate",
+    fields: [
+      { param: "Glass_Plate_Width", label: "Plate width (short edge)", control: "slider",
+        min: 50, max: 130, step: 0.5, unit: "mm", visibleWhen: isGlassCarrier },
+      { param: "Glass_Plate_Length", label: "Plate length (long edge)", control: "slider",
+        min: 50, max: 140, step: 0.5, unit: "mm", visibleWhen: isGlassCarrier },
+      { param: "Glass_Plate_Thickness", label: "Plate thickness", control: "slider",
+        min: 1, max: 3, step: 0.1, unit: "mm", visibleWhen: isGlassCarrier },
+      { param: "Glass_Notch_Corner", label: "Finger notch", control: "segmented",
+        help: "A round notch beside one pocket corner, reaching under the plate so it can be lifted out. \"Handle\" corners are on the handle side.",
+        optionLabels: {
+          "handle-lower": "Handle, lower", "handle-upper": "Handle, upper",
+          "far-lower": "Far, lower", "far-upper": "Far, upper", "none": "None",
+        },
+        visibleWhen: isGlassCarrier },
+      { param: "Glass_Notch_Diameter", label: "Notch diameter", control: "slider",
+        min: 8, max: 30, step: 1, unit: "mm",
+        visibleWhen: (v) => isGlassCarrier(v) && v.Glass_Notch_Corner !== "none" },
     ],
   },
   {
@@ -69,22 +117,34 @@ export const CARRIER_UI: GroupConfig[] = [
     title: "Options",
     fields: [
       { param: "Alignment_Board", label: "Attach alignment board", control: "switch",
-        help: "On: fused into the carrier (needs heat-set pegs). Off: exported as a separate STL.",
+        help: (v) => hasScrewOnBoard(v)
+          ? "Locked off — this carrier's board is screwed on from below and exported as its own STL (with M2 clearance holes)."
+          : "On: fused into the carrier (needs heat-set pegs). Off: exported as a separate STL.",
         visibleWhen: isBoardCarrier,
-        disabledWhen: (v) => v.Printed_or_Heat_Set_Pegs === "printed" },
+        disabledWhen: (v) => hasScrewOnBoard(v) || v.Printed_or_Heat_Set_Pegs === "printed" },
       { param: "Alignment_Board_Type", label: "Board type", control: "segmented",
-        help: "Used whether the board is fused or downloaded separately.",
+        help: (v) => hasScrewOnBoard(v)
+          ? "Locked — this carrier takes only its own board."
+          : "Used whether the board is fused or downloaded separately.",
         optionLabels: {
           "omega": "Omega D",
           "lpl-saunders": "LPL-Saunders",
           "beseler-23c": "Beseler 23C",
         },
-        visibleWhen: isBoardCarrier },
+        visibleWhen: isBoardCarrier,
+        optionDisabledWhen: (_opt, v) => hasScrewOnBoard(v) },
+      // Hidden (not just locked) for peg-less carriers: the SCAD's forced value
+      // ("none") isn't one of this control's options, so there's nothing to show.
       { param: "Printed_or_Heat_Set_Pegs", label: "Pegs", control: "segmented",
         help: "Printed pegs can't be combined with the alignment board.",
         optionLabels: { "printed": "Printed", "heat_set": "Heat-set" },
+        visibleWhen: hasFilmPegs,
         optionDisabledWhen: (opt, v) => opt === "printed" && v.Alignment_Board === true && isBoardCarrier(v) },
-      { param: "Flip_Bottom_For_Printing", label: "Flip bottom for printing", control: "switch" },
+      { param: "Flip_Bottom_For_Printing", label: "Flip bottom for printing", control: "switch",
+        help: (v) => isSinglePiece(v)
+          ? "Locked off — the plate pocket must face up to print without supports."
+          : undefined,
+        disabledWhen: isSinglePiece },
     ],
   },
   {
@@ -106,6 +166,17 @@ export const CARRIER_UI: GroupConfig[] = [
         min: -3, max: 3, step: 0.1, unit: "mm", advanced: true },
       { param: "Adjust_Film_Height", label: "Adjust film height", control: "slider",
         min: -3, max: 3, step: 0.1, unit: "mm", advanced: true },
+      // Glass-plate pocket / notch fine-tuning (omega-d-glass only).
+      { param: "Glass_Plate_Side_Play", label: "Plate side play (per side)", control: "slider",
+        min: 0, max: 2, step: 0.1, unit: "mm", advanced: true, visibleWhen: isGlassCarrier },
+      { param: "Glass_Plate_Depth_Play", label: "Plate depth play", control: "slider",
+        min: 0, max: 1, step: 0.1, unit: "mm", advanced: true, visibleWhen: isGlassCarrier },
+      { param: "Glass_Notch_Floor", label: "Notch floor (0 = through)", control: "slider",
+        min: 0, max: 2, step: 0.1, unit: "mm", advanced: true,
+        visibleWhen: (v) => isGlassCarrier(v) && v.Glass_Notch_Corner !== "none" },
+      { param: "Glass_Notch_Reach", label: "Notch reach under plate", control: "slider",
+        min: 0, max: 5, step: 0.5, unit: "mm", advanced: true,
+        visibleWhen: (v) => isGlassCarrier(v) && v.Glass_Notch_Corner !== "none" },
     ],
   },
 ];

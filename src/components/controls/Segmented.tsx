@@ -2,11 +2,12 @@
 import { coerceOptionValue } from "@/lib/form/control-value";
 import type { FormValue } from "@/lib/form/types";
 
-export function Segmented({ options, value, onChange, label, ariaLabel, disabledOptions }: {
+export function Segmented({ options, value, onChange, label, help, ariaLabel, disabledOptions }: {
   options: { value: string | number; label: string }[];
   value: FormValue;
   onChange: (v: FormValue) => void;
   label: string;
+  help?: string;
   ariaLabel?: string;
   disabledOptions?: (string | number)[];
 }) {
@@ -33,6 +34,7 @@ export function Segmented({ options, value, onChange, label, ariaLabel, disabled
           );
         })}
       </div>
+      {help && <p className="mt-1 text-xs" style={{ color: "var(--text-dim)" }}>{help}</p>}
     </div>
   );
 }

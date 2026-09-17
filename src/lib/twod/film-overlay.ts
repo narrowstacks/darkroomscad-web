@@ -1,5 +1,6 @@
 import type { TwoDConfig } from "./types";
-import { effectiveOrientation } from "./geometry";
+import { effectiveOrientation, frameCount } from "./geometry";
+import { filmFramePitch } from "./film-data";
 
 export type FilmFamily = "135" | "120" | "sheet" | "custom" | "none";
 export type TravelAxis = "x" | "y";
@@ -35,8 +36,6 @@ const PERF_ACROSS = 2.0;            // perf hole size across
 const PERF_ROW_OFFSET = 14.75;      // sprocket row center from film center (across)
 const SHEET_45_LONG = 127;          // 4x5 sheet long edge (5")
 const SHEET_45_SHORT = 101.6;       // 4x5 sheet short edge (4")
-const GAP_135 = 2;                  // inter-frame gap (135) → 36+2 = 38mm pitch
-const GAP_120 = 3;                  // inter-frame gap (120)
 const GAP_CUSTOM = 2;               // inter-frame gap (generic custom stock)
 const CUSTOM_STOCK_REBATE = 3;      // film border around the image for custom stock (each edge)
 
@@ -115,27 +114,36 @@ export function buildFilmOverlay(
   }
   if (!img) return empty;
 
-  // Film stock width across + inter-frame gap by family. The generic "custom"
-  // stock wraps the image in a small rebate border and carries no sprockets.
+  // Film stock width across by family. The generic "custom" stock wraps the
+  // image in a small rebate border and carries no sprockets.
   const filmWidth =
     family === "135" ? FILM_135_WIDTH :
     family === "120" ? FILM_120_WIDTH :
     img.across + 2 * CUSTOM_STOCK_REBATE;
-  const gap = family === "135" ? GAP_135 : family === "120" ? GAP_120 : GAP_CUSTOM;
-  const pitch = img.along + gap;
+  // Frame pitch (center-to-center) comes from the same table the SCAD sizes a
+  // multi-frame opening from, so the overlay's frames land exactly in the
+  // opening. Custom overlays (no table entry) use a generic gap.
+  const tablePitch = filmFramePitch(c.filmFormat);
+  const pitch = tablePitch > 0 ? tablePitch : img.along + GAP_CUSTOM;
 
   const base = baseRect(2 * travelExtent, filmWidth);
 
+  // A multi-frame opening is centered on the *group* of frames it spans, so
+  // the strip shifts by half a pitch per extra frame (an even count puts the
+  // inter-frame gap on the origin). Sprockets shift with it so their phase
+  // relative to the frames is the same as for a single frame.
+  const phase = -((frameCount(c) - 1) / 2) * pitch;
+
   const frames: FilmRect[] = [];
-  const nFrames = Math.ceil(travelExtent / pitch);
-  for (let k = -nFrames; k <= nFrames; k++) frames.push(rect(k * pitch, 0, img.along, img.across));
+  const nFrames = Math.ceil(travelExtent / pitch) + 1;
+  for (let k = -nFrames; k <= nFrames; k++) frames.push(rect(k * pitch + phase, 0, img.along, img.across));
 
   const sprockets: FilmRect[] = [];
   if (family === "135") {
-    const nPerf = Math.ceil(travelExtent / PERF_PITCH);
+    const nPerf = Math.ceil(travelExtent / PERF_PITCH) + Math.ceil(Math.abs(phase) / PERF_PITCH);
     for (const side of [-1, 1]) {
       for (let m = -nPerf; m <= nPerf; m++) {
-        sprockets.push(rect(m * PERF_PITCH, side * PERF_ROW_OFFSET, PERF_ALONG, PERF_ACROSS));
+        sprockets.push(rect(m * PERF_PITCH + phase, side * PERF_ROW_OFFSET, PERF_ALONG, PERF_ACROSS));
       }
     }
   }

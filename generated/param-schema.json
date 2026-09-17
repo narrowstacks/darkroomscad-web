@@ -6,10 +6,15 @@
       "type": "enum",
       "default": "omega-d",
       "hidden": false,
+      "description": "\"omega-d-glass\" is a single-piece Omega-D carrier with a pocket for a 4x5 glass plate (see the Glass Plate Carrier section)",
       "options": [
         {
           "value": "omega-d",
           "label": "omega-d"
+        },
+        {
+          "value": "omega-d-glass",
+          "label": "omega-d-glass"
         },
         {
           "value": "lpl-saunders-45xx",
@@ -120,6 +125,32 @@
       ]
     },
     {
+      "name": "Frame_Count",
+      "section": "Film Format Selection",
+      "type": "enum",
+      "default": 1,
+      "hidden": false,
+      "description": "Consecutive frames the opening spans (one exposure prints them side by side). Ignored for 4x5 and custom.",
+      "options": [
+        {
+          "value": 1,
+          "label": "1"
+        },
+        {
+          "value": 2,
+          "label": "2"
+        },
+        {
+          "value": 3,
+          "label": "3"
+        },
+        {
+          "value": 4,
+          "label": "4"
+        }
+      ]
+    },
+    {
       "name": "Top_or_Bottom",
       "section": "Carrier Options",
       "type": "enum",
@@ -223,6 +254,100 @@
       "default": 36,
       "hidden": false,
       "description": "Film opening height (the visible/cropped area)"
+    },
+    {
+      "name": "Glass_Plate_Width",
+      "section": "Glass Plate Carrier",
+      "type": "number",
+      "default": 101,
+      "hidden": false,
+      "description": "Plate size across the carrier, the short edge (mm)"
+    },
+    {
+      "name": "Glass_Plate_Length",
+      "section": "Glass Plate Carrier",
+      "type": "number",
+      "default": 126,
+      "hidden": false,
+      "description": "Plate size along the carrier width, the long edge (mm)"
+    },
+    {
+      "name": "Glass_Plate_Thickness",
+      "section": "Glass Plate Carrier",
+      "type": "number",
+      "default": 2,
+      "hidden": false,
+      "description": "Thickest plate the pocket must take (mm); 4x5 dry plates run 1.8-2.0"
+    },
+    {
+      "name": "Glass_Plate_Side_Play",
+      "section": "Glass Plate Carrier",
+      "type": "number",
+      "default": 0.5,
+      "hidden": false,
+      "description": "Clearance between the plate and the pocket wall, per side (mm)"
+    },
+    {
+      "name": "Glass_Plate_Depth_Play",
+      "section": "Glass Plate Carrier",
+      "type": "number",
+      "default": 0.2,
+      "hidden": false,
+      "description": "Extra pocket depth beyond the plate thickness (mm), so the plate never stands proud"
+    },
+    {
+      "name": "Glass_Notch_Diameter",
+      "section": "Glass Plate Carrier",
+      "type": "number",
+      "default": 16,
+      "hidden": false,
+      "description": "Diameter of the circular finger notch at a pocket corner that lets you lift the plate out (0 = none)"
+    },
+    {
+      "name": "Glass_Notch_Corner",
+      "section": "Glass Plate Carrier",
+      "type": "enum",
+      "default": "handle-lower",
+      "hidden": false,
+      "description": "Pocket corner that gets the finger notch (\"handle\" = the -X handle side)",
+      "options": [
+        {
+          "value": "handle-lower",
+          "label": "handle-lower"
+        },
+        {
+          "value": "handle-upper",
+          "label": "handle-upper"
+        },
+        {
+          "value": "far-lower",
+          "label": "far-lower"
+        },
+        {
+          "value": "far-upper",
+          "label": "far-upper"
+        },
+        {
+          "value": "none",
+          "label": "none"
+        }
+      ]
+    },
+    {
+      "name": "Glass_Notch_Floor",
+      "section": "Glass Plate Carrier",
+      "type": "number",
+      "default": 0.6,
+      "hidden": false,
+      "description": "Material left under the finger notch (mm); 0 cuts it through"
+    },
+    {
+      "name": "Glass_Notch_Reach",
+      "section": "Glass Plate Carrier",
+      "type": "number",
+      "default": 2.5,
+      "hidden": false,
+      "description": "How far the notch reaches under the plate edge (mm) for a nail to hook it; keep below the rim between pocket and opening (3.5mm for 4x5)"
     },
     {
       "name": "Enable_Owner_Name_Etch",
@@ -435,20 +560,12 @@
       "description": "Variable resolution: 32 for preview speed, 100 for final quality"
     },
     {
-      "name": "carrier_config",
+      "name": "_FORMAT_TYPE_NAME",
       "section": "Hidden",
       "type": "string",
-      "default": "get_carrier_config(Carrier_Type)",
+      "default": "get_selected_type_name(Type_Name, Custom_Type_Name, Film_Format, Frame_Count)",
       "hidden": true,
-      "description": "Get configuration for the selected carrier type (now minimal; base geometry lives in carrier files)"
-    },
-    {
-      "name": "SELECTED_TYPE_NAME",
-      "section": "Hidden",
-      "type": "string",
-      "default": "get_selected_type_name(Type_Name, Custom_Type_Name, Film_Format)",
-      "hidden": true,
-      "description": "Generate carrier type name for etching"
+      "description": "Generate carrier type name for etching (the glass carrier says so, e.g. \"4X5 GLASS\")"
     },
     {
       "name": "effective_orientation",
@@ -462,14 +579,14 @@
       "name": "adjusted_opening_height",
       "section": "Hidden",
       "type": "string",
-      "default": "get_custom_aware_opening_height(Film_Format, Orientation, Adjust_Film_Height, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Height)",
+      "default": "get_custom_aware_opening_height(Film_Format, Orientation, Adjust_Film_Height, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Height, Frame_Count)",
       "hidden": true
     },
     {
       "name": "adjusted_opening_width",
       "section": "Hidden",
       "type": "string",
-      "default": "get_custom_aware_opening_width(Film_Format, Orientation, Adjust_Film_Width, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Width)",
+      "default": "get_custom_aware_opening_width(Film_Format, Orientation, Adjust_Film_Width, Custom_Film_Height, Custom_Film_Width, Custom_Opening_Width, Frame_Count)",
       "hidden": true
     },
     {

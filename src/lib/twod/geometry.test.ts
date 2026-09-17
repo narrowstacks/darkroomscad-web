@@ -1,15 +1,19 @@
 import { describe, it, expect } from "vitest";
-import { openingDimensions, pegPositions, pegRadiusAndKind, screwFootprint, directionalArrow, textPlacements, buildScene } from "./geometry";
+import { openingDimensions, pegPositions, pegRadiusAndKind, screwFootprint, directionalArrow, textPlacements, buildScene, glassRecesses, effectiveTopOrBottom, boardTypeOutlineKey } from "./geometry";
 import type { TwoDConfig } from "./types";
 
 const base: TwoDConfig = {
   carrierType: "omega-d", orientation: "vertical", topOrBottom: "bottom",
-  filmFormat: "35mm", customFilmWidth: 37, customFilmHeight: 37,
+  filmFormat: "35mm", frameCount: 1, customFilmWidth: 37, customFilmHeight: 37,
   customOpeningWidth: 24, customOpeningHeight: 36, pegStyle: "heat_set",
   pegGap: 0, adjustFilmWidth: 0, adjustFilmHeight: 0, alignmentBoard: false,
   alignmentBoardType: "omega", enableOwnerEtch: false, ownerName: "",
   enableTypeEtch: false, typeNameSource: "Carrier Type", customTypeName: "",
   fontFace: "Lucida Console", fontSize: 10, ownerTextOffset: [0, 0], typeTextOffset: [0, 0],
+  glass: {
+    plateWidth: 101, plateLength: 126, plateThickness: 2, sidePlay: 0.5, depthPlay: 0.2,
+    notchDiameter: 16, notchCorner: "handle-lower", notchFloor: 0.6, notchReach: 2.5,
+  },
 };
 
 describe("openingDimensions", () => {
@@ -35,6 +39,41 @@ describe("openingDimensions", () => {
   it("unknown format falls back to 35mm dimensions", () => {
     expect(openingDimensions({ ...base, filmFormat: "bogus" }))
       .toEqual({ openingHeight: 36, openingWidth: 24 });
+  });
+
+  // Multi-frame: the frame-length axis grows by one pitch per extra frame
+  // (get_multi_frame_height); values pinned against a desktop OpenSCAD echo.
+  describe("frame count", () => {
+    it("2 × 35mm vertical → 74 x 24 (36 + 38 pitch); across is untouched", () => {
+      expect(openingDimensions({ ...base, frameCount: 2 })).toEqual({ openingHeight: 74, openingWidth: 24 });
+    });
+    it("follows orientation: 2 × 35mm horizontal → 24 x 74", () => {
+      expect(openingDimensions({ ...base, frameCount: 2, orientation: "horizontal" }))
+        .toEqual({ openingHeight: 24, openingWidth: 74 });
+    });
+    it("filed keeps its reveal at the ends only: 2 × 35mm filed → 78 (40 + 38)", () => {
+      expect(openingDimensions({ ...base, frameCount: 2, filmFormat: "35mm filed" }))
+        .toEqual({ openingHeight: 78, openingWidth: 28 });
+    });
+    it("120: 2 × 6x6 → 115 (56 + 59), 3 × 6x6 → 174", () => {
+      expect(openingDimensions({ ...base, frameCount: 2, filmFormat: "6x6" }).openingHeight).toBe(115);
+      expect(openingDimensions({ ...base, frameCount: 3, filmFormat: "6x6" }).openingHeight).toBe(174);
+    });
+    it("half frame: 2 frames → 37 (18 + 19)", () => {
+      expect(openingDimensions({ ...base, frameCount: 2, filmFormat: "half frame" }).openingHeight).toBe(37);
+    });
+    it("adjustments apply once to the whole opening, not per frame", () => {
+      expect(openingDimensions({ ...base, frameCount: 2, adjustFilmHeight: 2 }).openingHeight).toBe(76);
+    });
+    it("is ignored for 4x5 and custom", () => {
+      expect(openingDimensions({ ...base, frameCount: 3, filmFormat: "4x5" }))
+        .toEqual({ openingHeight: 95, openingWidth: 120 });
+      expect(openingDimensions({ ...base, frameCount: 3, filmFormat: "custom", customOpeningHeight: 50, customOpeningWidth: 40 }))
+        .toEqual({ openingHeight: 50, openingWidth: 40 });
+    });
+    it("does not move the pegs (they sit on the film edges, not the frame ends)", () => {
+      expect(pegPositions({ ...base, frameCount: 3 })).toEqual(pegPositions(base));
+    });
   });
 });
 
@@ -160,6 +199,16 @@ describe("textPlacements", () => {
     const type = ts.find((t) => t.value === "35MM")!; // Carrier Type → film type name
     expect(type.cx).toBeCloseTo(-90, 6);
     expect(type.cy).toBeCloseTo(-59.5, 6);
+  });
+
+  it("type etch names the frame count for multi-frame openings (SELECTED_TYPE_NAME)", () => {
+    const ts = textPlacements({ ...base, enableTypeEtch: true, frameCount: 2 }, stub);
+    expect(ts.map((t) => t.value)).toEqual(["35MM X2"]);
+    // A custom label is the user's — never suffixed.
+    const custom = textPlacements(
+      { ...base, enableTypeEtch: true, frameCount: 2, typeNameSource: "Custom", customTypeName: "MINE" }, stub,
+    );
+    expect(custom.map((t) => t.value)).toEqual(["MINE"]);
   });
 
   it("applies user offsets before rotation", () => {
@@ -354,5 +403,71 @@ describe("buildScene dimensions", () => {
       { from: [-21.3, 32.8], to: [21.3, 32.8], label: "42.6 mm", axis: "x" },
       { from: [27.3, -26.8], to: [27.3, 26.8], label: "53.6 mm", axis: "y" },
     ]);
+  });
+});
+
+// omega-d-glass: single 4mm piece, plate pocket + finger notch, no film pegs,
+// screw-on omega board with its own footprint (carrier-configs.scad,
+// omega-d-glass-base-shape.scad).
+describe("omega-d-glass", () => {
+  const glass: TwoDConfig = { ...base, carrierType: "omega-d-glass", filmFormat: "4x5", alignmentBoard: true, alignmentBoardType: "lpl-saunders" };
+  const stub = () => 10;
+
+  it("is always the bottom-style piece, with the omega board regardless of the (hidden) board fields", () => {
+    expect(effectiveTopOrBottom({ ...glass, topOrBottom: "top" })).toBe("bottom");
+    expect(boardTypeOutlineKey(glass)).toBe("omega-4x5");
+  });
+
+  it("has no film pegs", () => {
+    expect(buildScene(glass).pegs).toEqual([]);
+    expect(buildScene(base).pegs).toHaveLength(4);
+  });
+
+  it("screw footprint uses the glass pattern (±56, ±40) and ignores a stale Alignment_Board=true", () => {
+    const holes = screwFootprint(glass).map((h) => [h.cx, h.cy, h.r]).sort();
+    expect(holes).toEqual([[-56, -40, 1], [-56, 40, 1], [56, -40, 1], [56, 40, 1]].sort());
+    // Contrast: a fused board on the omega-d suppresses the footprint.
+    expect(screwFootprint({ ...base, alignmentBoard: true })).toEqual([]);
+  });
+
+  it("pocket = plate + 2×side play with a 1mm corner radius; notch at the handle-lower pocket corner", () => {
+    const [pocket, notch] = glassRecesses(glass);
+    expect(pocket).toEqual({ kind: "rect", cx: 0, cy: 0, w: 102, h: 127, r: 1, through: false });
+    // cx = -(102/2 + 8 - 2.5) = -56.5 ; cy = -(127/2 - 8) = -55.5 ; blind (0.6mm floor)
+    expect(notch).toEqual({ kind: "circle", cx: -56.5, cy: -55.5, r: 8, through: false });
+  });
+
+  it("notch follows the corner choice, disappears for none / Ø0, and reads as through with no floor", () => {
+    const at = (corner: string) => glassRecesses({ ...glass, glass: { ...glass.glass, notchCorner: corner } })[1];
+    expect([at("far-upper").cx, at("far-upper").cy]).toEqual([56.5, 55.5]);
+    expect([at("handle-upper").cx, at("handle-upper").cy]).toEqual([-56.5, 55.5]);
+    expect(glassRecesses({ ...glass, glass: { ...glass.glass, notchCorner: "none" } })).toHaveLength(1);
+    expect(glassRecesses({ ...glass, glass: { ...glass.glass, notchDiameter: 0 } })).toHaveLength(1);
+    expect(glassRecesses({ ...glass, glass: { ...glass.glass, notchFloor: 0 } })[1].through).toBe(true);
+    expect(glassRecesses(base)).toEqual([]);
+  });
+
+  it("the film opening is the 4x5 opening (95 × 120)", () => {
+    expect(buildScene(glass).opening).toMatchObject({ w: 95, h: 120 });
+  });
+
+  it("type etch says GLASS (omega text placement/rotation), custom labels are left alone", () => {
+    const ts = textPlacements({ ...glass, enableTypeEtch: true }, stub);
+    expect(ts.map((t) => t.value)).toEqual(["4X5 GLASS"]);
+    expect(ts[0].rotationDeg).toBe(270);
+    expect(ts[0].cx).toBeCloseTo(-90, 6);
+    const custom = textPlacements({ ...glass, enableTypeEtch: true, typeNameSource: "Custom", customTypeName: "MINE" }, stub);
+    expect(custom.map((t) => t.value)).toEqual(["MINE"]);
+  });
+
+  it("dimension callouts drop the peg-spacing pair", () => {
+    const { dimensions } = buildScene(glass);
+    expect(dimensions.map((d) => d.label)).toEqual(["95.0 mm", "120.0 mm"]);
+    expect(buildScene(base).dimensions).toHaveLength(4);
+  });
+
+  it("board ghost is always drawn for the screw-on board", () => {
+    expect(buildScene({ ...glass, alignmentBoard: false }).boardKey).toBe("omega-4x5");
+    expect(buildScene({ ...base, alignmentBoard: false }).boardKey).toBeNull();
   });
 });
