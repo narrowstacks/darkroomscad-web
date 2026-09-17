@@ -49,6 +49,7 @@ Pre-renders carrier + board silhouettes to SVG paths via WASM `projection()`. Th
 ## App wiring
 
 - 2D is the default view; the OpenSCAD worker is created **lazily** only when 3D is first selected (`src/app/page.tsx`). Toggling 2D⇆3D does not re-render unless the carrier config actually changed (guarded on the memoized `params` ref).
+- The render pipeline lives in `src/lib/openscad/engine.ts` (`createRenderEngine()`), shared by the worker and a **main-thread fallback**: Safari/WebKit gives worker threads a much smaller native stack than the page, and every parametric `carrier.scad` render (exports, non-baked previews) dies there with `Maximum call stack size exceeded` (the baked preview path is fine). `RenderClient` catches that RangeError, retries on the main-thread engine, and from then on routes non-baked renders straight to it (UI blocks a few seconds per part — expected). Chrome never takes this path.
 - Bundled etch fonts: TTFs in `public/fonts/` (used by the WASM engine) AND registered as browser `@font-face` (via `bundledFontFaceCss()` in `src/app/layout.tsx`) so the 2D SVG + canvas text measurement use them. `src/config/fonts.ts` is the single source of the font list.
 - 2D text width measurement (`src/lib/twod/measure-text.ts`): browser canvas with a deterministic fallback; the component uses the fallback until fonts load to avoid an SSR hydration mismatch.
 
