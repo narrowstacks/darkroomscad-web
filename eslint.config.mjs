@@ -28,7 +28,7 @@ const eslintConfig = [
     files: [
       "**/*.test.ts",
       "src/lib/openscad/render.ts",
-      "src/lib/openscad/worker.ts",
+      "src/lib/openscad/engine.ts",
     ],
     rules: {
       "@typescript-eslint/no-explicit-any": "off",

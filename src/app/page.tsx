@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Aperture, TriangleAlert } from "lucide-react";
 import { RenderClient } from "@/lib/openscad/client";
+import { createRenderEngine } from "@/lib/openscad/engine";
 import type { RenderParams } from "@/lib/openscad/types";
 import type { FormValue } from "@/lib/form/types";
 import { PreviewController, type PreviewState } from "@/lib/openscad/preview-controller";
@@ -23,7 +24,9 @@ import { download } from "@/lib/export/download";
 
 function newClient(): RenderClient {
   const worker = new Worker(new URL("../lib/openscad/worker.ts", import.meta.url), { type: "module" });
-  return new RenderClient(worker);
+  // Main-thread fallback for Safari, whose worker threads can't hold the parametric
+  // render's stack. Lazy: it fetches nothing until a worker render overflows.
+  return new RenderClient(worker, { fallback: createRenderEngine() });
 }
 
 export default function Home() {
