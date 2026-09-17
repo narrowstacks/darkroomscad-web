@@ -477,7 +477,7 @@
     },
     {
       "name": "_WhichPart",
-      "section": "Multi-Material Output Selector",
+      "section": "Output Selector",
       "type": "enum",
       "default": "All",
       "hidden": false,
@@ -503,11 +503,11 @@
     },
     {
       "name": "_Render_Alignment_Board_Only",
-      "section": "Hidden",
+      "section": "Output Selector",
       "type": "boolean",
       "default": false,
-      "hidden": true,
-      "description": "Used to export the board separately when it isn't fused into the carrier."
+      "hidden": false,
+      "description": "parameter sets (-p/-P, which the web app uses) skip Hidden variables."
     },
     {
       "name": "Peg_Gap",

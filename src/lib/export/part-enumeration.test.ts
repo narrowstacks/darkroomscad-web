@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { enumerateParts } from "./part-enumeration";
+import schema from "../../../generated/param-schema.json";
 import type { RenderParams } from "../openscad/types";
 
 const baseForm: RenderParams = {
@@ -93,4 +94,14 @@ describe("enumerateParts", () => {
     });
     expect(jobs.some((j) => j.params._Render_Alignment_Board_Only === true)).toBe(false);
   });
+});
+
+// OpenSCAD parameter sets (-p/-P, the worker's only way to pass values) skip
+// variables declared in a /* [Hidden] */ group. The board-only export flag
+// used to live there, which made every "separate board" STL a whole carrier.
+it("the board-only export flag is a visible (non-hidden) customizer param", () => {
+  const p = schema.params.find((x) => x.name === "_Render_Alignment_Board_Only");
+  expect(p).toBeDefined();
+  expect(p!.hidden).toBe(false);
+  expect(p!.type).toBe("boolean");
 });
