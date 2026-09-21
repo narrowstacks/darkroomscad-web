@@ -20,7 +20,8 @@ const SECTIONS: { title: string; items: React.ReactNode[] }[] = [
       <><strong>0.2 mm</strong> layer height.</>,
       <><strong>100% infill</strong>, or at least <strong>5 solid bottom layers</strong> so the film-facing surface is dense and flat.</>,
       <><strong>Slow the first layer</strong> &mdash; the etched text and the opening edges are on it, and a clean first layer is what
-      makes them crisp.</>,
+      makes them crisp. It also makes the print more reliable: with 100% infill the first layer is one big solid area, and
+      filament laid down too fast can catch on itself and never bond to the build plate.</>,
     ],
   },
   {
