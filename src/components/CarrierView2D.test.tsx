@@ -54,7 +54,10 @@ describe("CarrierView2D", () => {
     const { container, queryByTestId } = render(
       <CarrierView2D values={{ Carrier_Type: "beseler-23c", Film_Format: "6x6", Alignment_Board: true, Alignment_Board_Type: "beseler-23c" }} />,
     );
-    expect(container.querySelector("g[data-layer='board']")?.getAttribute("data-attached")).toBe("true");
+    const ghost = container.querySelector("g[data-layer='board']");
+    expect(ghost?.getAttribute("data-attached")).toBe("true");
+    // Fused → solid line; only a detached board is dashed.
+    expect(ghost?.querySelector("path")?.getAttribute("stroke-dasharray")).toBeNull();
     expect(queryByTestId("board-status")).toBeNull();
     expect(container.querySelectorAll("circle[data-layer='screw']").length).toBe(0);
   });
