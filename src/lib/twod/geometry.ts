@@ -151,23 +151,32 @@ function boardFused(c: TwoDConfig): boolean {
 }
 
 // Port of generate_universal_alignment_footprint_holes + alignment_footprint_holes.
-// Holes appear only when the board is NOT fused and the board type is
-// omega/lpl (so the carrier can screw onto a separately-printed board).
-const SCREW_PATTERN_DIST_X = 82;   // UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_X
-const SCREW_PATTERN_DIST_Y = 113;  // UNIVERSAL_ALIGNMENT_SCREW_PATTERN_DIST_Y
+// Holes appear only when the board is NOT fused, so the carrier can be screwed
+// onto the separately printed board. The screws must land on the BOARD's
+// material, so the pattern is per board type (carrier-configs.scad
+// *_BOARD_SCREW_PATTERN_DIST_*; full centre-to-centre spacing, holes at
+// (±x/2, ±y/2)):
+//   omega:        127mm square frame → (±41, ±56.5), on its rails.
+//   lpl-saunders: two chord rails at |x| = 60.5..75.4 → x = ±68 (rail centre),
+//                 y = ±35 (rail spans |y| ≤ 43.5 there).
+//   beseler-23c:  5mm ring at r = 55..60 → on its centre-line (r 57.5) at 45°.
 const SCREW_DIAMETER = 2;          // UNIVERSAL_ALIGNMENT_SCREW_DIAMETER
-// omega-d-glass: the universal pattern lands inside the 4x5 opening, so it has
-// its own (carrier-configs.scad OMEGA_D_GLASS_SCREW_PATTERN_DIST_*).
-const GLASS_SCREW_PATTERN_DIST_X = 112;
-const GLASS_SCREW_PATTERN_DIST_Y = 80;
+const BESELER_23C_BOARD_SCREW_RADIUS = 57.5;  // = the 23C board's TORUS_MAJOR_RADIUS
+export const BOARD_SCREW_PATTERNS: Record<string, { distX: number; distY: number }> = {
+  "omega":        { distX: 82,  distY: 113 },
+  "lpl-saunders": { distX: 136, distY: 70 },
+  "beseler-23c":  { distX: BESELER_23C_BOARD_SCREW_RADIUS * Math.SQRT2, distY: BESELER_23C_BOARD_SCREW_RADIUS * Math.SQRT2 },
+};
+// omega-d-glass: the omega pattern lands inside its 4x5 opening, so it has its
+// own (carrier-configs.scad OMEGA_D_GLASS_SCREW_PATTERN_DIST_*).
+const GLASS_SCREW_PATTERN = { distX: 112, distY: 80 };
 
 export function screwFootprint(c: TwoDConfig): { cx: number; cy: number; r: number }[] {
-  const boardType = effectiveBoardType(c);
-  const usesFootprint = boardType === "omega" || boardType === "lpl-saunders";
-  if (boardFused(c) || !usesFootprint || !BOARD_CARRIERS.has(c.carrierType)) return [];
-  const glass = c.carrierType === "omega-d-glass";
-  const ex = (glass ? GLASS_SCREW_PATTERN_DIST_X : SCREW_PATTERN_DIST_X) / 2;  // 56 / 41
-  const ey = (glass ? GLASS_SCREW_PATTERN_DIST_Y : SCREW_PATTERN_DIST_Y) / 2;  // 40 / 56.5
+  if (boardFused(c) || !BOARD_CARRIERS.has(c.carrierType)) return [];
+  const pattern = c.carrierType === "omega-d-glass" ? GLASS_SCREW_PATTERN : BOARD_SCREW_PATTERNS[effectiveBoardType(c)];
+  if (!pattern) return [];
+  const ex = pattern.distX / 2;
+  const ey = pattern.distY / 2;
   const r = SCREW_DIAMETER / 2;         // 1
   const out: { cx: number; cy: number; r: number }[] = [];
   for (const sx of [-1, 1]) for (const sy of [-1, 1]) out.push({ cx: sx * ex, cy: sy * ey, r });
@@ -387,10 +396,11 @@ export function boardTypeOutlineKey(c: TwoDConfig): string | null {
   return null;
 }
 
-// The board ghost is drawn when it's fused in, or when it's a screw-on board
-// (always part of the assembly).
+// The board ghost is always drawn for a board carrier: fused in, or — when
+// detached (screw-on or Alignment_Board off) — still printed and screwed on
+// underneath, which the view marks as not attached.
 function boardOutlineKey(c: TwoDConfig): string | null {
-  return boardFused(c) || SCREW_ON_BOARD_CARRIERS.has(c.carrierType) ? boardTypeOutlineKey(c) : null;
+  return boardTypeOutlineKey(c);
 }
 
 export function buildScene(
@@ -426,6 +436,7 @@ export function buildScene(
     arrow: directionalArrow(c),
     texts: textPlacements(c, measure),
     boardKey: boardOutlineKey(c),
+    boardAttached: boardFused(c),
     dimensions: dimensionAnnotations(openingHeight, openingWidth, filmPegs),
   };
 }
