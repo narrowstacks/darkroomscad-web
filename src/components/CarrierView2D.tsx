@@ -250,17 +250,18 @@ export function CarrierView2D({ values, showDimensions = false, showFilm = false
           ))}
         </g>
         {/* Board overlay: dashed ghost of the stacked alignment board (raw export
-            coords like the body), on top of the carrier. Fused: a solid-ish
-            accent dash. Not attached (printed separately, screwed on through
-            the footprint holes): a fainter, finer dash in the muted text
-            colour, plus the status chip below the SVG. */}
+            coords like the body), on top of the carrier. Fused: a long accent
+            dash. Not attached (printed separately, screwed on through the
+            footprint holes): the same accent (it has to stay legible on the
+            grey body) in a finer dash, slightly lighter, plus the status chip
+            below the SVG, which does the explicit telling. */}
         {board && (
           <g data-layer="board" data-attached={scene.boardAttached ? "true" : "false"}
-            opacity={scene.boardAttached ? 0.9 : 0.55}>
+            opacity={scene.boardAttached ? 0.9 : 0.75}>
             <path d={board.d} fillRule="evenodd" fill="none"
-              stroke={scene.boardAttached ? "var(--accent)" : "var(--text-muted)"}
-              strokeWidth={scene.boardAttached ? 1.2 : 0.8}
-              strokeDasharray={scene.boardAttached ? "4 3" : "1.5 2.5"} />
+              stroke="var(--accent)"
+              strokeWidth={scene.boardAttached ? 1.2 : 1}
+              strokeDasharray={scene.boardAttached ? "4 3" : "2 2.5"} />
           </g>
         )}
         {/* Text in an unscaled group so glyphs are not mirrored. The explicit
