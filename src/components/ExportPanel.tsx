@@ -5,6 +5,7 @@ import { renderParts, zipParts, type ExportProgress, type ExportedPart } from "@
 import { zipFileName } from "@/lib/export/zip-name";
 import { presetFileJson } from "@/lib/export/preset-json";
 import { download } from "@/lib/export/download";
+import { PrintGuide } from "./PrintGuide";
 import type { RenderParams } from "@/lib/openscad/types";
 import type { FormValue } from "@/lib/form/types";
 import type { RenderClient } from "@/lib/openscad/client";
@@ -98,6 +99,8 @@ export function ExportPanel({ client, getParams, getValues, presetName }: {
           )}
         </div>
       )}
+
+      <PrintGuide />
 
       {error && (
         <div className="flex items-start gap-2 rounded-xl px-3 py-2.5 text-sm"
