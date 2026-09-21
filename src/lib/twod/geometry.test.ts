@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { openingDimensions, pegPositions, pegRadiusAndKind, screwFootprint, directionalArrow, textPlacements, buildScene, glassRecesses, effectiveTopOrBottom, boardTypeOutlineKey } from "./geometry";
+import { parsePathPolygons, pointInPolygons, type Polygon } from "./opening-fit";
+import { BOARD_OUTLINES } from "@/lib/outline/board-outlines";
+import { CARRIER_OUTLINES } from "@/lib/outline/outlines";
 import type { TwoDConfig } from "./types";
 
 const base: TwoDConfig = {
@@ -184,19 +187,69 @@ describe("screwFootprint", () => {
   it("none when the board is attached", () => {
     expect(screwFootprint({ ...base, alignmentBoard: true, alignmentBoardType: "omega" })).toEqual([]);
   });
-  it("none for the beseler board type", () => {
-    expect(screwFootprint({ ...base, alignmentBoard: false, alignmentBoardType: "beseler-23c" })).toEqual([]);
-  });
   it("none for non-board carriers (test frame)", () => {
     expect(screwFootprint({ ...base, carrierType: "frameAndPegTest", alignmentBoard: false })).toEqual([]);
   });
-  it("board off + lpl-saunders type → 4 holes (same pattern as omega)", () => {
+  it("board off + lpl-saunders type → 4 holes at (±68, ±35) on the board's chord rails", () => {
     const holes = screwFootprint({ ...base, alignmentBoard: false, alignmentBoardType: "lpl-saunders" });
     expect(holes).toHaveLength(4);
     for (const h of holes) {
-      expect(Math.abs(h.cx)).toBe(41);
-      expect(Math.abs(h.cy)).toBe(56.5);
+      expect(Math.abs(h.cx)).toBe(68);
+      expect(Math.abs(h.cy)).toBe(35);
       expect(h.r).toBe(1);
+    }
+  });
+  it("board off + beseler-23c type → 4 holes on the ring's centre-line (r 57.5) at 45°", () => {
+    const holes = screwFootprint({ ...base, carrierType: "beseler-23c", alignmentBoard: false, alignmentBoardType: "beseler-23c" });
+    expect(holes).toHaveLength(4);
+    for (const h of holes) {
+      expect(Math.abs(h.cx)).toBeCloseTo(40.6586, 3);
+      expect(Math.abs(h.cy)).toBeCloseTo(40.6586, 3);
+      expect(Math.hypot(h.cx, h.cy)).toBeCloseTo(57.5, 6);
+      expect(h.r).toBe(1);
+    }
+  });
+  it("the pattern follows the board type, not the carrier", () => {
+    const onOmega = screwFootprint({ ...base, carrierType: "omega-d", alignmentBoard: false, alignmentBoardType: "lpl-saunders" });
+    const onLpl = screwFootprint({ ...base, carrierType: "lpl-saunders-45xx", alignmentBoard: false, alignmentBoardType: "lpl-saunders" });
+    expect(onOmega).toEqual(onLpl);
+  });
+
+  // The whole point of the per-board patterns: every hole (its full 1mm-radius
+  // disc) must land on the board's material in the generated board outlines,
+  // and on the carrier's body. Sampled with the outlines' even-odd fill, in the
+  // export space (a symmetric pattern is invariant under its Y flip).
+  const boardOutlineFor: Record<string, string> = { omega: "omega", "lpl-saunders": "lpl-saunders", "beseler-23c": "beseler-23c" };
+  const onMaterial = (polys: Polygon[], cx: number, cy: number, r: number) => {
+    if (!pointInPolygons(polys, cx, cy)) return false;
+    for (let k = 0; k < 12; k++) {
+      const a = (k / 12) * 2 * Math.PI;
+      if (!pointInPolygons(polys, cx + r * Math.cos(a), cy + r * Math.sin(a))) return false;
+    }
+    return true;
+  };
+  for (const [boardType, outlineKey] of Object.entries(boardOutlineFor)) {
+    it(`${boardType} holes land on the ${boardType} board's material`, () => {
+      const holes = screwFootprint({ ...base, carrierType: "omega-d", alignmentBoard: false, alignmentBoardType: boardType });
+      const polys = parsePathPolygons(BOARD_OUTLINES[outlineKey].d);
+      expect(holes).toHaveLength(4);
+      for (const h of holes) expect(onMaterial(polys, h.cx, h.cy, h.r), `hole at (${h.cx}, ${h.cy})`).toBe(true);
+      // And the omega pattern really would miss the other boards (the bug this guards).
+      if (boardType !== "omega") {
+        const omegaHoles = screwFootprint({ ...base, carrierType: "omega-d", alignmentBoard: false, alignmentBoardType: "omega" });
+        expect(omegaHoles.some((h) => !onMaterial(polys, h.cx, h.cy, h.r))).toBe(true);
+      }
+    });
+  }
+  it("holes land on the carrier body for every board carrier × board type", () => {
+    for (const carrierType of ["omega-d", "lpl-saunders-45xx", "beseler-23c"]) {
+      for (const boardType of Object.keys(boardOutlineFor)) {
+        const holes = screwFootprint({ ...base, carrierType, alignmentBoard: false, alignmentBoardType: boardType });
+        for (const key of [carrierType, `${carrierType}:top`]) {
+          const polys = parsePathPolygons(CARRIER_OUTLINES[key].d);
+          for (const h of holes) expect(onMaterial(polys, h.cx, h.cy, h.r), `${key} ${boardType} hole at (${h.cx}, ${h.cy})`).toBe(true);
+        }
+      }
     }
   });
 });
@@ -347,24 +400,32 @@ describe("textPlacements", () => {
 });
 
 describe("buildScene", () => {
-  it("assembles opening, 4 pegs, and no board overlay when board is off", () => {
+  it("assembles opening, 4 pegs, and a not-attached board overlay when board is off", () => {
     const s = buildScene({ ...base, alignmentBoard: false });
     expect(s.opening).toEqual({ w: 36, h: 24, chamfer: 0.5 });
     expect(s.pegs).toHaveLength(4);
     expect(s.pegs.every((p) => p.kind === "hole")).toBe(true); // bottom heat-set
-    expect(s.boardKey).toBeNull();
+    // The detached board is still printed and stacked underneath: its ghost is
+    // drawn, flagged as not attached, alongside the screw footprint.
+    expect(s.boardKey).toBe("omega");
+    expect(s.boardAttached).toBe(false);
     expect(s.screwHoles).toHaveLength(4);
   });
 
   it("selects the board outline key and drops footprint holes when attached", () => {
     expect(buildScene({ ...base, alignmentBoard: true, alignmentBoardType: "omega" }).boardKey).toBe("omega");
+    expect(buildScene({ ...base, alignmentBoard: true, alignmentBoardType: "omega" }).boardAttached).toBe(true);
     expect(buildScene({ ...base, alignmentBoard: true, alignmentBoardType: "omega", filmFormat: "4x5" }).boardKey).toBe("omega-4x5");
     expect(buildScene({ ...base, alignmentBoard: true, alignmentBoardType: "lpl-saunders" }).boardKey).toBe("lpl-saunders");
     expect(buildScene({ ...base, alignmentBoard: true, alignmentBoardType: "omega" }).screwHoles).toEqual([]);
   });
-  it("beseler-23c board selects its own outline key", () => {
+  it("beseler-23c board selects its own outline key, attached or not", () => {
     expect(buildScene({ ...base, carrierType: "beseler-23c", alignmentBoard: true, alignmentBoardType: "beseler-23c" }).boardKey)
       .toBe("beseler-23c");
+    const detached = buildScene({ ...base, carrierType: "beseler-23c", alignmentBoard: false, alignmentBoardType: "beseler-23c" });
+    expect(detached.boardKey).toBe("beseler-23c");
+    expect(detached.boardAttached).toBe(false);
+    expect(detached.screwHoles).toHaveLength(4);
   });
 
   it("beseler-45 bottom: 4 film pegs + 4 corner pegs at (±59.85, ±59.85) r=2.3", () => {
@@ -506,8 +567,11 @@ describe("omega-d-glass", () => {
     expect(buildScene(base).dimensions).toHaveLength(4);
   });
 
-  it("board ghost is always drawn for the screw-on board", () => {
-    expect(buildScene({ ...glass, alignmentBoard: false }).boardKey).toBe("omega-4x5");
-    expect(buildScene({ ...base, alignmentBoard: false }).boardKey).toBeNull();
+  it("board ghost is always drawn for the screw-on board, as not attached", () => {
+    const s = buildScene({ ...glass, alignmentBoard: false });
+    expect(s.boardKey).toBe("omega-4x5");
+    expect(s.boardAttached).toBe(false);
+    // The pinned Alignment_Board value never fuses it either.
+    expect(buildScene({ ...glass, alignmentBoard: true }).boardAttached).toBe(false);
   });
 });

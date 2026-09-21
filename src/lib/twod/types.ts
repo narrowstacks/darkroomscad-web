@@ -88,6 +88,9 @@ export interface Scene {
   texts: TextPlacement[];
   /** Board outline key into BOARD_OUTLINES, or null when no overlay. */
   boardKey: string | null;
+  /** Is the drawn board fused into the carrier? False when it's a separate
+   *  part screwed on underneath (the overlay is drawn as "not attached"). */
+  boardAttached: boolean;
   dimensions: DimensionAnnotation[];
 }
 

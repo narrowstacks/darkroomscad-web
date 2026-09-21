@@ -2,7 +2,7 @@
 import { useMemo, useState, useEffect } from "react";
 import type { FormValue } from "@/lib/form/types";
 import { parseConfig, type DimensionAnnotation } from "@/lib/twod/types";
-import { buildScene, effectiveOrientation, effectiveTopOrBottom, boardTypeOutlineKey } from "@/lib/twod/geometry";
+import { buildScene, effectiveOrientation, effectiveTopOrBottom, effectiveBoardType, boardTypeOutlineKey } from "@/lib/twod/geometry";
 import { buildFilmOverlay, type CustomFilmSpec } from "@/lib/twod/film-overlay";
 import { openingFitIssues, type FitIssue } from "@/lib/twod/opening-fit";
 import { TriangleAlert } from "lucide-react";
@@ -94,6 +94,7 @@ export function CarrierView2D({ values, showDimensions = false, showFilm = false
   const body = (effectiveTopOrBottom(config) === "top" ? CARRIER_OUTLINES[`${config.carrierType}:top`] : undefined)
     ?? CARRIER_OUTLINES[config.carrierType];
   const board = scene.boardKey ? BOARD_OUTLINES[scene.boardKey] : undefined;
+  const boardType = effectiveBoardType(config);
 
   // Fit warnings: the opening vs. the body, and vs. the cutout of the board this
   // carrier is used with — checked even when the board ghost isn't drawn, since
@@ -141,8 +142,16 @@ export function CarrierView2D({ values, showDimensions = false, showFilm = false
             border: "1px solid color-mix(in srgb, var(--error) 35%, transparent)" }}>
           <TriangleAlert className="mt-0.5 size-4 shrink-0" />
           <div>
-            {fitIssues.map((issue) => <p key={issue}>{fitMessage(issue, config.alignmentBoardType)}</p>)}
+            {fitIssues.map((issue) => <p key={issue}>{fitMessage(issue, boardType)}</p>)}
           </div>
+        </div>
+      )}
+      {board && !scene.boardAttached && (
+        <div data-testid="board-status"
+          className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs"
+          style={{ background: "var(--surface)", color: "var(--text-muted)", border: "1px solid var(--border)" }}>
+          <span aria-hidden className="inline-block h-0 w-4 border-t border-dashed" style={{ borderColor: "var(--text-muted)" }} />
+          {BOARD_LABELS[boardType] ?? boardType} board — not attached (separate part, screws on underneath)
         </div>
       )}
       <svg viewBox={`${view.minX} ${view.minY} ${view.w} ${view.h}`}
@@ -241,11 +250,17 @@ export function CarrierView2D({ values, showDimensions = false, showFilm = false
           ))}
         </g>
         {/* Board overlay: dashed ghost of the stacked alignment board (raw export
-            coords like the body), on top of the carrier. */}
+            coords like the body), on top of the carrier. Fused: a solid-ish
+            accent dash. Not attached (printed separately, screwed on through
+            the footprint holes): a fainter, finer dash in the muted text
+            colour, plus the status chip below the SVG. */}
         {board && (
-          <g opacity={0.9}>
+          <g data-layer="board" data-attached={scene.boardAttached ? "true" : "false"}
+            opacity={scene.boardAttached ? 0.9 : 0.55}>
             <path d={board.d} fillRule="evenodd" fill="none"
-              stroke="var(--accent)" strokeWidth={1.2} strokeDasharray="4 3" />
+              stroke={scene.boardAttached ? "var(--accent)" : "var(--text-muted)"}
+              strokeWidth={scene.boardAttached ? 1.2 : 0.8}
+              strokeDasharray={scene.boardAttached ? "4 3" : "1.5 2.5"} />
           </g>
         )}
         {/* Text in an unscaled group so glyphs are not mirrored. The explicit
