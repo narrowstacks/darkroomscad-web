@@ -12,8 +12,28 @@ const CUSTOM_FILM_DEFAULT_HEIGHT = 37;  // film-sizes.scad customFilmFormatHeigh
 const PEG_DIAMETER = 5.6;
 const PEG_RADIUS = PEG_DIAMETER / 2;          // 2.8
 const PEG_HOLE_TOLERANCE = 0.25;
-const M2_HEAT_SET_HOLE_DIA = 1.6;             // bottom heat-set hole
-const M2_SOCKET_HEAD_DIA = 3.8;               // top heat-set socket clearance
+// Heat-set pegs are machine screws threaded into the bottom carrier; the head
+// is the peg. Per size: thread-forming (tap-drill) hole dia, socket head dia —
+// HEAT_SET_SCREW_SIZES in carrier-features.scad.
+export const HEAT_SET_SCREW_SIZES: Record<string, { threadHoleDia: number; headDia: number }> = {
+  "M2":   { threadHoleDia: 1.6,  headDia: 3.8 },
+  "M2.5": { threadHoleDia: 2.05, headDia: 4.5 },
+  "M3":   { threadHoleDia: 2.5,  headDia: 5.5 },
+};
+export const DEFAULT_HEAT_SET_SCREW_SIZE = "M2";
+const HEAT_SET_HOLE_FDM_COMPENSATION = 0.3;   // added to the thread hole dia (M2 → 1.9)
+
+function heatSetSpec(size: string) {
+  return HEAT_SET_SCREW_SIZES[size] ?? HEAT_SET_SCREW_SIZES[DEFAULT_HEAT_SET_SCREW_SIZE];
+}
+/** Port of heat_set_thread_hole_dia: bottom hole the screw threads into. */
+export function heatSetThreadHoleDia(c: Pick<TwoDConfig, "heatSetScrewSize" | "heatSetThreadHoleAdjust">): number {
+  return heatSetSpec(c.heatSetScrewSize).threadHoleDia + HEAT_SET_HOLE_FDM_COMPENSATION + c.heatSetThreadHoleAdjust;
+}
+/** Port of heat_set_head_hole_dia: top clearance around the screw head. */
+export function heatSetHeadHoleDia(c: Pick<TwoDConfig, "heatSetScrewSize" | "heatSetHeadHoleAdjust">): number {
+  return heatSetSpec(c.heatSetScrewSize).headDia + 2 * PEG_HOLE_TOLERANCE + c.heatSetHeadHoleAdjust;
+}
 export const FILM_OPENING_FILLET = 0.5;       // UNIVERSAL_FILM_OPENING_FRAME_FILLET
 
 // 4x5 is always "horizontal" (long 120mm edge along Y, perpendicular to the
@@ -90,12 +110,12 @@ export function pegRadiusAndKind(c: TwoDConfig): { r: number; kind: "peg" | "hol
   if (c.topOrBottom === "bottom") {
     return c.pegStyle === "printed"
       ? { r: PEG_RADIUS, kind: "peg" }                       // additive printed peg
-      : { r: M2_HEAT_SET_HOLE_DIA / 2 + PEG_HOLE_TOLERANCE, kind: "hole" };       // 1.05
+      : { r: heatSetThreadHoleDia(c) / 2, kind: "hole" };    // M2 default: 0.95
   }
   // top
   return c.pegStyle === "printed"
     ? { r: PEG_RADIUS + PEG_HOLE_TOLERANCE, kind: "hole" }   // 3.05
-    : { r: M2_SOCKET_HEAD_DIA / 2 + PEG_HOLE_TOLERANCE, kind: "hole" };           // 2.15
+    : { r: heatSetHeadHoleDia(c) / 2, kind: "hole" };        // M2 default: 2.15
 }
 
 // The single-piece glass carrier is always the bottom-style piece (carrier.scad

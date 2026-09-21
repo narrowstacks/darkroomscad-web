@@ -1,6 +1,8 @@
 import type { GroupConfig, FormValue } from "../lib/form/types";
 import { BOARD_CARRIERS, SINGLE_PIECE_CARRIERS, FILM_PEG_CARRIERS, screwOnBoardType } from "./carriers";
 import { filmFramePitch } from "../lib/twod/film-data";
+import { heatSetThreadHoleDia, heatSetHeadHoleDia } from "../lib/twod/geometry";
+import { parseConfig } from "../lib/twod/types";
 
 const isCustomFormat = (v: Record<string, FormValue>) => v.Film_Format === "custom";
 const isGlassCarrier = (v: Record<string, FormValue>) => v.Carrier_Type === "omega-d-glass";
@@ -11,6 +13,11 @@ const hasFilmPegs = (v: Record<string, FormValue>) => FILM_PEG_CARRIERS.has(Stri
 // A screw-on board is never fused and always the carrier's own type: both
 // board controls are locked (pinned to off / that type).
 const hasScrewOnBoard = (v: Record<string, FormValue>) => screwOnBoardType(String(v.Carrier_Type)) != null;
+
+// Heat-set pegs are machine screws threaded into the bottom carrier (the head
+// is the peg); their screw size and hole tweaks only apply when selected.
+const hasHeatSetScrews = (v: Record<string, FormValue>) =>
+  hasFilmPegs(v) && v.Printed_or_Heat_Set_Pegs !== "printed";
 
 // Frame count only means something for formats with a frame pitch (not 4x5
 // sheets or custom openings — the SCAD ignores it there too).
@@ -140,6 +147,9 @@ export const CARRIER_UI: GroupConfig[] = [
         optionLabels: { "printed": "Printed", "heat_set": "Heat-set" },
         visibleWhen: hasFilmPegs,
         optionDisabledWhen: (opt, v) => opt === "printed" && v.Alignment_Board === true && isBoardCarrier(v) },
+      { param: "Heat_Set_Screw_Size", label: "Peg screws", control: "segmented",
+        help: "Socket-head machine screws (e.g. M2×4) thread straight into the bottom carrier; the head is the peg. Sets the bottom thread hole and the top head clearance. Fine-tune both under Advanced.",
+        visibleWhen: hasHeatSetScrews },
       { param: "Flip_Bottom_For_Printing", label: "Flip bottom for printing", control: "switch",
         help: (v) => isSinglePiece(v)
           ? "Locked off — the plate pocket must face up to print without supports."
@@ -166,6 +176,14 @@ export const CARRIER_UI: GroupConfig[] = [
         min: -3, max: 3, step: 0.1, unit: "mm", advanced: true },
       { param: "Adjust_Film_Height", label: "Adjust film height", control: "slider",
         min: -3, max: 3, step: 0.1, unit: "mm", advanced: true },
+      // Heat-set screw hole fine-tuning: diameter deltas on the modelled holes.
+      // The defaults already carry +0.3mm FDM compensation on the thread hole.
+      { param: "Heat_Set_Thread_Hole_Adjust", label: "Screw thread hole adjust", control: "slider",
+        help: (v) => `Bottom hole the screw threads into (diameter change). Default ${heatSetThreadHoleDia(parseConfig({ ...v, Heat_Set_Thread_Hole_Adjust: 0 })).toFixed(2)} mm modelled, which prints near tap-drill size on most FDM printers. Go + if the screw won't start, − if it spins.`,
+        min: -0.4, max: 0.6, step: 0.05, unit: "mm", advanced: true, visibleWhen: hasHeatSetScrews },
+      { param: "Heat_Set_Head_Hole_Adjust", label: "Screw head hole adjust", control: "slider",
+        help: (v) => `Top clearance around the screw head (diameter change). Default ${heatSetHeadHoleDia(parseConfig({ ...v, Heat_Set_Head_Hole_Adjust: 0 })).toFixed(2)} mm.`,
+        min: -0.4, max: 0.6, step: 0.05, unit: "mm", advanced: true, visibleWhen: hasHeatSetScrews },
       // Glass-plate pocket / notch fine-tuning (omega-d-glass only).
       { param: "Glass_Plate_Side_Play", label: "Plate side play (per side)", control: "slider",
         min: 0, max: 2, step: 0.1, unit: "mm", advanced: true, visibleWhen: isGlassCarrier },

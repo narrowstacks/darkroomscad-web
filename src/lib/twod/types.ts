@@ -13,6 +13,12 @@ export interface TwoDConfig {
   customOpeningWidth: number;
   customOpeningHeight: number;
   pegStyle: "printed" | "heat_set";
+  /** Heat-set pegs: the screw size (Heat_Set_Screw_Size, "M2" | "M2.5" | "M3")
+   *  and the user's diameter tweaks (mm) for the bottom thread-forming hole and
+   *  the top head-clearance hole. */
+  heatSetScrewSize: string;
+  heatSetThreadHoleAdjust: number;
+  heatSetHeadHoleAdjust: number;
   pegGap: number;
   adjustFilmWidth: number;
   adjustFilmHeight: number;
@@ -101,6 +107,9 @@ export function parseConfig(v: Record<string, FormValue>): TwoDConfig {
     customOpeningWidth: num(v.Custom_Opening_Width, 24),
     customOpeningHeight: num(v.Custom_Opening_Height, 36),
     pegStyle: str(v.Printed_or_Heat_Set_Pegs, "heat_set") === "printed" ? "printed" : "heat_set",
+    heatSetScrewSize: str(v.Heat_Set_Screw_Size, "M2"),
+    heatSetThreadHoleAdjust: num(v.Heat_Set_Thread_Hole_Adjust, 0),
+    heatSetHeadHoleAdjust: num(v.Heat_Set_Head_Hole_Adjust, 0),
     pegGap: num(v.Peg_Gap, 0),
     adjustFilmWidth: num(v.Adjust_Film_Width, 0),
     adjustFilmHeight: num(v.Adjust_Film_Height, 0),

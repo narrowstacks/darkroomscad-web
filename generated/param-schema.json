@@ -224,6 +224,28 @@
       ]
     },
     {
+      "name": "Heat_Set_Screw_Size",
+      "section": "Carrier Options",
+      "type": "enum",
+      "default": "M2",
+      "hidden": false,
+      "description": "Heat-set pegs only: the machine screw (e.g. M2x4 socket head) that threads into the bottom carrier and whose head registers the top. Sizes both holes.",
+      "options": [
+        {
+          "value": "M2",
+          "label": "M2"
+        },
+        {
+          "value": "M2.5",
+          "label": "M2.5"
+        },
+        {
+          "value": "M3",
+          "label": "M3"
+        }
+      ]
+    },
+    {
       "name": "Custom_Film_Width",
       "section": "Custom Film Format",
       "type": "number",
@@ -532,6 +554,22 @@
       "default": 0,
       "hidden": false,
       "description": "Leave at 0 for no adjustment. Measured in mm. Add positive values to increase the film height, subtract (use negative values) to decrease it."
+    },
+    {
+      "name": "Heat_Set_Thread_Hole_Adjust",
+      "section": "Adjustments",
+      "type": "number",
+      "default": 0,
+      "hidden": false,
+      "description": "Heat-set pegs only. Added to the diameter (mm) of the bottom carrier's screw holes, which the screw threads into (default M2: 1.9mm). Use +0.1..0.2 if the screw won't start, negative if it spins freely."
+    },
+    {
+      "name": "Heat_Set_Head_Hole_Adjust",
+      "section": "Adjustments",
+      "type": "number",
+      "default": 0,
+      "hidden": false,
+      "description": "Heat-set pegs only. Added to the diameter (mm) of the top carrier's screw-head clearance holes (default M2: 4.3mm)."
     },
     {
       "name": "Render_Quality",

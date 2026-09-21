@@ -5,7 +5,7 @@ import type { TwoDConfig } from "./types";
 const base: TwoDConfig = {
   carrierType: "omega-d", orientation: "vertical", topOrBottom: "bottom",
   filmFormat: "35mm", frameCount: 1, customFilmWidth: 37, customFilmHeight: 37,
-  customOpeningWidth: 24, customOpeningHeight: 36, pegStyle: "heat_set",
+  customOpeningWidth: 24, customOpeningHeight: 36, pegStyle: "heat_set", heatSetScrewSize: "M2", heatSetThreadHoleAdjust: 0, heatSetHeadHoleAdjust: 0,
   pegGap: 0, adjustFilmWidth: 0, adjustFilmHeight: 0, alignmentBoard: false,
   alignmentBoardType: "omega", enableOwnerEtch: false, ownerName: "",
   enableTypeEtch: false, typeNameSource: "Carrier Type", customTypeName: "",
@@ -117,17 +117,43 @@ describe("pegRadiusAndKind", () => {
     expect(pegRadiusAndKind({ ...base, topOrBottom: "bottom", pegStyle: "printed" }))
       .toEqual({ r: 2.8, kind: "peg" });
   });
-  it("bottom heat-set → hole r=1.05", () => {
-    expect(pegRadiusAndKind({ ...base, topOrBottom: "bottom", pegStyle: "heat_set" }))
-      .toEqual({ r: 1.05, kind: "hole" });
+  // M2 thread-forming hole: 1.6 tap-drill + 0.3 FDM compensation = 1.9mm dia
+  // (NOT the printed-peg 0.5mm tolerance — that printed ~2.2mm and let M2
+  // screws spin).
+  it("bottom heat-set (M2) → thread hole r=0.95", () => {
+    const got = pegRadiusAndKind({ ...base, topOrBottom: "bottom", pegStyle: "heat_set" });
+    expect(got.kind).toBe("hole");
+    expect(got.r).toBeCloseTo(0.95, 6);
+  });
+  it("bottom heat-set M2.5 / M3 → thread holes r=1.175 / 1.4", () => {
+    expect(pegRadiusAndKind({ ...base, topOrBottom: "bottom", pegStyle: "heat_set", heatSetScrewSize: "M2.5" }).r).toBeCloseTo(1.175, 6);
+    expect(pegRadiusAndKind({ ...base, topOrBottom: "bottom", pegStyle: "heat_set", heatSetScrewSize: "M3" }).r).toBeCloseTo(1.4, 6);
+  });
+  it("thread-hole adjust is a diameter delta on the bottom only", () => {
+    expect(pegRadiusAndKind({ ...base, topOrBottom: "bottom", pegStyle: "heat_set", heatSetThreadHoleAdjust: 0.2 }).r).toBeCloseTo(1.05, 6);
+    expect(pegRadiusAndKind({ ...base, topOrBottom: "top", pegStyle: "heat_set", heatSetThreadHoleAdjust: 0.2 }).r).toBeCloseTo(2.15, 6);
+  });
+  it("unknown screw size falls back to M2", () => {
+    expect(pegRadiusAndKind({ ...base, topOrBottom: "bottom", pegStyle: "heat_set", heatSetScrewSize: "M4" }).r).toBeCloseTo(0.95, 6);
+  });
+  it("printed pegs ignore the screw settings", () => {
+    expect(pegRadiusAndKind({ ...base, topOrBottom: "bottom", pegStyle: "printed", heatSetScrewSize: "M3", heatSetThreadHoleAdjust: 1 }))
+      .toEqual({ r: 2.8, kind: "peg" });
   });
   it("top printed → hole r=3.05", () => {
     expect(pegRadiusAndKind({ ...base, topOrBottom: "top", pegStyle: "printed" }))
       .toEqual({ r: 3.05, kind: "hole" });
   });
-  it("top heat-set → socket hole r=2.15", () => {
+  // Head clearance keeps the printed-peg tolerance: ISO 4762 head dia + 0.5.
+  it("top heat-set (M2) → head clearance r=2.15", () => {
     expect(pegRadiusAndKind({ ...base, topOrBottom: "top", pegStyle: "heat_set" }))
       .toEqual({ r: 2.15, kind: "hole" });
+  });
+  it("top heat-set M2.5 / M3 → head clearance r=2.5 / 3.0; head adjust is top-only", () => {
+    expect(pegRadiusAndKind({ ...base, topOrBottom: "top", pegStyle: "heat_set", heatSetScrewSize: "M2.5" }).r).toBeCloseTo(2.5, 6);
+    expect(pegRadiusAndKind({ ...base, topOrBottom: "top", pegStyle: "heat_set", heatSetScrewSize: "M3" }).r).toBeCloseTo(3.0, 6);
+    expect(pegRadiusAndKind({ ...base, topOrBottom: "top", pegStyle: "heat_set", heatSetHeadHoleAdjust: -0.3 }).r).toBeCloseTo(2.0, 6);
+    expect(pegRadiusAndKind({ ...base, topOrBottom: "bottom", pegStyle: "heat_set", heatSetHeadHoleAdjust: -0.3 }).r).toBeCloseTo(0.95, 6);
   });
 });
 

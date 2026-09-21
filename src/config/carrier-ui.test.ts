@@ -32,6 +32,33 @@ describe("carrier-ui overlay vs generated schema", () => {
     expect(f.visibleWhen!({ Film_Format: "custom" })).toBe(false);
   });
 
+  it("heat-set screw size + hole adjusts show only for heat-set pegs on peg carriers", () => {
+    const groups = resolveFormModel(s, CARRIER_UI);
+    const byParam = Object.fromEntries(groups.flatMap((g) => g.fields).map((f) => [f.param, f]));
+    const heat = { Carrier_Type: "omega-d", Printed_or_Heat_Set_Pegs: "heat_set" };
+    const printed = { Carrier_Type: "omega-d", Printed_or_Heat_Set_Pegs: "printed" };
+    const glass = { Carrier_Type: "omega-d-glass", Printed_or_Heat_Set_Pegs: "heat_set" };
+    expect(byParam.Heat_Set_Screw_Size.control).toBe("segmented");
+    expect((byParam.Heat_Set_Screw_Size.options ?? []).map((o) => o.value)).toEqual(["M2", "M2.5", "M3"]);
+    expect(byParam.Heat_Set_Screw_Size.default).toBe("M2");
+    for (const p of ["Heat_Set_Screw_Size", "Heat_Set_Thread_Hole_Adjust", "Heat_Set_Head_Hole_Adjust"]) {
+      expect(byParam[p].visibleWhen!(heat), p).toBe(true);
+      expect(byParam[p].visibleWhen!(printed), p).toBe(false);
+      expect(byParam[p].visibleWhen!(glass), p).toBe(false);
+    }
+    // The adjust sliders are advanced diameter deltas whose help quotes the
+    // modelled default for the selected screw (M2: 1.9 thread / 4.3 head).
+    const help = (p: string, v: Record<string, string>) => {
+      const h = byParam[p].help;
+      return typeof h === "function" ? h(v) : h;
+    };
+    expect(byParam.Heat_Set_Thread_Hole_Adjust.advanced).toBe(true);
+    expect(byParam.Heat_Set_Thread_Hole_Adjust.default).toBe(0);
+    expect(help("Heat_Set_Thread_Hole_Adjust", heat)).toContain("1.90 mm");
+    expect(help("Heat_Set_Head_Hole_Adjust", heat)).toContain("4.30 mm");
+    expect(help("Heat_Set_Thread_Hole_Adjust", { ...heat, Heat_Set_Screw_Size: "M3" })).toContain("2.80 mm");
+  });
+
   it("omega-d-glass: locks part/flip/board (the SCAD forces them) with a 'Locked' hint, hides pegs, shows the glass group", () => {
     const groups = resolveFormModel(s, CARRIER_UI);
     const byParam = Object.fromEntries(groups.flatMap((g) => g.fields).map((f) => [f.param, f]));
