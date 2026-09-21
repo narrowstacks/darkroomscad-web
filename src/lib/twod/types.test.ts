@@ -53,13 +53,17 @@ describe("parseConfig", () => {
     expect(c.pegStyle).toBe("heat_set");
     expect(c.typeTextOffset).toEqual([0, 0]);
     expect(c.heatSetScrewSize).toBe("M2");
+    expect(c.heatSetHeadStyle).toBe("socket");
+    expect(c.heatSetHeadDiameter).toBe(3.8);
     expect(c.heatSetThreadHoleAdjust).toBe(0);
     expect(c.heatSetHeadHoleAdjust).toBe(0);
   });
 
   it("reads the heat-set screw settings (numbers from a share link coerce)", () => {
-    const c = parseConfig({ Heat_Set_Screw_Size: "M3", Heat_Set_Thread_Hole_Adjust: "0.2", Heat_Set_Head_Hole_Adjust: -0.1 });
+    const c = parseConfig({ Heat_Set_Screw_Size: "M3", Heat_Set_Screw_Head: "custom", Heat_Set_Screw_Head_Diameter: "5.9", Heat_Set_Thread_Hole_Adjust: "0.2", Heat_Set_Head_Hole_Adjust: -0.1 });
     expect(c.heatSetScrewSize).toBe("M3");
+    expect(c.heatSetHeadStyle).toBe("custom");
+    expect(c.heatSetHeadDiameter).toBe(5.9);
     expect(c.heatSetThreadHoleAdjust).toBe(0.2);
     expect(c.heatSetHeadHoleAdjust).toBe(-0.1);
   });

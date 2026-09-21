@@ -13,26 +13,41 @@ const PEG_DIAMETER = 5.6;
 const PEG_RADIUS = PEG_DIAMETER / 2;          // 2.8
 const PEG_HOLE_TOLERANCE = 0.25;
 // Heat-set pegs are machine screws threaded into the bottom carrier; the head
-// is the peg. Per size: thread-forming (tap-drill) hole dia, socket head dia —
-// HEAT_SET_SCREW_SIZES in carrier-features.scad.
-export const HEAT_SET_SCREW_SIZES: Record<string, { threadHoleDia: number; headDia: number }> = {
-  "M2":   { threadHoleDia: 1.6,  headDia: 3.8 },
-  "M2.5": { threadHoleDia: 2.05, headDia: 4.5 },
-  "M3":   { threadHoleDia: 2.5,  headDia: 5.5 },
+// is the peg. Thread-forming (tap-drill) hole dia per size, and the head
+// diameter (ISO dk max) per head style × size — HEAT_SET_SCREW_SIZES /
+// HEAT_SET_SCREW_HEADS in carrier-features.scad.
+export const HEAT_SET_SCREW_SIZES: Record<string, { threadHoleDia: number }> = {
+  "M2":   { threadHoleDia: 1.6 },
+  "M2.5": { threadHoleDia: 2.05 },
+  "M3":   { threadHoleDia: 2.5 },
+};
+export const HEAT_SET_SCREW_HEADS: Record<string, Record<string, number>> = {
+  socket: { "M2": 3.8, "M2.5": 4.5, "M3": 5.5 },  // socket head cap, ISO 4762
+  button: { "M2": 3.8, "M2.5": 4.7, "M3": 5.7 },  // button head, ISO 7380
+  pan:    { "M2": 4.0, "M2.5": 5.0, "M3": 6.0 },  // pan head, ISO 7045
+  cheese: { "M2": 3.8, "M2.5": 4.5, "M3": 5.5 },  // cheese head, ISO 1207
 };
 export const DEFAULT_HEAT_SET_SCREW_SIZE = "M2";
+export const DEFAULT_HEAT_SET_SCREW_HEAD = "socket";
 const HEAT_SET_HOLE_FDM_COMPENSATION = 0.3;   // added to the thread hole dia (M2 → 1.9)
 
-function heatSetSpec(size: string) {
-  return HEAT_SET_SCREW_SIZES[size] ?? HEAT_SET_SCREW_SIZES[DEFAULT_HEAT_SET_SCREW_SIZE];
+function heatSetSize(size: string): string {
+  return size in HEAT_SET_SCREW_SIZES ? size : DEFAULT_HEAT_SET_SCREW_SIZE;
 }
 /** Port of heat_set_thread_hole_dia: bottom hole the screw threads into. */
 export function heatSetThreadHoleDia(c: Pick<TwoDConfig, "heatSetScrewSize" | "heatSetThreadHoleAdjust">): number {
-  return heatSetSpec(c.heatSetScrewSize).threadHoleDia + HEAT_SET_HOLE_FDM_COMPENSATION + c.heatSetThreadHoleAdjust;
+  return HEAT_SET_SCREW_SIZES[heatSetSize(c.heatSetScrewSize)].threadHoleDia + HEAT_SET_HOLE_FDM_COMPENSATION + c.heatSetThreadHoleAdjust;
+}
+/** Port of heat_set_head_dia: the screw head itself (table, or the measured
+ *  custom diameter). */
+export function heatSetHeadDia(c: Pick<TwoDConfig, "heatSetScrewSize" | "heatSetHeadStyle" | "heatSetHeadDiameter">): number {
+  if (c.heatSetHeadStyle === "custom") return c.heatSetHeadDiameter;
+  const heads = HEAT_SET_SCREW_HEADS[c.heatSetHeadStyle] ?? HEAT_SET_SCREW_HEADS[DEFAULT_HEAT_SET_SCREW_HEAD];
+  return heads[heatSetSize(c.heatSetScrewSize)];
 }
 /** Port of heat_set_head_hole_dia: top clearance around the screw head. */
-export function heatSetHeadHoleDia(c: Pick<TwoDConfig, "heatSetScrewSize" | "heatSetHeadHoleAdjust">): number {
-  return heatSetSpec(c.heatSetScrewSize).headDia + 2 * PEG_HOLE_TOLERANCE + c.heatSetHeadHoleAdjust;
+export function heatSetHeadHoleDia(c: Pick<TwoDConfig, "heatSetScrewSize" | "heatSetHeadStyle" | "heatSetHeadDiameter" | "heatSetHeadHoleAdjust">): number {
+  return heatSetHeadDia(c) + 2 * PEG_HOLE_TOLERANCE + c.heatSetHeadHoleAdjust;
 }
 export const FILM_OPENING_FILLET = 0.5;       // UNIVERSAL_FILM_OPENING_FRAME_FILLET
 

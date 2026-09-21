@@ -41,11 +41,18 @@ describe("carrier-ui overlay vs generated schema", () => {
     expect(byParam.Heat_Set_Screw_Size.control).toBe("segmented");
     expect((byParam.Heat_Set_Screw_Size.options ?? []).map((o) => o.value)).toEqual(["M2", "M2.5", "M3"]);
     expect(byParam.Heat_Set_Screw_Size.default).toBe("M2");
-    for (const p of ["Heat_Set_Screw_Size", "Heat_Set_Thread_Hole_Adjust", "Heat_Set_Head_Hole_Adjust"]) {
+    for (const p of ["Heat_Set_Screw_Size", "Heat_Set_Screw_Head", "Heat_Set_Thread_Hole_Adjust", "Heat_Set_Head_Hole_Adjust"]) {
       expect(byParam[p].visibleWhen!(heat), p).toBe(true);
       expect(byParam[p].visibleWhen!(printed), p).toBe(false);
       expect(byParam[p].visibleWhen!(glass), p).toBe(false);
     }
+    // Head style presets + a measured custom diameter that only shows for "custom".
+    expect((byParam.Heat_Set_Screw_Head.options ?? []).map((o) => o.value)).toEqual(["socket", "button", "pan", "cheese", "custom"]);
+    expect(byParam.Heat_Set_Screw_Head.default).toBe("socket");
+    expect(byParam.Heat_Set_Screw_Head_Diameter.visibleWhen!(heat)).toBe(false);
+    expect(byParam.Heat_Set_Screw_Head_Diameter.visibleWhen!({ ...heat, Heat_Set_Screw_Head: "custom" })).toBe(true);
+    expect(byParam.Heat_Set_Screw_Head_Diameter.visibleWhen!({ ...printed, Heat_Set_Screw_Head: "custom" })).toBe(false);
+    expect(byParam.Heat_Set_Screw_Head_Diameter.default).toBe(3.8);
     // The adjust sliders are advanced diameter deltas whose help quotes the
     // modelled default for the selected screw (M2: 1.9 thread / 4.3 head).
     const help = (p: string, v: Record<string, string>) => {
@@ -57,6 +64,9 @@ describe("carrier-ui overlay vs generated schema", () => {
     expect(help("Heat_Set_Thread_Hole_Adjust", heat)).toContain("1.90 mm");
     expect(help("Heat_Set_Head_Hole_Adjust", heat)).toContain("4.30 mm");
     expect(help("Heat_Set_Thread_Hole_Adjust", { ...heat, Heat_Set_Screw_Size: "M3" })).toContain("2.80 mm");
+    expect(help("Heat_Set_Head_Hole_Adjust", { ...heat, Heat_Set_Screw_Size: "M3", Heat_Set_Screw_Head: "pan" })).toContain("6.50 mm");
+    expect(help("Heat_Set_Screw_Head", { ...heat, Heat_Set_Screw_Head: "pan" })).toContain("4.0 mm");
+    expect(help("Heat_Set_Screw_Head", { ...heat, Heat_Set_Screw_Head: "custom" })).toMatch(/calipers/);
   });
 
   it("omega-d-glass: locks part/flip/board (the SCAD forces them) with a 'Locked' hint, hides pegs, shows the glass group", () => {

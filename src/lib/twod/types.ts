@@ -13,10 +13,13 @@ export interface TwoDConfig {
   customOpeningWidth: number;
   customOpeningHeight: number;
   pegStyle: "printed" | "heat_set";
-  /** Heat-set pegs: the screw size (Heat_Set_Screw_Size, "M2" | "M2.5" | "M3")
-   *  and the user's diameter tweaks (mm) for the bottom thread-forming hole and
-   *  the top head-clearance hole. */
+  /** Heat-set pegs: the screw size (Heat_Set_Screw_Size, "M2" | "M2.5" | "M3"),
+   *  head style (Heat_Set_Screw_Head: socket | button | pan | cheese | custom,
+   *  with heatSetHeadDiameter for "custom") and the user's diameter tweaks
+   *  (mm) for the bottom thread-forming hole and the top head-clearance hole. */
   heatSetScrewSize: string;
+  heatSetHeadStyle: string;
+  heatSetHeadDiameter: number;
   heatSetThreadHoleAdjust: number;
   heatSetHeadHoleAdjust: number;
   pegGap: number;
@@ -108,6 +111,8 @@ export function parseConfig(v: Record<string, FormValue>): TwoDConfig {
     customOpeningHeight: num(v.Custom_Opening_Height, 36),
     pegStyle: str(v.Printed_or_Heat_Set_Pegs, "heat_set") === "printed" ? "printed" : "heat_set",
     heatSetScrewSize: str(v.Heat_Set_Screw_Size, "M2"),
+    heatSetHeadStyle: str(v.Heat_Set_Screw_Head, "socket"),
+    heatSetHeadDiameter: num(v.Heat_Set_Screw_Head_Diameter, 3.8),
     heatSetThreadHoleAdjust: num(v.Heat_Set_Thread_Hole_Adjust, 0),
     heatSetHeadHoleAdjust: num(v.Heat_Set_Head_Hole_Adjust, 0),
     pegGap: num(v.Peg_Gap, 0),

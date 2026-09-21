@@ -52,7 +52,7 @@ describe("openingFitIssues — real outlines", () => {
   const base: TwoDConfig = {
     carrierType: "omega-d", orientation: "vertical", topOrBottom: "bottom",
     filmFormat: "35mm", frameCount: 1, customFilmWidth: 37, customFilmHeight: 37,
-    customOpeningWidth: 24, customOpeningHeight: 36, pegStyle: "heat_set", heatSetScrewSize: "M2", heatSetThreadHoleAdjust: 0, heatSetHeadHoleAdjust: 0,
+    customOpeningWidth: 24, customOpeningHeight: 36, pegStyle: "heat_set", heatSetScrewSize: "M2", heatSetHeadStyle: "socket", heatSetHeadDiameter: 3.8, heatSetThreadHoleAdjust: 0, heatSetHeadHoleAdjust: 0,
     pegGap: 0, adjustFilmWidth: 0, adjustFilmHeight: 0, alignmentBoard: true,
     alignmentBoardType: "omega", enableOwnerEtch: false, ownerName: "",
     enableTypeEtch: false, typeNameSource: "Carrier Type", customTypeName: "",

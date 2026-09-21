@@ -246,6 +246,44 @@
       ]
     },
     {
+      "name": "Heat_Set_Screw_Head",
+      "section": "Carrier Options",
+      "type": "enum",
+      "default": "socket",
+      "hidden": false,
+      "description": "Heat-set pegs only: the screw's head style. The top carrier's hole clears the head (its diameter is the standard max for the size), so it must match the screws you actually use. \"custom\" uses Heat_Set_Screw_Head_Diameter.",
+      "options": [
+        {
+          "value": "socket",
+          "label": "Socket cap (ISO 4762)"
+        },
+        {
+          "value": "button",
+          "label": "Button (ISO 7380)"
+        },
+        {
+          "value": "pan",
+          "label": "Pan (ISO 7045)"
+        },
+        {
+          "value": "cheese",
+          "label": "Cheese (ISO 1207)"
+        },
+        {
+          "value": "custom",
+          "label": "Custom diameter"
+        }
+      ]
+    },
+    {
+      "name": "Heat_Set_Screw_Head_Diameter",
+      "section": "Carrier Options",
+      "type": "number",
+      "default": 3.8,
+      "hidden": false,
+      "description": "Heat-set pegs only: the measured head diameter (mm, calipers across the head) when Heat_Set_Screw_Head is \"custom\". The top hole adds 0.5mm clearance."
+    },
+    {
       "name": "Custom_Film_Width",
       "section": "Custom Film Format",
       "type": "number",
@@ -569,7 +607,7 @@
       "type": "number",
       "default": 0,
       "hidden": false,
-      "description": "Heat-set pegs only. Added to the diameter (mm) of the top carrier's screw-head clearance holes (default M2: 4.3mm)."
+      "description": "Heat-set pegs only. Added to the diameter (mm) of the top carrier's screw-head clearance holes (head diameter + 0.5; M2 socket cap: 4.3mm)."
     },
     {
       "name": "Render_Quality",
@@ -647,6 +685,21 @@
       "section": "Hidden",
       "type": "string",
       "default": "peg_positions[1]",
+      "hidden": true
+    },
+    {
+      "name": "heat_set_thread_hole_dia_calc",
+      "section": "Hidden",
+      "type": "string",
+      "default": "heat_set_thread_hole_dia(Heat_Set_Screw_Size, Heat_Set_Thread_Hole_Adjust)",
+      "hidden": true,
+      "description": "(bottom: thread-forming hole; top: head clearance). Ignored for printed pegs."
+    },
+    {
+      "name": "heat_set_head_hole_dia_calc",
+      "section": "Hidden",
+      "type": "string",
+      "default": "heat_set_head_hole_dia(Heat_Set_Screw_Size, Heat_Set_Screw_Head, Heat_Set_Screw_Head_Diameter, Heat_Set_Head_Hole_Adjust)",
       "hidden": true
     }
   ]

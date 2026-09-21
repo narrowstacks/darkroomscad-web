@@ -5,7 +5,7 @@ import type { TwoDConfig } from "./types";
 const base: TwoDConfig = {
   carrierType: "omega-d", orientation: "vertical", topOrBottom: "bottom",
   filmFormat: "35mm", frameCount: 1, customFilmWidth: 37, customFilmHeight: 37,
-  customOpeningWidth: 24, customOpeningHeight: 36, pegStyle: "heat_set", heatSetScrewSize: "M2", heatSetThreadHoleAdjust: 0, heatSetHeadHoleAdjust: 0,
+  customOpeningWidth: 24, customOpeningHeight: 36, pegStyle: "heat_set", heatSetScrewSize: "M2", heatSetHeadStyle: "socket", heatSetHeadDiameter: 3.8, heatSetThreadHoleAdjust: 0, heatSetHeadHoleAdjust: 0,
   pegGap: 0, adjustFilmWidth: 0, adjustFilmHeight: 0, alignmentBoard: false,
   alignmentBoardType: "omega", enableOwnerEtch: false, ownerName: "",
   enableTypeEtch: false, typeNameSource: "Carrier Type", customTypeName: "",
@@ -148,6 +148,20 @@ describe("pegRadiusAndKind", () => {
   it("top heat-set (M2) → head clearance r=2.15", () => {
     expect(pegRadiusAndKind({ ...base, topOrBottom: "top", pegStyle: "heat_set" }))
       .toEqual({ r: 2.15, kind: "hole" });
+  });
+  it("head style picks the ISO head dia per size (pan M2 4.0 → r 2.25; button M3 5.7 → r 3.1)", () => {
+    expect(pegRadiusAndKind({ ...base, topOrBottom: "top", pegStyle: "heat_set", heatSetHeadStyle: "pan" }).r).toBeCloseTo(2.25, 6);
+    expect(pegRadiusAndKind({ ...base, topOrBottom: "top", pegStyle: "heat_set", heatSetHeadStyle: "button", heatSetScrewSize: "M3" }).r).toBeCloseTo(3.1, 6);
+    expect(pegRadiusAndKind({ ...base, topOrBottom: "top", pegStyle: "heat_set", heatSetHeadStyle: "cheese", heatSetScrewSize: "M2.5" }).r).toBeCloseTo(2.5, 6);
+    // Head style never touches the bottom thread hole.
+    expect(pegRadiusAndKind({ ...base, topOrBottom: "bottom", pegStyle: "heat_set", heatSetHeadStyle: "pan" }).r).toBeCloseTo(0.95, 6);
+  });
+  it("custom head style uses the measured diameter (+0.5 clearance), ignoring the size table", () => {
+    expect(pegRadiusAndKind({ ...base, topOrBottom: "top", pegStyle: "heat_set", heatSetHeadStyle: "custom", heatSetHeadDiameter: 6.2, heatSetScrewSize: "M2" }).r).toBeCloseTo(3.35, 6);
+    expect(pegRadiusAndKind({ ...base, topOrBottom: "top", pegStyle: "heat_set", heatSetHeadStyle: "custom", heatSetHeadDiameter: 6.2, heatSetHeadHoleAdjust: 0.1 }).r).toBeCloseTo(3.4, 6);
+  });
+  it("unknown head style falls back to socket", () => {
+    expect(pegRadiusAndKind({ ...base, topOrBottom: "top", pegStyle: "heat_set", heatSetHeadStyle: "hex" }).r).toBeCloseTo(2.15, 6);
   });
   it("top heat-set M2.5 / M3 → head clearance r=2.5 / 3.0; head adjust is top-only", () => {
     expect(pegRadiusAndKind({ ...base, topOrBottom: "top", pegStyle: "heat_set", heatSetScrewSize: "M2.5" }).r).toBeCloseTo(2.5, 6);

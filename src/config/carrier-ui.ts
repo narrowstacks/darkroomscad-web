@@ -1,7 +1,7 @@
 import type { GroupConfig, FormValue } from "../lib/form/types";
 import { BOARD_CARRIERS, SINGLE_PIECE_CARRIERS, FILM_PEG_CARRIERS, screwOnBoardType } from "./carriers";
 import { filmFramePitch } from "../lib/twod/film-data";
-import { heatSetThreadHoleDia, heatSetHeadHoleDia } from "../lib/twod/geometry";
+import { heatSetThreadHoleDia, heatSetHeadDia, heatSetHeadHoleDia } from "../lib/twod/geometry";
 import { parseConfig } from "../lib/twod/types";
 
 const isCustomFormat = (v: Record<string, FormValue>) => v.Film_Format === "custom";
@@ -148,8 +148,18 @@ export const CARRIER_UI: GroupConfig[] = [
         visibleWhen: hasFilmPegs,
         optionDisabledWhen: (opt, v) => opt === "printed" && v.Alignment_Board === true && isBoardCarrier(v) },
       { param: "Heat_Set_Screw_Size", label: "Peg screws", control: "segmented",
-        help: "Socket-head machine screws (e.g. M2×4) thread straight into the bottom carrier; the head is the peg. Sets the bottom thread hole and the top head clearance. Fine-tune both under Advanced.",
+        help: "Machine screws (e.g. M2×4) thread straight into the bottom carrier; the head is the peg. Sets the bottom thread hole and, with the head style, the top clearance. Fine-tune both under Advanced.",
         visibleWhen: hasHeatSetScrews },
+      { param: "Heat_Set_Screw_Head", label: "Screw head", control: "segmented",
+        help: (v) => v.Heat_Set_Screw_Head === "custom"
+          ? "Measure across the head with calipers and enter it below."
+          : `The top carrier's hole clears the head (standard max diameter: ${heatSetHeadDia(parseConfig(v)).toFixed(1)} mm), so pick the style of the screws you actually have. Use Custom for anything else.`,
+        optionLabels: { socket: "Socket cap", button: "Button", pan: "Pan", cheese: "Cheese", custom: "Custom" },
+        visibleWhen: hasHeatSetScrews },
+      { param: "Heat_Set_Screw_Head_Diameter", label: "Head diameter", control: "slider",
+        help: "Measured across the head. The top hole adds 0.5 mm clearance.",
+        min: 2, max: 8, step: 0.1, unit: "mm",
+        visibleWhen: (v) => hasHeatSetScrews(v) && v.Heat_Set_Screw_Head === "custom" },
       { param: "Flip_Bottom_For_Printing", label: "Flip bottom for printing", control: "switch",
         help: (v) => isSinglePiece(v)
           ? "Locked off — the plate pocket must face up to print without supports."
@@ -182,7 +192,7 @@ export const CARRIER_UI: GroupConfig[] = [
         help: (v) => `Bottom hole the screw threads into (diameter change). Default ${heatSetThreadHoleDia(parseConfig({ ...v, Heat_Set_Thread_Hole_Adjust: 0 })).toFixed(2)} mm modelled, which prints near tap-drill size on most FDM printers. Go + if the screw won't start, − if it spins.`,
         min: -0.4, max: 0.6, step: 0.05, unit: "mm", advanced: true, visibleWhen: hasHeatSetScrews },
       { param: "Heat_Set_Head_Hole_Adjust", label: "Screw head hole adjust", control: "slider",
-        help: (v) => `Top clearance around the screw head (diameter change). Default ${heatSetHeadHoleDia(parseConfig({ ...v, Heat_Set_Head_Hole_Adjust: 0 })).toFixed(2)} mm.`,
+        help: (v) => `Top clearance around the screw head (diameter change). Default ${heatSetHeadHoleDia(parseConfig({ ...v, Heat_Set_Head_Hole_Adjust: 0 })).toFixed(2)} mm = head + 0.5. Go + if the head binds, − if the top plate rattles on the screws.`,
         min: -0.4, max: 0.6, step: 0.05, unit: "mm", advanced: true, visibleWhen: hasHeatSetScrews },
       // Glass-plate pocket / notch fine-tuning (omega-d-glass only).
       { param: "Glass_Plate_Side_Play", label: "Plate side play (per side)", control: "slider",
