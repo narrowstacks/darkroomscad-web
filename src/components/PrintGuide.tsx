@@ -10,7 +10,7 @@ const SECTIONS: { title: string; items: React.ReactNode[] }[] = [
     items: [
       <><strong>M2 × 4 mm socket-head cap screws</strong> (flat-topped cylindrical head, hex socket). These are the pegs when
       &ldquo;Heat-set&rdquo; pegs are selected: the thread bites into the bottom carrier and the head registers the top plate.</>,
-      <>Keep <em>Screw head</em> on <strong>Socket</strong> unless you have something else in hand &mdash; the top hole is sized to the
+      <>Keep <em>Screw head</em> on <strong>Socket</strong> unless you have something else in hand, since the top hole is sized to the
       head style you pick.</>,
     ],
   },
@@ -19,7 +19,7 @@ const SECTIONS: { title: string; items: React.ReactNode[] }[] = [
     items: [
       <><strong>0.2 mm</strong> layer height.</>,
       <><strong>100% infill</strong>, or at least <strong>5 solid bottom layers</strong> so the film-facing surface is dense and flat.</>,
-      <><strong>Slow the first layer</strong> &mdash; the etched text and the opening edges are on it, and a clean first layer is what
+      <><strong>Slow the first layer.</strong> The etched text and the opening edges are on it, and a clean first layer is what
       makes them crisp. It also makes the print more reliable: with 100% infill the first layer is one big solid area, and
       filament laid down too fast can catch on itself and never bond to the build plate.</>,
     ],
