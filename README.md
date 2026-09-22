@@ -37,16 +37,18 @@ When you're happy, the export bundles the part or parts, plus an optional alignm
 ## Getting started
 
 ```bash
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 Open <http://localhost:3000>.
 
 ```bash
-npm test          # vitest
-npm run build     # production build (runs the prebuild scad-sync; see below)
-npm run lint      # eslint
+bun run test      # vitest (bun test alone would use bun's own runner)
+bun run build     # production build (runs the prebuild scad-sync; see below)
+bun run lint      # eslint
+bun run check     # lint + typecheck + test through Turborepo (cached)
+bunx turbo build  # bake base STLs (cached) + production build
 ```
 
 ## Where the geometry comes from
@@ -85,7 +87,7 @@ See [`CLAUDE.md`](./CLAUDE.md) for the full architecture notes (2D coordinate co
 
 ## Deployment
 
-Deploys to Vercel with zero config. The app is entirely client-side, and the ~9.6 MB `openscad.wasm` plus the SCAD assets are served as static files from the CDN. The OpenSCAD WASM worker needs cross-origin isolation (`SharedArrayBuffer`), so `next.config.ts` sets `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` on all routes. No environment variables required.
+Deploys to Vercel; `vercel.json` sets the build command to `turbo run build` so the base-STL bake is served from Vercel's Turborepo remote cache whenever the SCAD sources have not changed (the Next.js build itself embeds the deployment id for Skew Protection, so it rebuilds each deploy). The app is entirely client-side, and the ~9.6 MB `openscad.wasm` plus the SCAD assets are served as static files from the CDN. The OpenSCAD WASM worker needs cross-origin isolation (`SharedArrayBuffer`), so `next.config.ts` sets `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` on all routes. No environment variables required.
 
 ## Related projects
 

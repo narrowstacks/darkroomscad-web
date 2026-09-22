@@ -4,7 +4,7 @@ Web configurator for DarkroomSCAD negative carriers. Next.js 15 (App Router) + R
 
 ## ⚠️ SCAD files are NOT editable here — edit the upstream repo
 
-`public/scad/**` is **generated/synced** from the canonical source repo **`narrowstacks/DarkroomSCAD`** (carriers live under `negative-carriers/`). `scripts/sync-scad.ts` copies that source over `public/scad/` and it runs automatically in `prebuild` (i.e. on every `npm run build`).
+`public/scad/**` is **generated/synced** from the canonical source repo **`narrowstacks/DarkroomSCAD`** (carriers live under `negative-carriers/`). `scripts/sync-scad.ts` copies that source over `public/scad/` and it runs automatically in `prebuild` (i.e. on every `bun run build`; a no-op on Vercel/CI where no checkout exists).
 
 **Never edit `public/scad/*.scad` directly — `sync-scad` will overwrite it.** Any change made only here is silently reverted on the next build.
 
@@ -12,7 +12,7 @@ To change carrier/board geometry:
 1. Edit the `.scad` in the sibling checkout `../DarkroomSCAD/negative-carriers/...` (path overridable via `DARKROOMSCAD_PATH`).
 2. Commit + push to `narrowstacks/DarkroomSCAD`.
 3. Re-sync into this repo: `npm run sync:scad` (local checkout) — or `npm run sync:scad:github` (pinned ref in `scripts/scad-source.config.json` — **bump its `ref` to the new commit** when using this path).
-4. If the change alters a carrier/board silhouette, regenerate outlines (see below).
+4. If the change alters a carrier/board silhouette, regenerate outlines (see below). The baked base STLs (`public/base-stls/`) are re-baked by the turbo `gen:base-stls` task whenever `public/scad/**` changes (`bunx turbo build`, or `bun run gen:base-stls` directly).
 
 Mapping: `public/scad/src/...` ↔ `../DarkroomSCAD/negative-carriers/src/...`.
 
@@ -58,4 +58,5 @@ Pre-renders carrier + board silhouettes to SVG paths via WASM `projection()`. Th
 ## Build / test / lint
 
 - `npm test` (vitest), `npm run build` (runs `prebuild` sync-scad — needs `../DarkroomSCAD` or it skips and uses committed artifacts).
+- **Turborepo** (`turbo.json`) wraps the scripts with content-hashed caching: `bunx turbo build` = `gen:base-stls` (the ~16s WASM bake, cached on `public/scad|libraries|wasm/**` + the bake scripts) → `build` (`.next/**` cached, `NEXT_DEPLOYMENT_ID` in the hash so skew protection stays correct). `bun run check` = `turbo run lint typecheck test`. Vercel builds with `turbo run build` (`vercel.json`) and gets remote cache automatically; GitHub Actions gets it via `vercel/setup-turborepo-remote-cache-action` (OIDC, no secret — needs a Turborepo CLI OIDC policy on the Vercel team + a `TURBO_TEAM` repo variable; without them the step soft-fails and turbo runs uncached). The env negations in `turbo.json` are load-bearing (each verified on PR #21 — every Vercel build was a miss without them): turbo hashes `VERCEL_ANALYTICS_ID` (legacy, per-deployment) by default, and its Next.js framework inference adds `NEXT_PUBLIC_*`, `NEXT_DEPLOYMENT_ID` and (Skew Protection on — it is, on this project) `VERCEL_DEPLOYMENT_ID` to *every* task's hash; on Vercel the deployment ids and `NEXT_PUBLIC_VERCEL_URL` / `_GIT_COMMIT_SHA` change per deployment. Non-build tasks negate all of them; `build` keeps `NEXT_DEPLOYMENT_ID` because it is baked into the bundle, so **`build` never cache-hits on Vercel while Skew Protection is on** (the bake does, which is the big win) and `build` negates only the per-deployment names because a wildcard negation also drops `NEXT_PUBLIC_VERCEL_OBSERVABILITY_*` (read by analytics/speed-insights) and a positive entry does not survive a matching negation. Check with `bunx turbo run build --dry=json` under two fake `VERCEL_*` env sets — every hash except `build`'s must match. The dry-run's `inferred` list is misleading (negated vars still print there); trust the hash. `sync:scad` is deliberately **not** a turbo task: a `cache: false` dependency poisons every dependent's hash (verified), so keep it in `prebuild` / run it explicitly.
 - `npm run lint` is **clean**. The vendored `public/wasm/openscad.js` is eslint-ignored (generated Emscripten output, not our code); keep it that way rather than trying to satisfy the linter on it.

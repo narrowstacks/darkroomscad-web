@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fraunces, Montserrat } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { THEMES } from "@/lib/theme/themes";
 import { bundledFontFaceCss } from "@/config/fonts";
@@ -53,6 +54,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <div className="app-backdrop" aria-hidden />
         <ThemeProvider>{children}</ThemeProvider>
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
