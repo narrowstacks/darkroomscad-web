@@ -3,8 +3,16 @@
   "globalDependencies": [".nvmrc", "tsconfig.json"],
   // Turbo folds VERCEL_ANALYTICS_ID and VERCEL_TARGET_ENV into the global hash by
   // default. The analytics id is a legacy per-deployment value nothing here reads,
-  // so left in it would make every Vercel build a cache miss.
-  "globalEnv": ["!VERCEL_ANALYTICS_ID"],
+  // so it made every Vercel build a miss; the target env would only keep preview and
+  // production from sharing a cache for output that does not depend on it.
+  "globalEnv": ["!VERCEL_ANALYTICS_ID", "!VERCEL_TARGET_ENV"],
+  //
+  // Framework inference: turbo sees Next.js in this package and adds NEXT_PUBLIC_* to
+  // EVERY task's hash. Vercel injects NEXT_PUBLIC_VERCEL_URL / _GIT_COMMIT_SHA / ...
+  // which change per deployment, so tasks that never read them opt out entirely and
+  // `build` negates just the per-deployment ones (a wildcard negation would also drop
+  // NEXT_PUBLIC_VERCEL_OBSERVABILITY_*, which @vercel/analytics + speed-insights read;
+  // a positive entry does not survive a matching negation).
   "tasks": {
     "gen:base-stls": {
       "inputs": [
@@ -15,7 +23,8 @@
         "public/libraries/**",
         "public/wasm/**"
       ],
-      "outputs": ["public/base-stls/**"]
+      "outputs": ["public/base-stls/**"],
+      "env": ["!NEXT_PUBLIC_*"]
     },
     "build": {
       "dependsOn": ["gen:base-stls"],
@@ -30,25 +39,36 @@
         "!vitest.config.ts"
       ],
       "outputs": [".next/**", "!.next/cache/**"],
+      // NEXT_DEPLOYMENT_ID is baked into the client bundle when Skew Protection is on.
+      // next only reads VERCEL_ENV / VERCEL_URL / VERCEL_BRANCH_URL for metadataBase,
+      // which this app does not use (no relative OG/Twitter image URLs) — add them to
+      // `env` if that changes.
       "env": [
         "NEXT_DEPLOYMENT_ID",
-        "VERCEL_ENV",
-        "VERCEL_BRANCH_URL",
-        "VERCEL_PROJECT_PRODUCTION_URL"
+        "VERCEL_PROJECT_PRODUCTION_URL",
+        "!NEXT_PUBLIC_VERCEL_URL",
+        "!NEXT_PUBLIC_VERCEL_BRANCH_URL",
+        "!NEXT_PUBLIC_VERCEL_DEPLOYMENT_ID",
+        "!NEXT_PUBLIC_VERCEL_ENV",
+        "!NEXT_PUBLIC_VERCEL_TARGET_ENV",
+        "!NEXT_PUBLIC_VERCEL_GIT_*"
       ],
-      "passThroughEnv": ["VERCEL", "VERCEL_URL", "VERCEL_GIT_*", "CI"]
+      "passThroughEnv": ["VERCEL", "VERCEL_ENV", "VERCEL_URL", "VERCEL_BRANCH_URL", "VERCEL_GIT_*", "CI"]
     },
     "lint": {
       "inputs": ["$TURBO_DEFAULT$", "!**/*.md", "!docs/**", "!.github/**", "!.claude/**", "!public/**", "public/wasm/openscad.d.ts"],
-      "outputs": []
+      "outputs": [],
+      "env": ["!NEXT_PUBLIC_*"]
     },
     "typecheck": {
       "inputs": ["$TURBO_DEFAULT$", "!**/*.md", "!docs/**", "!.github/**", "!.claude/**", "!public/**", "public/wasm/openscad.d.ts"],
-      "outputs": []
+      "outputs": [],
+      "env": ["!NEXT_PUBLIC_*"]
     },
     "test": {
       "inputs": ["$TURBO_DEFAULT$", "!**/*.md", "!docs/**", "!.github/**", "!.claude/**"],
-      "outputs": []
+      "outputs": [],
+      "env": ["!NEXT_PUBLIC_*"]
     }
   }
 }
