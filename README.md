@@ -44,7 +44,7 @@ bun run dev
 Open <http://localhost:3000>.
 
 ```bash
-bun test          # vitest
+bun run test      # vitest (bun test alone would use bun's own runner)
 bun run build     # production build (runs the prebuild scad-sync; see below)
 bun run lint      # eslint
 bun run check     # lint + typecheck + test through Turborepo (cached)
