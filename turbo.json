@@ -1,0 +1,50 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "globalDependencies": [".nvmrc", "tsconfig.json"],
+  "tasks": {
+    "gen:base-stls": {
+      "inputs": [
+        "scripts/gen-base-stls.ts",
+        "scripts/lib/scad-harness.ts",
+        "scripts/lib/carrier-specs.ts",
+        "public/scad/**",
+        "public/libraries/**",
+        "public/wasm/**"
+      ],
+      "outputs": ["public/base-stls/**"]
+    },
+    "build": {
+      "dependsOn": ["gen:base-stls"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!**/*.md",
+        "!docs/**",
+        "!.github/**",
+        "!.claude/**",
+        "!**/*.test.ts",
+        "!**/*.test.tsx",
+        "!vitest.config.ts"
+      ],
+      "outputs": [".next/**", "!.next/cache/**"],
+      "env": [
+        "NEXT_DEPLOYMENT_ID",
+        "VERCEL_ENV",
+        "VERCEL_BRANCH_URL",
+        "VERCEL_PROJECT_PRODUCTION_URL"
+      ],
+      "passThroughEnv": ["VERCEL", "VERCEL_URL", "VERCEL_GIT_*", "CI"]
+    },
+    "lint": {
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md", "!docs/**", "!.github/**", "!.claude/**", "!public/**", "public/wasm/openscad.d.ts"],
+      "outputs": []
+    },
+    "typecheck": {
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md", "!docs/**", "!.github/**", "!.claude/**", "!public/**", "public/wasm/openscad.d.ts"],
+      "outputs": []
+    },
+    "test": {
+      "inputs": ["$TURBO_DEFAULT$", "!**/*.md", "!docs/**", "!.github/**", "!.claude/**"],
+      "outputs": []
+    }
+  }
+}

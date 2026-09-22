@@ -47,6 +47,8 @@ Open <http://localhost:3000>.
 npm test          # vitest
 npm run build     # production build (runs the prebuild scad-sync; see below)
 npm run lint      # eslint
+bun run check     # lint + typecheck + test through Turborepo (cached)
+bunx turbo build  # bake base STLs (cached) + production build
 ```
 
 ## Where the geometry comes from
@@ -85,7 +87,7 @@ See [`CLAUDE.md`](./CLAUDE.md) for the full architecture notes (2D coordinate co
 
 ## Deployment
 
-Deploys to Vercel with zero config. The app is entirely client-side, and the ~9.6 MB `openscad.wasm` plus the SCAD assets are served as static files from the CDN. The OpenSCAD WASM worker needs cross-origin isolation (`SharedArrayBuffer`), so `next.config.ts` sets `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` on all routes. No environment variables required.
+Deploys to Vercel; `vercel.json` sets the build command to `turbo run build` so the base-STL bake and the Next.js build are cached in Vercel's Turborepo remote cache. The app is entirely client-side, and the ~9.6 MB `openscad.wasm` plus the SCAD assets are served as static files from the CDN. The OpenSCAD WASM worker needs cross-origin isolation (`SharedArrayBuffer`), so `next.config.ts` sets `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` on all routes. No environment variables required.
 
 ## Related projects
 

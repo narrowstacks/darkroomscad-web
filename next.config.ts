@@ -17,7 +17,8 @@ const nextConfig: NextConfig = {
               // 'unsafe-inline': Next.js bootstrap + the two hand-written inline blocks
               // in layout.tsx (no nonce infra on a static deployment).
               // 'wasm-unsafe-eval': required to compile the OpenSCAD WASM engine.
-              // va.vercel-scripts.com: @vercel/analytics dev-mode script.
+              // va.vercel-scripts.com: @vercel/analytics + @vercel/speed-insights dev-mode scripts
+              // (in production both load same-origin from /_vercel/*).
               // 'unsafe-eval' (dev only): Next.js react-refresh runtime uses eval;
               // without it the dev page throws EvalError and interaction breaks.
               `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${process.env.NODE_ENV === "development" ? " 'unsafe-eval'" : ""} https://va.vercel-scripts.com`,
