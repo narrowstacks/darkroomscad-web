@@ -1,6 +1,7 @@
 {
   "name": "darkroomscad-web",
   "version": "0.1.0",
+  "packageManager": "bun@1.4.2",
   "private": true,
   "scripts": {
     "dev": "next dev",
