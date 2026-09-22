@@ -1,6 +1,10 @@
 {
   "$schema": "https://turborepo.com/schema.json",
   "globalDependencies": [".nvmrc", "tsconfig.json"],
+  // Turbo folds VERCEL_ANALYTICS_ID and VERCEL_TARGET_ENV into the global hash by
+  // default. The analytics id is a legacy per-deployment value nothing here reads,
+  // so left in it would make every Vercel build a cache miss.
+  "globalEnv": ["!VERCEL_ANALYTICS_ID"],
   "tasks": {
     "gen:base-stls": {
       "inputs": [
