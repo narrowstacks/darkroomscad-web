@@ -22,6 +22,25 @@ jobs:
       # (no long-lived secret). Needs a "Turborepo CLI" OIDC policy on the Vercel team
       # and a TURBO_TEAM repo variable; until those exist this step fails softly and
       # turbo just runs uncached.
+      # TEMPORARY diagnostic — remove before merge
+      - name: OIDC debug
+        env:
+          TEAM_ID: team_SU4y3M83V6Nn3oi5J7s6jPYr
+        run: |
+          tok=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL" | jq -r .value)
+          echo "::add-mask::$tok"
+          echo "claims:"; echo "$tok" | cut -d. -f2 | tr '_-' '/+' | base64 -d 2>/dev/null | jq '{iss,aud,sub,repository,repository_owner,repository_owner_id,ref,ref_type,event_name,job_workflow_ref,workflow_ref,environment,runner_environment}'
+          for team in "${{ vars.TURBO_TEAM }}" "$TEAM_ID"; do
+            echo "--- exchange with team=$team"
+            curl -sS -o /tmp/resp -w "HTTP %{http_code}\n" -X POST https://api.vercel.com/login/oauth/token \
+              --data "grant_type=urn:ietf:params:oauth:grant-type:token-exchange" \
+              --data "client_id=cl_kyUx2zVvA4MGptBohkmtYHJly2XltXzD" \
+              --data "subject_token_type=urn:ietf:params:oauth:token-type:id_token" \
+              --data "requested_token_type=urn:ietf:params:oauth:token-type:access_token" \
+              --data-urlencode "team_id_or_slug=$team" \
+              --data-urlencode "subject_token=$tok"
+            jq 'if .access_token then {ok:true, token_type, expires_in, scope} else . end' /tmp/resp
+          done
       - name: Set up Turborepo remote cache
         uses: vercel/setup-turborepo-remote-cache-action@v1.1.0
         continue-on-error: true
