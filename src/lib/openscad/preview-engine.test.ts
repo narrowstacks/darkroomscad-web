@@ -39,8 +39,18 @@ describe("selectRenderTarget (baked preview switch)", () => {
     expect(lpl.params.Baked_Base_Stl).toBe("/base-stls/lpl-saunders-45xx-top.stl");
     expect(lpl.params.Baked_Board_Stl).toBe("/base-stls/board-lpl-saunders.stl");
 
-    const omega4x5 = selectRenderTarget(base({ params: { Carrier_Type: "omega-d", Top_or_Bottom: "bottom", Alignment_Board: true, Alignment_Board_Type: "omega", Film_Format: "4x5" } }));
+    const omega4x5 = selectRenderTarget(base({ params: { Carrier_Type: "omega-d", Top_or_Bottom: "bottom", Alignment_Board: true, Alignment_Board_Type: "omega", Film_Format: "4x5", Orientation: "horizontal" } }));
     expect(omega4x5.params.Baked_Board_Stl).toBe("/base-stls/board-omega-4x5.stl");
+  });
+
+  it("omega board + vertical 4x5 takes the turned board STL — only where 4x5 honours Orientation (omega-d, not LPL)", () => {
+    const turned = selectRenderTarget(base({ params: { Carrier_Type: "omega-d", Top_or_Bottom: "bottom", Alignment_Board: true, Alignment_Board_Type: "omega", Film_Format: "4x5", Orientation: "vertical" } }));
+    expect(turned.params.Baked_Board_Stl).toBe("/base-stls/board-omega-4x5-vertical.stl");
+    const lpl = selectRenderTarget(base({ params: { Carrier_Type: "lpl-saunders-45xx", Top_or_Bottom: "bottom", Alignment_Board: true, Alignment_Board_Type: "omega", Film_Format: "4x5", Orientation: "vertical" } }));
+    expect(lpl.params.Baked_Board_Stl).toBe("/base-stls/board-omega-4x5.stl");
+    // Other formats never turn the omega board.
+    const v35 = selectRenderTarget(base({ params: { Carrier_Type: "omega-d", Top_or_Bottom: "bottom", Alignment_Board: true, Alignment_Board_Type: "omega", Film_Format: "35mm", Orientation: "vertical" } }));
+    expect(v35.params.Baked_Board_Stl).toBe("/base-stls/board-omega.stl");
   });
 
   it("respects preferBaked=false (force exact parametric for A/B compare)", () => {

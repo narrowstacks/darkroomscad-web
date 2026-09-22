@@ -83,11 +83,16 @@ describe("buildFilmOverlay — orientation + families", () => {
     expect(centered).toEqual({ cx: 0, cy: 0, w: 56, h: 56 });
   });
   it("4x5 is a single centered sheet (long edge along travel Y), no frames/sprockets", () => {
-    const ov = buildFilmOverlay({ ...base, filmFormat: "4x5" }, 80);
-    expect(ov.travelAxis).toBe("y"); // 4x5 forced horizontal
+    const ov = buildFilmOverlay({ ...base, filmFormat: "4x5", orientation: "horizontal" }, 80);
+    expect(ov.travelAxis).toBe("y");
     expect(ov.base).toEqual({ w: 101.6, h: 127 });
     expect(ov.frames).toEqual([]);
     expect(ov.sprockets).toEqual([]);
+    // 4x5 is locked to horizontal except on the Omega-D carriers, where the sheet turns with the toggle.
+    expect(buildFilmOverlay({ ...base, carrierType: "lpl-saunders-45xx", filmFormat: "4x5", orientation: "vertical" }, 80))
+      .toMatchObject({ travelAxis: "y", base: { w: 101.6, h: 127 } });
+    expect(buildFilmOverlay({ ...base, filmFormat: "4x5", orientation: "vertical" }, 80))
+      .toMatchObject({ travelAxis: "x", base: { w: 127, h: 101.6 } });
   });
   it("custom format returns an empty overlay", () => {
     const ov = buildFilmOverlay({ ...base, filmFormat: "custom" }, 60);

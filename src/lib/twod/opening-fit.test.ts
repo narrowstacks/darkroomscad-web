@@ -74,7 +74,16 @@ describe("openingFitIssues — real outlines", () => {
         expect(issues({ ...base, filmFormat: format, orientation }), `${format} ${orientation}`).toEqual([]);
       }
     }
-    expect(issues({ ...base, filmFormat: "4x5" })).toEqual([]);
+    expect(issues({ ...base, filmFormat: "4x5", orientation: "horizontal" })).toEqual([]);
+  });
+
+  it("omega-d / glass: a vertical 4x5 (120 wide) fits the body and the turned board's cutout; the untouched board would mask it", () => {
+    expect(issues({ ...base, filmFormat: "4x5", orientation: "vertical" })).toEqual([]);
+    expect(issues({ ...base, carrierType: "omega-d-glass", filmFormat: "4x5", orientation: "vertical" })).toEqual([]);
+    const { openingHeight, openingWidth } = openingDimensions({ ...base, filmFormat: "4x5", orientation: "vertical" });
+    expect(openingFitIssues({ w: openingHeight, h: openingWidth }, CARRIER_OUTLINES["omega-d"], BOARD_OUTLINES["omega-4x5"])).toEqual(["board"]);
+    // The LPL stays locked to horizontal, so its toggle can't put the 120mm edge across the board's rails.
+    expect(issues({ ...base, carrierType: "lpl-saunders-45xx", alignmentBoardType: "lpl-saunders", filmFormat: "4x5", orientation: "vertical" })).toEqual([]);
   });
 
   it("omega-d: 3 × 35mm fits both ways; 4 × 35mm (150mm) fits the body but is masked by the 119mm board cutout", () => {

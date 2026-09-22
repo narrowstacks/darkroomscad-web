@@ -31,7 +31,8 @@ describe("scad-manifest covers every baked artifact in the spec tables", () => {
   });
 
   it("spec tables imply a sane number of baked artifacts", () => {
-    // 4 baked carriers x 2 parts + 4 boards = 12 (update when adding a carrier/board).
-    expect(carrierStls.length + boardStls.length).toBe(12);
+    // 4 baked carriers x 2 parts + 5 boards (omega, its two 4x5 variants, lpl,
+    // 23c) = 13 (update when adding a carrier/board).
+    expect(carrierStls.length + boardStls.length).toBe(13);
   });
 });

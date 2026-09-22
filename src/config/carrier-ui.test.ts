@@ -69,6 +69,22 @@ describe("carrier-ui overlay vs generated schema", () => {
     expect(help("Heat_Set_Screw_Head", { ...heat, Heat_Set_Screw_Head: "custom" })).toMatch(/calipers/);
   });
 
+  it("Orientation locks for 4x5 only on carriers where the SCAD forces horizontal (LPL, Beseler 45), not the Omega-D ones", () => {
+    const groups = resolveFormModel(s, CARRIER_UI);
+    const f = groups.flatMap((g) => g.fields).find((x) => x.param === "Orientation")!;
+    const help = (v: Record<string, string>) => (typeof f.help === "function" ? f.help(v) : f.help);
+    for (const c of ["lpl-saunders-45xx", "beseler-45"]) {
+      expect(f.optionDisabledWhen!("vertical", { Carrier_Type: c, Film_Format: "4x5" }), c).toBe(true);
+      expect(help({ Carrier_Type: c, Film_Format: "4x5" }), c).toMatch(/^Locked/);
+      expect(f.optionDisabledWhen!("vertical", { Carrier_Type: c, Film_Format: "35mm" }), c).toBe(false);
+    }
+    for (const c of ["omega-d", "omega-d-glass"]) {
+      expect(f.optionDisabledWhen!("vertical", { Carrier_Type: c, Film_Format: "4x5" }), c).toBe(false);
+      expect(help({ Carrier_Type: c, Film_Format: "4x5" }), c).toMatch(/board.*turn/);
+      expect(help({ Carrier_Type: c, Film_Format: "35mm" }), c).toBeUndefined();
+    }
+  });
+
   it("omega-d-glass: locks part/flip/board (the SCAD forces them) with a 'Locked' hint, hides pegs, shows the glass group", () => {
     const groups = resolveFormModel(s, CARRIER_UI);
     const byParam = Object.fromEntries(groups.flatMap((g) => g.fields).map((f) => [f.param, f]));

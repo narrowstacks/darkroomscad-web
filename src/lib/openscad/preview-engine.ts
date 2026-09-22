@@ -9,7 +9,7 @@
 // Pure function so it is trivially unit-testable; the worker calls it to pick mainFile
 // + params before handing off to renderScad.
 import type { RenderRequest, RenderParams } from "./types";
-import { BAKED_CARRIERS, BAKED_BOARD_TYPES } from "@/config/carriers";
+import { BAKED_CARRIERS, BAKED_BOARD_TYPES, allows4x5Orientation } from "@/config/carriers";
 
 export interface RenderTarget {
   mainFile: string;
@@ -42,10 +42,15 @@ export function supportsBakedPreview(req: RenderRequest): boolean {
   return true;
 }
 
-// The board STL for a request: omega has a 4x5 variant; others are format-independent.
-function boardStl(boardType: string, film: string): string {
-  if (boardType === "omega") return film === "4x5" ? "/base-stls/board-omega-4x5.stl" : "/base-stls/board-omega.stl";
-  return `/base-stls/board-${boardType}.stl`;
+// The board STL for a request: omega has 4x5 variants (its widened cutout turns
+// with the sheet on the carriers where 4x5 honours Orientation —
+// get_effective_orientation); others are format-independent.
+function boardStl(carrier: string, boardType: string, film: string, orientation: string): string {
+  if (boardType !== "omega") return `/base-stls/board-${boardType}.stl`;
+  if (film !== "4x5") return "/base-stls/board-omega.stl";
+  return orientation === "vertical" && allows4x5Orientation(carrier)
+    ? "/base-stls/board-omega-4x5-vertical.stl"
+    : "/base-stls/board-omega-4x5.stl";
 }
 
 export function selectRenderTarget(req: RenderRequest): RenderTarget {
@@ -56,12 +61,13 @@ export function selectRenderTarget(req: RenderRequest): RenderTarget {
   const topOrBottom = str(req.params, "Top_or_Bottom", "bottom");
   const boardType = str(req.params, "Alignment_Board_Type", "omega");
   const film = str(req.params, "Film_Format", "35mm");
+  const orientation = str(req.params, "Orientation", "vertical");
   return {
     mainFile: "carrier-baked.scad",
     params: {
       ...req.params,
       Baked_Base_Stl: `/base-stls/${carrier}-${topOrBottom}.stl`,
-      Baked_Board_Stl: boardStl(boardType, film),
+      Baked_Board_Stl: boardStl(carrier, boardType, film, orientation),
     },
     baked: true,
   };

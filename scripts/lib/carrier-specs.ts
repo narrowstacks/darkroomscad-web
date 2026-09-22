@@ -103,8 +103,11 @@ export const CARRIER_SPECS: Record<string, CarrierSpec> = {
 };
 
 // Omega's opening widens for 4x5 (the film_format arg only matters via
-// `== "4x5"` checks), so it gets two variants; lpl/beseler boards are
-// format-independent (one each).
+// `== "4x5"` checks) and that widened cutout turns with the sheet (the
+// orientation arg only matters for 4x5), so it gets three variants:
+// "omega-4x5" is the horizontal sheet (the module's default orientation, so the
+// historical call string keeps the baked STL byte-identical); lpl/beseler
+// boards are format-independent (one each).
 export const BOARD_SPECS: Record<string, BoardSpec> = {
   omega: {
     include: "src/common/omega-d-alignment-board.scad",
@@ -116,6 +119,12 @@ export const BOARD_SPECS: Record<string, BoardSpec> = {
     include: "src/common/omega-d-alignment-board.scad",
     call: 'omega_d_alignment_board_no_screws("4x5");',
     bakeName: "board-omega-4x5",
+    outline: { minWidth: 120, minHeight: 120 },
+  },
+  "omega-4x5-vertical": {
+    include: "src/common/omega-d-alignment-board.scad",
+    call: 'omega_d_alignment_board_no_screws("4x5", "vertical");',
+    bakeName: "board-omega-4x5-vertical",
     outline: { minWidth: 120, minHeight: 120 },
   },
   "lpl-saunders": {

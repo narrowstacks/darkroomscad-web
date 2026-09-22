@@ -133,6 +133,69 @@ describe.runIf(hasWasm)("standalone alignment board (integration)", () => {
     expect(wallVertsAt(result.stl, 68, 35, 1)).toBe(0); // and no carrier footprint hole either
   }, 180_000);
 
+  // Vertices on the plane x = c (or y = c): the cutout's straight walls put many there.
+  function wallVertsOnPlane(stl: Uint8Array, axis: "x" | "y", c: number, tol = 0.05): number {
+    const view = new DataView(stl.buffer, stl.byteOffset, stl.byteLength);
+    const n = view.getUint32(80, true);
+    let hits = 0;
+    for (let i = 0; i < n; i++) {
+      const base = 84 + i * 50 + 12;
+      for (let v = 0; v < 3; v++) {
+        const x = view.getFloat32(base + v * 12, true), y = view.getFloat32(base + v * 12 + 4, true);
+        if (Math.abs((axis === "x" ? x : y) - c) < tol) hits++;
+      }
+    }
+    return hits;
+  }
+
+  // The omega board's 4x5 cutout (121 × 97 tall box) and its pilot pattern turn
+  // with the sheet on the Omega-D carriers: horizontal (long edge along Y) puts
+  // the tall box's 60.5 wall on Y and the pilots at (±56, ±40); vertical puts
+  // the wall on X and the pilots at (±40, ±56). The LPL locks 4x5 to horizontal.
+  it.each([
+    ["omega-d", "horizontal", { wallAxis: "y" as const, pilot: [56, 40] as const, other: [40, 56] as const }],
+    ["omega-d", "vertical", { wallAxis: "x" as const, pilot: [40, 56] as const, other: [56, 40] as const }],
+    ["lpl-saunders-45xx", "vertical", { wallAxis: "y" as const, pilot: [56, 40] as const, other: [40, 56] as const }],
+  ])("omega board for a 4x5 sheet on %s, %s: cutout and pilot holes turn with the effective orientation", async (carrier, orientation, want) => {
+    const { factory, wasmBinary } = await loadEngine(process.cwd());
+    const log: string[] = [];
+    const loadModule = () =>
+      factory({ noInitialRun: true, wasmBinary, print: (t: string) => log.push(t), printErr: (t: string) => log.push(t) });
+    const result = await renderScad(
+      loadModule, fsAssets,
+      { params: { Carrier_Type: carrier, Film_Format: "4x5", Orientation: orientation, Render_Quality: "final",
+        _Render_Alignment_Board_Only: true, Alignment_Board_Type: "omega" }, quality: "final" },
+      log,
+    );
+    const { w, h } = stlBBox(result.stl);
+    expect(w).toBeCloseTo(127, 0);
+    expect(h).toBeCloseTo(127, 0);
+    expect(wallVertsOnPlane(result.stl, want.wallAxis, 60.5)).toBeGreaterThan(0);
+    expect(wallVertsOnPlane(result.stl, want.wallAxis === "x" ? "y" : "x", 60.5)).toBe(0);
+    expect(wallVertsAt(result.stl, want.pilot[0], want.pilot[1], PILOT_R)).toBeGreaterThan(0);
+    expect(wallVertsAt(result.stl, want.other[0], want.other[1], PILOT_R)).toBe(0);
+  }, 180_000);
+
+  it("omega-d-glass with a vertical sheet: the screw-on board's clearance holes + counterbores turn to (±40, ±56)", async () => {
+    const { factory, wasmBinary } = await loadEngine(process.cwd());
+    const log: string[] = [];
+    const loadModule = () =>
+      factory({ noInitialRun: true, wasmBinary, print: (t: string) => log.push(t), printErr: (t: string) => log.push(t) });
+    const result = await renderScad(
+      loadModule, fsAssets,
+      { params: { Carrier_Type: "omega-d-glass", Film_Format: "4x5", Orientation: "vertical", Render_Quality: "final", _Render_Alignment_Board_Only: true }, quality: "final" },
+      log,
+    );
+    const CLEARANCE_R = 2.4 / 2;      // heat_set_clearance_hole_dia (M2: 2 + 0.4)
+    const COUNTERBORE_R = 4.3 / 2;    // M2 socket head 3.8 + 0.5
+    for (const [cx, cy] of [[40, 56], [-40, 56], [40, -56], [-40, -56]]) {
+      expect(wallVertsAt(result.stl, cx, cy, CLEARANCE_R), `clearance at (${cx}, ${cy})`).toBeGreaterThan(0);
+      expect(wallVertsAt(result.stl, cx, cy, COUNTERBORE_R), `counterbore at (${cx}, ${cy})`).toBeGreaterThan(0);
+    }
+    expect(wallVertsAt(result.stl, 56, 40, CLEARANCE_R)).toBe(0);
+    expect(wallVertsOnPlane(result.stl, "x", 60.5)).toBeGreaterThan(0);
+  }, 180_000);
+
   it("omega-d-glass exports its screw-on omega board (127mm), not the carrier", async () => {
     const { factory, wasmBinary } = await loadEngine(process.cwd());
     const log: string[] = [];

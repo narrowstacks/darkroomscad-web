@@ -12,6 +12,12 @@
 // board is screwed on from below (own screw footprint) rather than fused —
 // carrier.scad forces all of that regardless of the Top/Bottom, peg and
 // Alignment_Board params.
+//
+// A 4x5 sheet is locked to horizontal (long edge along Y) except on the two
+// Omega-D carriers (carrier_allows_4x5_orientation in carrier-features.scad):
+// their round body and handle-side text clear a 120mm-wide opening, and the
+// omega board's 4x5 cutout + screw pattern turn with the sheet. The LPL's
+// text at x = -65 would run into it, so it stays locked.
 
 export interface CarrierCapabilities {
   /** Carrier can pair with an alignment board (test frames can't). */
@@ -23,6 +29,9 @@ export interface CarrierCapabilities {
   singlePiece?: boolean;
   /** The only film format this carrier takes (the picker locks to it). */
   lockedFormat?: string;
+  /** 4x5 honours the Orientation toggle (otherwise the SCAD locks it to
+   *  horizontal — get_effective_orientation). */
+  orientable4x5?: boolean;
   /** Has the four film registration pegs/holes. */
   hasFilmPegs: boolean;
   /** A pre-baked base STL exists in public/base-stls (see scripts/gen-base-stls.ts). */
@@ -32,8 +41,8 @@ export interface CarrierCapabilities {
 }
 
 export const CARRIER_CAPABILITIES: Record<string, CarrierCapabilities> = {
-  "omega-d":           { hasAlignmentBoard: true,  hasFilmPegs: true,  hasBakedBase: true },
-  "omega-d-glass":     { hasAlignmentBoard: true,  boardScrewOn: "omega", singlePiece: true, lockedFormat: "4x5", hasFilmPegs: false, hasBakedBase: false },
+  "omega-d":           { hasAlignmentBoard: true,  hasFilmPegs: true,  hasBakedBase: true, orientable4x5: true },
+  "omega-d-glass":     { hasAlignmentBoard: true,  boardScrewOn: "omega", singlePiece: true, lockedFormat: "4x5", orientable4x5: true, hasFilmPegs: false, hasBakedBase: false },
   "lpl-saunders-45xx": { hasAlignmentBoard: true,  hasFilmPegs: true,  hasBakedBase: true },
   // The 23C is a medium-format enlarger — its 160mm carrier can't take a 4x5 sheet.
   "beseler-23c":       { hasAlignmentBoard: true,  hasFilmPegs: true,  hasBakedBase: true, unsupportedFormats: ["4x5"] },
@@ -49,6 +58,12 @@ export function unsupportedFormats(carrierType: string): ReadonlySet<string> {
 /** The single format a carrier is locked to, or null when it's a free choice. */
 export function lockedFormat(carrierType: string): string | null {
   return CARRIER_CAPABILITIES[carrierType]?.lockedFormat ?? null;
+}
+
+/** Does a 4x5 sheet honour the Orientation toggle on this carrier? (Port of
+ *  carrier_allows_4x5_orientation; elsewhere 4x5 is locked to horizontal.) */
+export function allows4x5Orientation(carrierType: string): boolean {
+  return CARRIER_CAPABILITIES[carrierType]?.orientable4x5 === true;
 }
 
 /** Board type of a carrier's screw-on board, or null when the board is a

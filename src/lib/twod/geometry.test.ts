@@ -19,6 +19,16 @@ const base: TwoDConfig = {
   },
 };
 
+// Is the full disc of radius r around (cx, cy) on the outline's material?
+const onMaterial = (polys: Polygon[], cx: number, cy: number, r: number) => {
+  if (!pointInPolygons(polys, cx, cy)) return false;
+  for (let k = 0; k < 12; k++) {
+    const a = (k / 12) * 2 * Math.PI;
+    if (!pointInPolygons(polys, cx + r * Math.cos(a), cy + r * Math.sin(a))) return false;
+  }
+  return true;
+};
+
 describe("openingDimensions", () => {
   it("35mm vertical → [36 x 24]", () => {
     expect(openingDimensions(base)).toEqual({ openingHeight: 36, openingWidth: 24 });
@@ -27,9 +37,19 @@ describe("openingDimensions", () => {
     expect(openingDimensions({ ...base, orientation: "horizontal" }))
       .toEqual({ openingHeight: 24, openingWidth: 36 });
   });
-  it("4x5 forces horizontal (long edge along Y) regardless of orientation", () => {
-    expect(openingDimensions({ ...base, filmFormat: "4x5", orientation: "vertical" }))
-      .toEqual({ openingHeight: 95, openingWidth: 120 });
+  it("4x5 is locked to horizontal (long edge along Y) except on the Omega-D carriers", () => {
+    // lpl / beseler-45 / test frame: the toggle has no effect.
+    for (const carrierType of ["lpl-saunders-45xx", "beseler-45", "frameAndPegTest"]) {
+      expect(openingDimensions({ ...base, carrierType, filmFormat: "4x5", orientation: "vertical" }), carrierType)
+        .toEqual({ openingHeight: 95, openingWidth: 120 });
+    }
+    // omega-d / omega-d-glass honour it (the board turns with the sheet).
+    for (const carrierType of ["omega-d", "omega-d-glass"]) {
+      expect(openingDimensions({ ...base, carrierType, filmFormat: "4x5", orientation: "horizontal" }), carrierType)
+        .toEqual({ openingHeight: 95, openingWidth: 120 });
+      expect(openingDimensions({ ...base, carrierType, filmFormat: "4x5", orientation: "vertical" }), carrierType)
+        .toEqual({ openingHeight: 120, openingWidth: 95 });
+    }
   });
   it("applies film adjustments", () => {
     expect(openingDimensions({ ...base, adjustFilmHeight: 2, adjustFilmWidth: 1 }))
@@ -69,7 +89,7 @@ describe("openingDimensions", () => {
       expect(openingDimensions({ ...base, frameCount: 2, adjustFilmHeight: 2 }).openingHeight).toBe(76);
     });
     it("is ignored for 4x5 and custom", () => {
-      expect(openingDimensions({ ...base, frameCount: 3, filmFormat: "4x5" }))
+      expect(openingDimensions({ ...base, frameCount: 3, filmFormat: "4x5", orientation: "horizontal" }))
         .toEqual({ openingHeight: 95, openingWidth: 120 });
       expect(openingDimensions({ ...base, frameCount: 3, filmFormat: "custom", customOpeningHeight: 50, customOpeningWidth: 40 }))
         .toEqual({ openingHeight: 50, openingWidth: 40 });
@@ -91,11 +111,16 @@ describe("pegPositions", () => {
     // dominant = 56/2+2.8 = 30.8 ; peg-distance axis = 64/2+2.8-1 = 33.8 (inner face at 31 = 61.5/2 + 0.25)
     expect(pegPositions({ ...base, filmFormat: "6x6" })).toEqual({ x: 30.8, y: 33.8 });
   });
-  it("4x5: pegs clear the 101.6mm sheet on X (always horizontal)", () => {
+  it("4x5: pegs clear the 101.6mm sheet on X (horizontal), transposed for a vertical sheet on the omega", () => {
     // peg-distance axis = 104.1/2+2.8-1 = 53.85 (inner face at 51.05 = 101.6/2 + 0.25) ; dominant = 95/2+2.8 = 50.3
-    const p = pegPositions({ ...base, filmFormat: "4x5" });
+    const p = pegPositions({ ...base, filmFormat: "4x5", orientation: "horizontal" });
     expect(p.x).toBeCloseTo(53.85, 10);
     expect(p.y).toBeCloseTo(50.3, 10);
+    const v = pegPositions({ ...base, filmFormat: "4x5", orientation: "vertical" });
+    expect(v.x).toBeCloseTo(50.3, 10);
+    expect(v.y).toBeCloseTo(53.85, 10);
+    // Locked elsewhere: the LPL's toggle is ignored.
+    expect(pegPositions({ ...base, carrierType: "lpl-saunders-45xx", filmFormat: "4x5", orientation: "vertical" })).toEqual(p);
   });
   it("filed format uses the reduced internal gap (0.5mm extra per side)", () => {
     // dominant = 28/2+2.8 = 16.8 ; peg-distance axis = 37.5/2+2.8-0.5 = 21.05
@@ -227,7 +252,7 @@ describe("screwFootprint", () => {
   // export space (a symmetric pattern is invariant under its Y flip).
   const boardOutlineFor: Record<string, string> = { omega: "omega", "lpl-saunders": "lpl-saunders", "beseler-23c": "beseler-23c" };
   it("omega board + 4x5 uses the 4x5 pattern (±56, ±40): the widened cutout swallows (±41, ±56.5)", () => {
-    const holes = screwFootprint({ ...base, carrierType: "omega-d", filmFormat: "4x5", alignmentBoard: false, alignmentBoardType: "omega" });
+    const holes = screwFootprint({ ...base, carrierType: "omega-d", filmFormat: "4x5", orientation: "horizontal", alignmentBoard: false, alignmentBoardType: "omega" });
     expect(holes.map((h) => [Math.abs(h.cx), Math.abs(h.cy)])).toEqual([[56, 40], [56, 40], [56, 40], [56, 40]]);
     const polys = parsePathPolygons(BOARD_OUTLINES["omega-4x5"].d);
     for (const h of holes) expect(onMaterial(polys, h.cx, h.cy, h.r), `hole at (${h.cx}, ${h.cy})`).toBe(true);
@@ -239,15 +264,27 @@ describe("screwFootprint", () => {
       const body = parsePathPolygons(CARRIER_OUTLINES[key].d);
       for (const h of holes) expect(onMaterial(body, h.cx, h.cy, h.r), `${key} hole at (${h.cx}, ${h.cy})`).toBe(true);
     }
+    // The LPL is locked to horizontal, so its toggle never changes the pattern.
+    expect(screwFootprint({ ...base, carrierType: "lpl-saunders-45xx", filmFormat: "4x5", orientation: "vertical", alignmentBoard: false, alignmentBoardType: "omega" }))
+      .toEqual(holes);
   });
-  const onMaterial = (polys: Polygon[], cx: number, cy: number, r: number) => {
-    if (!pointInPolygons(polys, cx, cy)) return false;
-    for (let k = 0; k < 12; k++) {
-      const a = (k / 12) * 2 * Math.PI;
-      if (!pointInPolygons(polys, cx + r * Math.cos(a), cy + r * Math.sin(a))) return false;
+  it("omega board + vertical 4x5 (omega-d only) turns the pattern with the sheet: (±40, ±56) on the turned board", () => {
+    const holes = screwFootprint({ ...base, carrierType: "omega-d", filmFormat: "4x5", orientation: "vertical", alignmentBoard: false, alignmentBoardType: "omega" });
+    expect(holes.map((h) => [Math.abs(h.cx), Math.abs(h.cy)])).toEqual([[40, 56], [40, 56], [40, 56], [40, 56]]);
+    const turned = parsePathPolygons(BOARD_OUTLINES["omega-4x5-vertical"].d);
+    for (const h of holes) expect(onMaterial(turned, h.cx, h.cy, h.r), `hole at (${h.cx}, ${h.cy})`).toBe(true);
+    // The horizontal pattern would sit in the turned board's cutout, and vice versa.
+    expect(onMaterial(turned, 56, 40, 0.95)).toBe(false);
+    expect(onMaterial(parsePathPolygons(BOARD_OUTLINES["omega-4x5"].d), 40, 56, 0.95)).toBe(false);
+    // The vertical 4x5 opening (120 × 95) clears the holes and the turned cutout
+    // (121 × 97 tall box: 0.5mm / 1mm per side, like the horizontal layout).
+    for (const h of holes) expect(Math.abs(h.cy) - h.r).toBeGreaterThan(95 / 2 + 0.5);
+    for (const [x, y] of [[60, 0], [0, 47.5], [60, 47.5]]) expect(pointInPolygons(turned, x, y), `opening edge (${x}, ${y})`).toBe(false);
+    for (const key of ["omega-d", "omega-d:top"]) {
+      const body = parsePathPolygons(CARRIER_OUTLINES[key].d);
+      for (const h of holes) expect(onMaterial(body, h.cx, h.cy, h.r), `${key} hole at (${h.cx}, ${h.cy})`).toBe(true);
     }
-    return true;
-  };
+  });
   for (const [boardType, outlineKey] of Object.entries(boardOutlineFor)) {
     it(`${boardType} holes land on the ${boardType} board's material`, () => {
       const holes = screwFootprint({ ...base, carrierType: "omega-d", alignmentBoard: false, alignmentBoardType: boardType });
@@ -435,7 +472,10 @@ describe("buildScene", () => {
   it("selects the board outline key and drops footprint holes when attached", () => {
     expect(buildScene({ ...base, alignmentBoard: true, alignmentBoardType: "omega" }).boardKey).toBe("omega");
     expect(buildScene({ ...base, alignmentBoard: true, alignmentBoardType: "omega" }).boardAttached).toBe(true);
-    expect(buildScene({ ...base, alignmentBoard: true, alignmentBoardType: "omega", filmFormat: "4x5" }).boardKey).toBe("omega-4x5");
+    expect(buildScene({ ...base, alignmentBoard: true, alignmentBoardType: "omega", filmFormat: "4x5", orientation: "horizontal" }).boardKey).toBe("omega-4x5");
+    expect(buildScene({ ...base, alignmentBoard: true, alignmentBoardType: "omega", filmFormat: "4x5", orientation: "vertical" }).boardKey).toBe("omega-4x5-vertical");
+    // Locked to horizontal on the LPL, whatever the toggle says.
+    expect(buildScene({ ...base, carrierType: "lpl-saunders-45xx", alignmentBoard: true, alignmentBoardType: "omega", filmFormat: "4x5", orientation: "vertical" }).boardKey).toBe("omega-4x5");
     expect(buildScene({ ...base, alignmentBoard: true, alignmentBoardType: "lpl-saunders" }).boardKey).toBe("lpl-saunders");
     expect(buildScene({ ...base, alignmentBoard: true, alignmentBoardType: "omega" }).screwHoles).toEqual([]);
   });
@@ -531,7 +571,7 @@ describe("buildScene dimensions", () => {
 // screw-on omega board with its own footprint (carrier-configs.scad,
 // omega-d-glass-base-shape.scad).
 describe("omega-d-glass", () => {
-  const glass: TwoDConfig = { ...base, carrierType: "omega-d-glass", filmFormat: "4x5", alignmentBoard: true, alignmentBoardType: "lpl-saunders" };
+  const glass: TwoDConfig = { ...base, carrierType: "omega-d-glass", filmFormat: "4x5", orientation: "horizontal", alignmentBoard: true, alignmentBoardType: "lpl-saunders" };
   const stub = () => 10;
 
   it("is always the bottom-style piece, with the omega board regardless of the (hidden) board fields", () => {
@@ -596,5 +636,45 @@ describe("omega-d-glass", () => {
     expect(s.boardAttached).toBe(false);
     // The pinned Alignment_Board value never fuses it either.
     expect(buildScene({ ...glass, alignmentBoard: true }).boardAttached).toBe(false);
+  });
+
+  // The glass carrier honours Orientation for its (locked) 4x5 sheet: the
+  // opening, the pocket, the notch, the screw pattern and the board all turn.
+  describe("vertical sheet", () => {
+    const vglass: TwoDConfig = { ...glass, orientation: "vertical" };
+
+    it("turns the opening (120 × 95) and the callouts", () => {
+      expect(buildScene(vglass).opening).toMatchObject({ w: 120, h: 95 });
+      expect(buildScene(vglass).dimensions.map((d) => d.label)).toEqual(["120.0 mm", "95.0 mm"]);
+    });
+
+    it("turns the pocket (plate long edge along X) and keeps the notch beyond the pocket's X ends", () => {
+      const [pocket, notch] = glassRecesses(vglass);
+      expect(pocket).toEqual({ kind: "rect", cx: 0, cy: 0, w: 127, h: 102, r: 1, through: false });
+      // cx = -(127/2 + 8 - 2.5) = -69 ; cy = -(102/2 - 8) = -43
+      expect(notch).toEqual({ kind: "circle", cx: -69, cy: -43, r: 8, through: false });
+      // 1.5mm of rim between the notch's reach and the 120mm opening (1mm when horizontal).
+      expect(-(notch as { cx: number }).cx - 8).toBeCloseTo(61, 10);
+      // Still on the body, on either side.
+      const body = parsePathPolygons(CARRIER_OUTLINES["omega-d-glass"].d);
+      for (const corner of ["handle-lower", "far-upper"]) {
+        const n = glassRecesses({ ...vglass, glass: { ...vglass.glass, notchCorner: corner } })[1] as { cx: number; cy: number; r: number };
+        expect(onMaterial(body, n.cx, n.cy, n.r), corner).toBe(true);
+      }
+    });
+
+    it("turns the screw footprint to (±40, ±56) and picks the turned board", () => {
+      const holes = screwFootprint(vglass).map((h) => [h.cx, h.cy]).sort();
+      expect(holes).toEqual([[-40, -56], [-40, 56], [40, -56], [40, 56]].sort());
+      expect(boardTypeOutlineKey(vglass)).toBe("omega-4x5-vertical");
+      expect(buildScene(vglass).boardKey).toBe("omega-4x5-vertical");
+      // Whatever the (locked) format field says.
+      expect(screwFootprint({ ...vglass, filmFormat: "35mm" }).map((h) => [h.cx, h.cy]).sort()).toEqual(holes);
+      // The holes sit beyond the turned pocket's Y edge (±51) and the opening (±47.5), on the board's rails.
+      const [pocket] = glassRecesses(vglass) as { h: number }[];
+      for (const [, cy] of holes) expect(Math.abs(cy) - 0.95).toBeGreaterThan(pocket.h / 2);
+      const turned = parsePathPolygons(BOARD_OUTLINES["omega-4x5-vertical"].d);
+      for (const h of screwFootprint(vglass)) expect(onMaterial(turned, h.cx, h.cy, h.r), `hole at (${h.cx}, ${h.cy})`).toBe(true);
+    });
   });
 });

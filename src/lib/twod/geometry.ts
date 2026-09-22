@@ -1,7 +1,7 @@
 import type { TwoDConfig, TextPlacement, Scene, PegShape, DimensionAnnotation, RecessShape } from "./types";
 import { FILM_FORMATS, isFiledFormat, filmTypeName, filmFramePitch, effectiveFrameCount } from "./film-data";
 import { measureTextWidthMm, SCAD_TEXT_EM_SCALE } from "./measure-text";
-import { BOARD_CARRIERS, SCREW_ON_BOARD_CARRIERS, SINGLE_PIECE_CARRIERS, FILM_PEG_CARRIERS, screwOnBoardType } from "@/config/carriers";
+import { BOARD_CARRIERS, SCREW_ON_BOARD_CARRIERS, SINGLE_PIECE_CARRIERS, FILM_PEG_CARRIERS, screwOnBoardType, allows4x5Orientation } from "@/config/carriers";
 
 // Default film dimensions used by SCAD when format is "custom" and no override
 // is passed — matches film-sizes.scad customFilmFormatWidth / customFilmFormatHeight.
@@ -51,11 +51,12 @@ export function heatSetHeadHoleDia(c: Pick<TwoDConfig, "heatSetScrewSize" | "hea
 }
 export const FILM_OPENING_FILLET = 0.5;       // UNIVERSAL_FILM_OPENING_FRAME_FILLET
 
-// 4x5 is always "horizontal" (long 120mm edge along Y, perpendicular to the
-// left handle) — the Orientation toggle has no effect for it. Port of
+// 4x5 defaults to "horizontal" (long 120mm edge along Y, perpendicular to the
+// left handle); only the Omega-D carriers honour the Orientation toggle for it
+// (allows4x5Orientation) — elsewhere the toggle has no effect. Port of
 // get_effective_orientation (carrier-features.scad).
 export function effectiveOrientation(c: TwoDConfig): "vertical" | "horizontal" {
-  return c.filmFormat === "4x5" ? "horizontal" : c.orientation;
+  return c.filmFormat === "4x5" && !allows4x5Orientation(c.carrierType) ? "horizontal" : c.orientation;
 }
 
 function filmDims(c: TwoDConfig): { height: number; width: number; pegDistance: number } {
@@ -158,7 +159,8 @@ function boardFused(c: TwoDConfig): boolean {
 // (±x/2, ±y/2)):
 //   omega:        127mm square frame → (±41, ±56.5), on its rails. The 4x5
 //                 board's widened cutout (and the 4x5 film opening) swallow
-//                 that, so it uses (±56, ±40) — also the glass carrier's.
+//                 that, so it uses (±56, ±40) — also the glass carrier's —
+//                 turned with the sheet to (±40, ±56) for a vertical 4x5.
 //   lpl-saunders: two chord rails at |x| = 60.5..75.4 → x = ±68 (rail centre),
 //                 y = ±35 (rail spans |y| ≤ 43.5 there).
 //   beseler-23c:  5mm ring at r = 55..60 → on its centre-line (r 57.5) at 45°.
@@ -167,18 +169,19 @@ function boardFused(c: TwoDConfig): boolean {
 // as are the pilot holes in the separately exported board.
 const BESELER_23C_BOARD_SCREW_RADIUS = 57.5;  // = the 23C board's TORUS_MAJOR_RADIUS
 export const BOARD_SCREW_PATTERNS: Record<string, { distX: number; distY: number }> = {
-  "omega":        { distX: 82,  distY: 113 },
-  "omega-4x5":    { distX: 112, distY: 80 },
+  "omega":                 { distX: 82,  distY: 113 },
+  "omega-4x5":             { distX: 112, distY: 80 },
+  "omega-4x5-vertical":    { distX: 80,  distY: 112 },
   "lpl-saunders": { distX: 136, distY: 70 },
   "beseler-23c":  { distX: BESELER_23C_BOARD_SCREW_RADIUS * Math.SQRT2, distY: BESELER_23C_BOARD_SCREW_RADIUS * Math.SQRT2 },
 };
 
 export function screwFootprint(c: TwoDConfig): { cx: number; cy: number; r: number }[] {
   if (boardFused(c) || !BOARD_CARRIERS.has(c.carrierType)) return [];
-  // Keyed like the board outlines: the omega board's 4x5 variant has its own
-  // pattern. The glass carrier is always that variant (carrier.scad forces it,
-  // whatever the format says).
-  const key = c.carrierType === "omega-d-glass" ? "omega-4x5" : boardTypeOutlineKey(c);
+  // Keyed like the board outlines: the omega board's 4x5 variants have their
+  // own patterns. The glass carrier is always one of those (carrier.scad
+  // forces it, whatever the format says).
+  const key = c.carrierType === "omega-d-glass" ? omega4x5BoardKey(c) : boardTypeOutlineKey(c);
   const pattern = BOARD_SCREW_PATTERNS[key ?? ""];
   if (!pattern) return [];
   const ex = pattern.distX / 2;
@@ -190,9 +193,10 @@ export function screwFootprint(c: TwoDConfig): { cx: number; cy: number; r: numb
 }
 
 // Port of omega-d-glass-base-shape.scad: the plate pocket (plate + side play,
-// 1mm inside-corner radius) and the finger notch — a circle just outside the
-// pocket's short (X) edge, tangent to the long edge, reaching `notchReach`
-// under the plate. The Omega-D handle is on -X, so "handle" corners are -X.
+// 1mm inside-corner radius; the plate's long edge runs along Y, or along X for
+// a vertical sheet) and the finger notch — a circle just beyond the pocket's X
+// extent, tangent to its Y edge, reaching `notchReach` under the plate. The
+// Omega-D handle is on -X, so "handle" corners are -X.
 const GLASS_THICKNESS = 4;                // OMEGA_D_GLASS_THICKNESS = 2 × 2
 const GLASS_POCKET_CORNER_RADIUS = 1;     // OMEGA_D_GLASS_POCKET_CORNER_RADIUS
 const NOTCH_SIGNS: Record<string, [number, number]> = {
@@ -202,8 +206,9 @@ const NOTCH_SIGNS: Record<string, [number, number]> = {
 export function glassRecesses(c: TwoDConfig): RecessShape[] {
   if (c.carrierType !== "omega-d-glass") return [];
   const g = c.glass;
-  const pocketW = g.plateWidth + 2 * g.sidePlay;
-  const pocketL = g.plateLength + 2 * g.sidePlay;
+  const vertical = effectiveOrientation(c) === "vertical";
+  const pocketW = (vertical ? g.plateLength : g.plateWidth) + 2 * g.sidePlay;   // X extent
+  const pocketL = (vertical ? g.plateWidth : g.plateLength) + 2 * g.sidePlay;   // Y extent
   const out: RecessShape[] = [
     { kind: "rect", cx: 0, cy: 0, w: pocketW, h: pocketL, r: GLASS_POCKET_CORNER_RADIUS, through: false },
   ];
@@ -390,13 +395,20 @@ function dimensionAnnotations(
   ];
 }
 
+// The omega board's 4x5 variant: its widened cutout (and screw pattern) turn
+// with the sheet, so a vertical 4x5 is its own outline / baked STL / pattern.
+function omega4x5BoardKey(c: TwoDConfig): string {
+  return effectiveOrientation({ ...c, filmFormat: "4x5" }) === "vertical" ? "omega-4x5-vertical" : "omega-4x5";
+}
+
 // Outline key of the board this carrier is used with, whether it's fused in
 // or printed separately (the film opening must clear its cutout either way).
-// omega board's opening widens for 4x5 → a distinct outline variant.
+// omega board's opening widens for 4x5 → distinct outline variants (one per
+// orientation, see omega4x5BoardKey).
 export function boardTypeOutlineKey(c: TwoDConfig): string | null {
   if (!BOARD_CARRIERS.has(c.carrierType)) return null;
   const boardType = effectiveBoardType(c);
-  if (boardType === "omega") return c.filmFormat === "4x5" ? "omega-4x5" : "omega";
+  if (boardType === "omega") return c.filmFormat === "4x5" ? omega4x5BoardKey(c) : "omega";
   if (boardType === "lpl-saunders") return "lpl-saunders";
   if (boardType === "beseler-23c") return "beseler-23c";
   return null;

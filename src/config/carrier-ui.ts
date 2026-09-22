@@ -1,5 +1,5 @@
 import type { GroupConfig, FormValue } from "../lib/form/types";
-import { BOARD_CARRIERS, SINGLE_PIECE_CARRIERS, FILM_PEG_CARRIERS, screwOnBoardType } from "./carriers";
+import { BOARD_CARRIERS, SINGLE_PIECE_CARRIERS, FILM_PEG_CARRIERS, screwOnBoardType, allows4x5Orientation } from "./carriers";
 import { filmFramePitch } from "../lib/twod/film-data";
 import { heatSetThreadHoleDia, heatSetHeadDia, heatSetHeadHoleDia } from "../lib/twod/geometry";
 import { parseConfig } from "../lib/twod/types";
@@ -26,6 +26,13 @@ const hasFramePitch = (v: Record<string, FormValue>) => filmFramePitch(String(v.
 // Carriers that have an alignment board (test frames don't).
 const isBoardCarrier = (v: Record<string, FormValue>) => BOARD_CARRIERS.has(String(v.Carrier_Type));
 
+// 4x5's orientation is forced to horizontal by the SCAD
+// (get_effective_orientation) except on the Omega-D carriers, whose board
+// turns with the sheet; elsewhere the toggle is locked and use-carrier-form
+// pins the value to match.
+const isLocked4x5Orientation = (v: Record<string, FormValue>) =>
+  v.Film_Format === "4x5" && !allows4x5Orientation(String(v.Carrier_Type));
+
 export const CARRIER_UI: GroupConfig[] = [
   {
     title: "Carrier",
@@ -48,11 +55,13 @@ export const CARRIER_UI: GroupConfig[] = [
         help: "Consecutive frames the opening spans, printed side by side in one exposure. Check the preview for fit.",
         visibleWhen: hasFramePitch },
       { param: "Orientation", label: "Orientation", control: "segmented",
-        help: "Locked for 4×5 — the sheet's orientation is fixed.",
+        help: (v) => isLocked4x5Orientation(v)
+          ? "Locked for 4×5 on this carrier — the sheet's orientation is fixed."
+          : v.Film_Format === "4x5" && isBoardCarrier(v)
+            ? "The alignment board and its screw holes turn with the sheet."
+            : undefined,
         optionLabels: { "vertical": "Vertical", "horizontal": "Horizontal" },
-        // 4x5's orientation is forced by the SCAD (get_effective_orientation),
-        // so the toggle is locked; use-carrier-form pins the value to match.
-        optionDisabledWhen: (_opt, v) => v.Film_Format === "4x5" },
+        optionDisabledWhen: (_opt, v) => isLocked4x5Orientation(v) },
       { param: "Top_or_Bottom", label: "Part", control: "segmented",
         help: (v) => isSinglePiece(v)
           ? "Locked — the glass-plate carrier is a single piece; the pocket does the clamping."

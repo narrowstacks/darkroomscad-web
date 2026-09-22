@@ -111,16 +111,32 @@ describe("useCarrierForm", () => {
     expect(result.current.values.Film_Format).toBe("35mm");
   });
 
-  it("pins Orientation to horizontal while 4x5 is selected", () => {
+  it("pins Orientation to horizontal while 4x5 is selected on a carrier that locks it (LPL), not on the omega", () => {
     const { result } = renderHook(() => useCarrierForm());
     act(() => {
+      result.current.setValue("Carrier_Type", "lpl-saunders-45xx");
       result.current.setValue("Orientation", "vertical");
       result.current.setValue("Film_Format", "4x5");
     });
     expect(result.current.values.Orientation).toBe("horizontal");
+    act(() => {
+      result.current.setValue("Orientation", "vertical");
+    });
+    expect(result.current.values.Orientation).toBe("horizontal");
+    // The Omega-D carriers honour the toggle for 4x5 (the board turns with the sheet).
+    act(() => {
+      result.current.setValue("Carrier_Type", "omega-d");
+      result.current.setValue("Orientation", "vertical");
+    });
+    expect(result.current.values).toMatchObject({ Film_Format: "4x5", Orientation: "vertical" });
+    // …and switching back to a locking carrier pins it again.
+    act(() => {
+      result.current.setValue("Carrier_Type", "lpl-saunders-45xx");
+    });
+    expect(result.current.values.Orientation).toBe("horizontal");
   });
 
-  it("omega-d-glass pins everything carrier.scad forces: 4x5 (horizontal), bottom, no flip, board off + omega", () => {
+  it("omega-d-glass pins everything carrier.scad forces: 4x5, bottom, no flip, board off + omega (orientation stays free)", () => {
     const { result } = renderHook(() => useCarrierForm());
     act(() => {
       result.current.setValue("Top_or_Bottom", "top");
@@ -132,9 +148,14 @@ describe("useCarrierForm", () => {
       result.current.setValue("Carrier_Type", "omega-d-glass");
     });
     expect(result.current.values).toMatchObject({
-      Film_Format: "4x5", Orientation: "horizontal", Top_or_Bottom: "bottom",
+      Film_Format: "4x5", Top_or_Bottom: "bottom",
       Flip_Bottom_For_Printing: false, Alignment_Board: false, Alignment_Board_Type: "omega",
     });
+    // The glass carrier's 4x5 sheet may run either way.
+    act(() => {
+      result.current.setValue("Orientation", "vertical");
+    });
+    expect(result.current.values.Orientation).toBe("vertical");
     // A stray edit of a locked field is pinned straight back.
     act(() => {
       result.current.setValue("Film_Format", "35mm");

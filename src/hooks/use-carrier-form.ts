@@ -5,7 +5,7 @@ import { resolveFormModel } from "@/lib/form/form-model";
 import { initialValues, toRenderParams } from "@/lib/form/form-state";
 import { loadConfig, saveConfig } from "@/lib/storage/config-store";
 import { encodeShare, decodeShare } from "@/lib/share/permalink";
-import { unsupportedFormats, lockedFormat, screwOnBoardType, SINGLE_PIECE_CARRIERS } from "@/config/carriers";
+import { unsupportedFormats, lockedFormat, screwOnBoardType, allows4x5Orientation, SINGLE_PIECE_CARRIERS } from "@/config/carriers";
 import { fromFilmFormatValue } from "@/lib/film-format";
 import schema from "../../generated/param-schema.json";
 import type { ParamSchema } from "@/lib/params/types";
@@ -20,7 +20,8 @@ import type { RenderParams } from "@/lib/openscad/types";
 //   .scad:135) killing the render. Board wins; pegs fall back to heat_set.
 // - a format the carrier can't take (e.g. 4x5 on the beseler-23c): fall back
 //   to 35mm.
-// - 4x5 forces horizontal (get_effective_orientation): pin the stored value so
+// - 4x5 forces horizontal (get_effective_orientation) except on the Omega-D
+//   carriers, where the board turns with it: elsewhere pin the stored value so
 //   the locked toggle shows what actually renders.
 // - "35mm full" was folded into "35mm" (the schema no longer has it); stored
 //   configs, share links and presets from before then still carry it.
@@ -53,7 +54,7 @@ function normalizeConflicts(v: Record<string, FormValue>): Record<string, FormVa
   if (screwOn && (out.Alignment_Board !== false || out.Alignment_Board_Type !== screwOn)) {
     out = { ...out, Alignment_Board: false, Alignment_Board_Type: screwOn };
   }
-  if (out.Film_Format === "4x5" && out.Orientation !== "horizontal") {
+  if (out.Film_Format === "4x5" && !allows4x5Orientation(carrier) && out.Orientation !== "horizontal") {
     out = { ...out, Orientation: "horizontal" };
   }
   return out;
