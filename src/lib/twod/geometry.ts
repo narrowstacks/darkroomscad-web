@@ -156,28 +156,34 @@ function boardFused(c: TwoDConfig): boolean {
 // material, so the pattern is per board type (carrier-configs.scad
 // *_BOARD_SCREW_PATTERN_DIST_*; full centre-to-centre spacing, holes at
 // (±x/2, ±y/2)):
-//   omega:        127mm square frame → (±41, ±56.5), on its rails.
+//   omega:        127mm square frame → (±41, ±56.5), on its rails. The 4x5
+//                 board's widened cutout (and the 4x5 film opening) swallow
+//                 that, so it uses (±56, ±40) — also the glass carrier's.
 //   lpl-saunders: two chord rails at |x| = 60.5..75.4 → x = ±68 (rail centre),
 //                 y = ±35 (rail spans |y| ≤ 43.5 there).
 //   beseler-23c:  5mm ring at r = 55..60 → on its centre-line (r 57.5) at 45°.
-const SCREW_DIAMETER = 2;          // UNIVERSAL_ALIGNMENT_SCREW_DIAMETER
+// The screws are the same machine screws as the heat-set pegs, so the holes are
+// the heat-set thread-forming size (heatSetThreadHoleDia; M2: 1.9 → r 0.95),
+// as are the pilot holes in the separately exported board.
 const BESELER_23C_BOARD_SCREW_RADIUS = 57.5;  // = the 23C board's TORUS_MAJOR_RADIUS
 export const BOARD_SCREW_PATTERNS: Record<string, { distX: number; distY: number }> = {
   "omega":        { distX: 82,  distY: 113 },
+  "omega-4x5":    { distX: 112, distY: 80 },
   "lpl-saunders": { distX: 136, distY: 70 },
   "beseler-23c":  { distX: BESELER_23C_BOARD_SCREW_RADIUS * Math.SQRT2, distY: BESELER_23C_BOARD_SCREW_RADIUS * Math.SQRT2 },
 };
-// omega-d-glass: the omega pattern lands inside its 4x5 opening, so it has its
-// own (carrier-configs.scad OMEGA_D_GLASS_SCREW_PATTERN_DIST_*).
-const GLASS_SCREW_PATTERN = { distX: 112, distY: 80 };
 
 export function screwFootprint(c: TwoDConfig): { cx: number; cy: number; r: number }[] {
   if (boardFused(c) || !BOARD_CARRIERS.has(c.carrierType)) return [];
-  const pattern = c.carrierType === "omega-d-glass" ? GLASS_SCREW_PATTERN : BOARD_SCREW_PATTERNS[effectiveBoardType(c)];
+  // Keyed like the board outlines: the omega board's 4x5 variant has its own
+  // pattern. The glass carrier is always that variant (carrier.scad forces it,
+  // whatever the format says).
+  const key = c.carrierType === "omega-d-glass" ? "omega-4x5" : boardTypeOutlineKey(c);
+  const pattern = BOARD_SCREW_PATTERNS[key ?? ""];
   if (!pattern) return [];
   const ex = pattern.distX / 2;
   const ey = pattern.distY / 2;
-  const r = SCREW_DIAMETER / 2;         // 1
+  const r = heatSetThreadHoleDia(c) / 2;  // M2 default: 0.95
   const out: { cx: number; cy: number; r: number }[] = [];
   for (const sx of [-1, 1]) for (const sy of [-1, 1]) out.push({ cx: sx * ex, cy: sy * ey, r });
   return out;

@@ -20,11 +20,12 @@ const hasWasm = existsSync(WASM_JS) && existsSync(WASM_BIN);
 // the 200mm+ carrier bodies, so a carrier-sized result fails loudly.
 const D23 = (57.5 * Math.SQRT2) / 2;
 const BOARDS: [string, { w: number; h: number; pilots: [number, number][] }][] = [
-  ["omega", { w: 127, h: 127, pilots: [] }],
+  ["omega", { w: 127, h: 127, pilots: [[41, 56.5], [-41, 56.5], [41, -56.5], [-41, -56.5]] }],
   ["lpl-saunders", { w: 150.75, h: 106.8, pilots: [[68, 35], [-68, 35], [68, -35], [-68, -35]] }],
   ["beseler-23c", { w: 120, h: 120, pilots: [[D23, D23], [-D23, D23], [D23, -D23], [-D23, -D23]] }],
 ];
-// Pilot hole: M2 thread-forming 1.6 + 0.3 FDM compensation (ALIGNMENT_BOARD_SCREW_PILOT_DIA).
+// Pilot hole: the heat-set thread-forming size (same screws as the pegs);
+// default M2: 1.6 tap drill + 0.3 FDM compensation.
 const PILOT_R = 1.9 / 2;
 
 // Does the STL have a cylindrical wall of radius r around (cx, cy)? Counts
@@ -99,7 +100,22 @@ describe.runIf(hasWasm)("standalone alignment board (integration)", () => {
     // The standalone board is screwed on: it carries the pilot holes matching
     // the carrier's footprint (the old omega pattern would miss its material).
     for (const [cx, cy] of size.pilots) expect(wallVertsAt(result.stl, cx, cy, PILOT_R), `pilot at (${cx}, ${cy})`).toBeGreaterThan(0);
-    if (size.pilots.length) expect(wallVertsAt(result.stl, 41, 56.5, PILOT_R)).toBe(0);
+    if (boardType !== "omega") expect(wallVertsAt(result.stl, 41, 56.5, PILOT_R)).toBe(0);
+  }, 180_000);
+
+  it("pilot holes follow the heat-set screw size (M2.5 → 2.35mm)", async () => {
+    const { factory, wasmBinary } = await loadEngine(process.cwd());
+    const log: string[] = [];
+    const loadModule = () =>
+      factory({ noInitialRun: true, wasmBinary, print: (t: string) => log.push(t), printErr: (t: string) => log.push(t) });
+    const result = await renderScad(
+      loadModule, fsAssets,
+      { params: { Carrier_Type: "omega-d", Film_Format: "35mm", Render_Quality: "final", _Render_Alignment_Board_Only: true,
+        Alignment_Board_Type: "lpl-saunders", Heat_Set_Screw_Size: "M2.5" }, quality: "final" },
+      log,
+    );
+    expect(wallVertsAt(result.stl, 68, 35, (2.05 + 0.3) / 2)).toBeGreaterThan(0);
+    expect(wallVertsAt(result.stl, 68, 35, PILOT_R)).toBe(0);
   }, 180_000);
 
   it("a fused lpl-saunders board has no pilot holes (one solid print, no screws)", async () => {

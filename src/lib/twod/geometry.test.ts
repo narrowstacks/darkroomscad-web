@@ -175,14 +175,20 @@ describe("pegRadiusAndKind", () => {
 });
 
 describe("screwFootprint", () => {
-  it("board off + omega type → 4 holes at (±41, ±56.5) r=1", () => {
+  it("board off + omega type → 4 holes at (±41, ±56.5), at the heat-set thread-hole size (M2: r 0.95)", () => {
     const holes = screwFootprint({ ...base, alignmentBoard: false, alignmentBoardType: "omega" });
     expect(holes).toHaveLength(4);
     for (const h of holes) {
       expect(Math.abs(h.cx)).toBe(41);
       expect(Math.abs(h.cy)).toBe(56.5);
-      expect(h.r).toBe(1);
+      expect(h.r).toBeCloseTo(0.95, 6);
     }
+  });
+  it("hole size follows the heat-set screw size and thread-hole adjust (same screws as the pegs)", () => {
+    const m25 = screwFootprint({ ...base, alignmentBoard: false, alignmentBoardType: "omega", heatSetScrewSize: "M2.5" });
+    expect(m25[0].r).toBeCloseTo((2.05 + 0.3) / 2, 6);
+    const adj = screwFootprint({ ...base, alignmentBoard: false, alignmentBoardType: "omega", heatSetThreadHoleAdjust: 0.2 });
+    expect(adj[0].r).toBeCloseTo((1.9 + 0.2) / 2, 6);
   });
   it("none when the board is attached", () => {
     expect(screwFootprint({ ...base, alignmentBoard: true, alignmentBoardType: "omega" })).toEqual([]);
@@ -196,7 +202,7 @@ describe("screwFootprint", () => {
     for (const h of holes) {
       expect(Math.abs(h.cx)).toBe(68);
       expect(Math.abs(h.cy)).toBe(35);
-      expect(h.r).toBe(1);
+      expect(h.r).toBeCloseTo(0.95, 6);
     }
   });
   it("board off + beseler-23c type → 4 holes on the ring's centre-line (r 57.5) at 45°", () => {
@@ -206,7 +212,7 @@ describe("screwFootprint", () => {
       expect(Math.abs(h.cx)).toBeCloseTo(40.6586, 3);
       expect(Math.abs(h.cy)).toBeCloseTo(40.6586, 3);
       expect(Math.hypot(h.cx, h.cy)).toBeCloseTo(57.5, 6);
-      expect(h.r).toBe(1);
+      expect(h.r).toBeCloseTo(0.95, 6);
     }
   });
   it("the pattern follows the board type, not the carrier", () => {
@@ -220,6 +226,20 @@ describe("screwFootprint", () => {
   // and on the carrier's body. Sampled with the outlines' even-odd fill, in the
   // export space (a symmetric pattern is invariant under its Y flip).
   const boardOutlineFor: Record<string, string> = { omega: "omega", "lpl-saunders": "lpl-saunders", "beseler-23c": "beseler-23c" };
+  it("omega board + 4x5 uses the 4x5 pattern (±56, ±40): the widened cutout swallows (±41, ±56.5)", () => {
+    const holes = screwFootprint({ ...base, carrierType: "omega-d", filmFormat: "4x5", alignmentBoard: false, alignmentBoardType: "omega" });
+    expect(holes.map((h) => [Math.abs(h.cx), Math.abs(h.cy)])).toEqual([[56, 40], [56, 40], [56, 40], [56, 40]]);
+    const polys = parsePathPolygons(BOARD_OUTLINES["omega-4x5"].d);
+    for (const h of holes) expect(onMaterial(polys, h.cx, h.cy, h.r), `hole at (${h.cx}, ${h.cy})`).toBe(true);
+    expect(onMaterial(polys, 41, 56.5, 0.95)).toBe(false);
+    // And the 4x5 pattern would be in the regular board's cutout.
+    expect(onMaterial(parsePathPolygons(BOARD_OUTLINES["omega"].d), 56, 40, 0.95)).toBe(false);
+    // On both carriers that take 4x5, top and bottom.
+    for (const key of ["omega-d", "omega-d:top", "lpl-saunders-45xx", "lpl-saunders-45xx:top"]) {
+      const body = parsePathPolygons(CARRIER_OUTLINES[key].d);
+      for (const h of holes) expect(onMaterial(body, h.cx, h.cy, h.r), `${key} hole at (${h.cx}, ${h.cy})`).toBe(true);
+    }
+  });
   const onMaterial = (polys: Polygon[], cx: number, cy: number, r: number) => {
     if (!pointInPolygons(polys, cx, cy)) return false;
     for (let k = 0; k < 12; k++) {
@@ -524,9 +544,12 @@ describe("omega-d-glass", () => {
     expect(buildScene(base).pegs).toHaveLength(4);
   });
 
-  it("screw footprint uses the glass pattern (±56, ±40) and ignores a stale Alignment_Board=true", () => {
-    const holes = screwFootprint(glass).map((h) => [h.cx, h.cy, h.r]).sort();
-    expect(holes).toEqual([[-56, -40, 1], [-56, 40, 1], [56, -40, 1], [56, 40, 1]].sort());
+  it("screw footprint uses the omega 4x5 pattern (±56, ±40) and ignores a stale Alignment_Board=true", () => {
+    const holes = screwFootprint(glass).map((h) => [h.cx, h.cy]).sort();
+    expect(holes).toEqual([[-56, -40], [-56, 40], [56, -40], [56, 40]].sort());
+    expect(screwFootprint(glass).every((h) => Math.abs(h.r - 0.95) < 1e-9)).toBe(true);
+    // The glass carrier is always that variant, whatever the (locked) format says.
+    expect(screwFootprint({ ...glass, filmFormat: "35mm" }).map((h) => [h.cx, h.cy]).sort()).toEqual(holes);
     // Contrast: a fused board on the omega-d suppresses the footprint.
     expect(screwFootprint({ ...base, alignmentBoard: true })).toEqual([]);
   });

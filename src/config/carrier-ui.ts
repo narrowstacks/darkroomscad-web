@@ -125,8 +125,8 @@ export const CARRIER_UI: GroupConfig[] = [
     fields: [
       { param: "Alignment_Board", label: "Attach alignment board", control: "switch",
         help: (v) => hasScrewOnBoard(v)
-          ? "Locked off — this carrier's board is screwed on from below and exported as its own STL (with M2 clearance holes)."
-          : "On: fused into the carrier (needs heat-set pegs). Off: exported as a separate STL.",
+          ? "Locked off — this carrier's board is screwed on from below and exported as its own STL (with clearance holes for the peg screw size)."
+          : "On: fused into the carrier (needs heat-set pegs). Off: exported as a separate STL with pilot holes, and the carrier gets matching screw holes — both sized for the peg screws.",
         visibleWhen: isBoardCarrier,
         disabledWhen: (v) => hasScrewOnBoard(v) || v.Printed_or_Heat_Set_Pegs === "printed" },
       { param: "Alignment_Board_Type", label: "Board type", control: "segmented",

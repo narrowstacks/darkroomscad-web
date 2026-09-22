@@ -12,6 +12,8 @@ const SECTIONS: { title: string; items: React.ReactNode[] }[] = [
       &ldquo;Heat-set&rdquo; pegs are selected: the thread bites into the bottom carrier and the head registers the top plate.</>,
       <>Keep <em>Screw head</em> on <strong>Socket</strong> unless you have something else in hand, since the top hole is sized to the
       head style you pick.</>,
+      <>The same screws attach a <strong>non-fused alignment board</strong>: the carrier&rsquo;s four footprint holes and the
+      board&rsquo;s pilot holes are both the thread-forming size for the screw size you pick.</>,
     ],
   },
   {
