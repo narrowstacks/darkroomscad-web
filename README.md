@@ -87,7 +87,7 @@ See [`CLAUDE.md`](./CLAUDE.md) for the full architecture notes (2D coordinate co
 
 ## Deployment
 
-Deploys to Vercel; `vercel.json` sets the build command to `turbo run build` so the base-STL bake and the Next.js build are cached in Vercel's Turborepo remote cache. The app is entirely client-side, and the ~9.6 MB `openscad.wasm` plus the SCAD assets are served as static files from the CDN. The OpenSCAD WASM worker needs cross-origin isolation (`SharedArrayBuffer`), so `next.config.ts` sets `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` on all routes. No environment variables required.
+Deploys to Vercel; `vercel.json` sets the build command to `turbo run build` so the base-STL bake is served from Vercel's Turborepo remote cache whenever the SCAD sources have not changed (the Next.js build itself embeds the deployment id for Skew Protection, so it rebuilds each deploy). The app is entirely client-side, and the ~9.6 MB `openscad.wasm` plus the SCAD assets are served as static files from the CDN. The OpenSCAD WASM worker needs cross-origin isolation (`SharedArrayBuffer`), so `next.config.ts` sets `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` on all routes. No environment variables required.
 
 ## Related projects
 
