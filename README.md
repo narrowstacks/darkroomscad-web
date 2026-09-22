@@ -37,8 +37,8 @@ When you're happy, the export bundles the part or parts, plus an optional alignm
 ## Getting started
 
 ```bash
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 Open <http://localhost:3000>.
