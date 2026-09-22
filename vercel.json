@@ -1,5 +1,5 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "buildCommand": "turbo run build"
+  "buildCommand": "turbo run gen:base-stls --dry=json | node scripts/turbo-hash-debug.mjs && turbo run build"
 }
