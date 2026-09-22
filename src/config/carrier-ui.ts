@@ -125,7 +125,7 @@ export const CARRIER_UI: GroupConfig[] = [
     fields: [
       { param: "Alignment_Board", label: "Attach alignment board", control: "switch",
         help: (v) => hasScrewOnBoard(v)
-          ? "Locked off — this carrier's board is screwed on from below and exported as its own STL (with clearance holes for the peg screw size)."
+          ? "Locked off — this carrier's board is screwed on from below and exported as its own STL (clearance holes for the peg screw size, counterbored for the heads)."
           : "On: fused into the carrier (needs heat-set pegs). Off: exported as a separate STL with pilot holes, and the carrier gets matching screw holes — both sized for the peg screws.",
         visibleWhen: isBoardCarrier,
         disabledWhen: (v) => hasScrewOnBoard(v) || v.Printed_or_Heat_Set_Pegs === "printed" },
@@ -205,6 +205,9 @@ export const CARRIER_UI: GroupConfig[] = [
       { param: "Glass_Notch_Reach", label: "Notch reach under plate", control: "slider",
         min: 0, max: 5, step: 0.5, unit: "mm", advanced: true,
         visibleWhen: (v) => isGlassCarrier(v) && v.Glass_Notch_Corner !== "none" },
+      { param: "Glass_Board_Screw_Counterbore", label: "Board screw counterbore", control: "slider",
+        help: (v) => `Recess for the screw heads in the separate alignment board, cut from the face you screw in from (diameter ${heatSetHeadHoleDia(parseConfig(v)).toFixed(2)} mm = head + 0.5, following the head hole adjust). The board is 1.7 mm thick, so 1 mm leaves 0.7 mm under the head; 0 = plain through holes.`,
+        min: 0, max: 1.2, step: 0.1, unit: "mm", advanced: true, visibleWhen: isGlassCarrier },
     ],
   },
 ];
