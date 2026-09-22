@@ -44,9 +44,9 @@ bun run dev
 Open <http://localhost:3000>.
 
 ```bash
-npm test          # vitest
-npm run build     # production build (runs the prebuild scad-sync; see below)
-npm run lint      # eslint
+bun test          # vitest
+bun run build     # production build (runs the prebuild scad-sync; see below)
+bun run lint      # eslint
 bun run check     # lint + typecheck + test through Turborepo (cached)
 bunx turbo build  # bake base STLs (cached) + production build
 ```
